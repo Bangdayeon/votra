@@ -2,6 +2,7 @@ import type { ComponentType, SVGProps } from "react";
 
 import IC_Add from "@/assets/icons/ic_add.svg";
 import IC_Arrow_Forward from "@/assets/icons/ic_arrow_forward.svg";
+import IC_Sidenav from "@/assets/icons/ic_sidenav.svg";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 const ICON_REGISTRY = {
   IC_Add,
   IC_Arrow_Forward,
+  IC_Sidenav,
 } satisfies Record<string, ComponentType<SVGProps<SVGSVGElement>>>;
 
 export type IconName = keyof typeof ICON_REGISTRY;

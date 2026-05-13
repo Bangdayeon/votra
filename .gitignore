@@ -40,3 +40,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .axhub/bootstrap.state.json
+
+# claude code / agent metadata
+.claude/
+.agents/
+skills-lock.json
+
+# alt package manager artifacts (project uses npm)
+pnpm-lock.yaml
+pnpm-workspace.yaml
