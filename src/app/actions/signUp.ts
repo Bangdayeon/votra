@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/infrastructure/db/prisma";
 import { hashPassword } from "@/infrastructure/auth/hashPassword";
 import { setSessionCookie } from "@/infrastructure/auth/setSessionCookie";
+import { randomProfileAppearance } from "@/domain/user/profileAppearance";
 
 export type SignUpState = { error?: string };
 
@@ -23,8 +24,9 @@ export async function signUpAction(
   if (existing) return { error: "이미 가입된 이메일이에요." };
 
   const passwordHash = await hashPassword(password);
+  const { profileColor, profileImage } = randomProfileAppearance();
   const user = await prisma.user.create({
-    data: { email, name, passwordHash },
+    data: { email, name, passwordHash, profileColor, profileImage },
     select: { id: true },
   });
 

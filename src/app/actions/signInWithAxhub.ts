@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { prisma } from "@/infrastructure/db/prisma";
 import { setSessionCookie } from "@/infrastructure/auth/setSessionCookie";
+import { randomProfileAppearance } from "@/domain/user/profileAppearance";
 
 export type AxhubSignInState = { error?: string };
 
@@ -59,6 +60,7 @@ export async function signInWithAxhubAction(): Promise<AxhubSignInState> {
     };
   }
 
+  const randomAppearance = randomProfileAppearance();
   const user = await prisma.user.upsert({
     where: { axhubUserId },
     update: { email: axhubEmail, name: axhubName ?? undefined },
@@ -66,6 +68,8 @@ export async function signInWithAxhubAction(): Promise<AxhubSignInState> {
       axhubUserId,
       email: axhubEmail,
       name: axhubName,
+      profileColor: randomAppearance.profileColor,
+      profileImage: randomAppearance.profileImage,
     },
     select: { id: true },
   });

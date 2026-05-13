@@ -1,48 +1,230 @@
 "use client";
 
-import { CircleUserRound, LogOut } from "lucide-react";
-import { useTransition } from "react";
+import Image from "next/image";
+import { CircleUserRound, LogOut, Check } from "lucide-react";
+import { useState, useTransition } from "react";
 
 import { signOutAction } from "@/app/actions/signOut";
+import { updateProfileAppearanceAction } from "@/app/actions/updateProfileAppearance";
 import { useCurrentUser } from "@/components/CurrentUserContext";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { PROFILE_COLORS, PROFILE_IMAGES } from "@/domain/user/profileAppearance";
+import { cn } from "@/lib/utils";
+
+function Avatar({
+  color,
+  image,
+  fallbackChar,
+  size = 28,
+}: {
+  color: string | null;
+  image: string | null;
+  fallbackChar: string;
+  size?: number;
+}) {
+  if (!color && !image) {
+    return (
+      <CircleUserRound
+        className="shrink-0 text-muted-foreground"
+        strokeWidth={1.5}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <span
+      className="relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: color ? `#${color}` : "transparent",
+      }}
+    >
+      {image ? (
+        <Image
+          src={image}
+          alt="프로필 이미지"
+          width={size}
+          height={size}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <span className="text-xs font-semibold text-white">
+          {fallbackChar.toUpperCase()}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function AppearancePicker({
+  currentColor,
+  currentImage,
+}: {
+  currentColor: string | null;
+  currentImage: string | null;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [optimisticColor, setOptimisticColor] = useState(currentColor);
+  const [optimisticImage, setOptimisticImage] = useState(currentImage);
+
+  const pickColor = (color: string) => {
+    setOptimisticColor(color);
+    startTransition(async () => {
+      await updateProfileAppearanceAction({ kind: "color", value: color });
+    });
+  };
+
+  const pickImage = (image: string) => {
+    setOptimisticImage(image);
+    startTransition(async () => {
+      await updateProfileAppearanceAction({ kind: "image", value: image });
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">색상</span>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {PROFILE_COLORS.map((color) => {
+            const selected = optimisticColor === color;
+            return (
+              <button
+                key={color}
+                type="button"
+                onClick={() => pickColor(color)}
+                disabled={pending}
+                aria-label={`색상 #${color}`}
+                aria-pressed={selected}
+                className={cn(
+                  "relative size-7 rounded-full transition-transform hover:scale-110 disabled:opacity-50",
+                  selected && "ring-2 ring-foreground ring-offset-2",
+                )}
+                style={{ backgroundColor: `#${color}` }}
+              >
+                {selected && (
+                  <Check className="absolute inset-0 m-auto size-4 text-white" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">이미지</span>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {PROFILE_IMAGES.map((image) => {
+            const selected = optimisticImage === image;
+            return (
+              <button
+                key={image}
+                type="button"
+                onClick={() => pickImage(image)}
+                disabled={pending}
+                aria-label="프로필 이미지 선택"
+                aria-pressed={selected}
+                className={cn(
+                  "size-12 overflow-hidden rounded-full transition-transform hover:scale-105 disabled:opacity-50",
+                  selected && "ring-2 ring-foreground ring-offset-2",
+                )}
+                style={{
+                  backgroundColor: optimisticColor
+                    ? `#${optimisticColor}`
+                    : "var(--muted)",
+                }}
+              >
+                <Image
+                  src={image}
+                  alt=""
+                  width={48}
+                  height={48}
+                  className="h-full w-full object-cover"
+                />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function UserMenu({ compact = false }: { compact?: boolean }) {
   const user = useCurrentUser();
-  const [pending, startTransition] = useTransition();
+  const [signOutPending, startSignOut] = useTransition();
+
+  const displayName = user.name ?? user.email.split("@")[0];
+  const fallbackChar = displayName.charAt(0) || "?";
 
   const handleSignOut = () => {
-    startTransition(async () => {
+    startSignOut(async () => {
       await signOutAction();
     });
   };
 
+  const trigger = (
+    <button
+      type="button"
+      title={`${displayName} 프로필`}
+      aria-label="프로필 메뉴 열기"
+      className="rounded-full outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      <Avatar
+        color={user.profileColor}
+        image={user.profileImage}
+        fallbackChar={fallbackChar}
+        size={28}
+      />
+    </button>
+  );
+
   if (compact) {
     return (
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={handleSignOut}
-        disabled={pending}
-        title={`${user.name ?? user.email} · 로그아웃`}
-        aria-label="로그아웃"
-      >
-        <CircleUserRound className="size-7 text-muted-foreground" strokeWidth={1.5} />
-      </Button>
+      <Popover>
+        <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+        <PopoverContent side="right" align="end" className="w-64">
+          <AppearancePicker
+            currentColor={user.profileColor}
+            currentImage={user.profileImage}
+          />
+          <div className="mt-4 border-t border-border pt-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              disabled={signOutPending}
+              className="w-full justify-center gap-2"
+            >
+              <LogOut className="size-4" />
+              로그아웃
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
     );
   }
 
   return (
     <div className="flex items-center gap-2">
-      <CircleUserRound
-        className="size-7 shrink-0 text-muted-foreground"
-        strokeWidth={1.5}
-      />
+      <Popover>
+        <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+        <PopoverContent side="top" align="start" className="w-64">
+          <AppearancePicker
+            currentColor={user.profileColor}
+            currentImage={user.profileImage}
+          />
+        </PopoverContent>
+      </Popover>
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-medium">
-          {user.name ?? user.email.split("@")[0]}
-        </span>
+        <span className="truncate text-sm font-medium">{displayName}</span>
         <span className="truncate text-xs text-muted-foreground">
           {user.email}
         </span>
@@ -52,7 +234,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
         variant="ghost"
         size="icon"
         onClick={handleSignOut}
-        disabled={pending}
+        disabled={signOutPending}
         title="로그아웃"
         aria-label="로그아웃"
       >

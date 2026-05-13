@@ -9,6 +9,8 @@ export type AppShellUser = {
   id: string;
   email: string;
   name: string | null;
+  profileColor: string | null;
+  profileImage: string | null;
 };
 
 function ShellLayout({ children }: { children: React.ReactNode }) {
