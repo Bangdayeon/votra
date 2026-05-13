@@ -6,6 +6,7 @@ export type ProjectListRow = {
   description: string | null;
   thumbnailUrl: string | null;
   structure: unknown;
+  cwd: string | null;
   firstAgentSource: string | null;
 };
 
@@ -13,6 +14,14 @@ export type SessionErrorCreate = {
   errorType: string;
   errorMessage?: string;
   occurredAt: Date;
+};
+
+export type ProjectEventCreate = {
+  /** Prisma EventType — 일단 파일 수정 (`FILE_EDIT`) 만 저장. 필요시 확장. */
+  type: "FILE_EDIT";
+  occurredAt: Date;
+  path?: string;
+  toolName?: string;
 };
 
 export type ProjectSessionCreate = {
@@ -24,6 +33,7 @@ export type ProjectSessionCreate = {
   outputTokens: number;
   totalTokens: number;
   errors?: SessionErrorCreate[];
+  events?: ProjectEventCreate[];
 };
 
 export type ProjectCreateInput = {
@@ -32,6 +42,7 @@ export type ProjectCreateInput = {
   description?: string;
   thumbnailUrl?: string;
   structure?: Record<string, unknown>;
+  cwd?: string;
   agent: AgentKind;
   sessions: ProjectSessionCreate[];
 };

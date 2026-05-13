@@ -44,7 +44,8 @@ export async function addLocalProject(
     return { ok: false, error: "세션이 한 개도 발견되지 않았어요." };
   }
 
-  const tree = input.tree ?? (await autoScanTree(sessions));
+  const cwd = extractCwd(sessions);
+  const tree = input.tree ?? (cwd ? await autoScanTree(cwd) : undefined);
 
   const projectId = await saveProject(
     {
@@ -53,6 +54,7 @@ export async function addLocalProject(
       description: input.description,
       structure: tree ? { tree } : undefined,
       thumbnailUrl: input.thumbnailUrl,
+      cwd: cwd ?? undefined,
       sessions,
     },
     { projects: prismaProjectRepository, users: prismaUserRepository },
@@ -62,9 +64,7 @@ export async function addLocalProject(
   return { ok: true, projectId };
 }
 
-async function autoScanTree(sessions: Awaited<ReturnType<typeof claudeCodeAdapter.parse>>): Promise<FolderNode[] | undefined> {
-  const cwd = extractCwd(sessions);
-  if (!cwd) return undefined;
+async function autoScanTree(cwd: string): Promise<FolderNode[] | undefined> {
   const children = await scanLocalFolderTree(cwd);
   if (!children) return undefined;
   const rootName = cwd.split("/").filter(Boolean).pop() ?? cwd;

@@ -67,6 +67,9 @@ model Project {
   // e.g. { "tree": [...], "architecture": "..." }
   structure Json?
 
+  /// 로컬 폴더 절대경로 (예: "/Users/bibi/votra"). 파일 경로 표시 시 base prefix
+  cwd String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

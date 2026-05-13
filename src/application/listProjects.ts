@@ -8,6 +8,7 @@ export type ProjectListItem = {
   description?: string;
   image?: string;
   structure?: FolderNode[];
+  cwd?: string;
 };
 
 export async function listProjects(deps: {
@@ -21,6 +22,7 @@ export async function listProjects(deps: {
     description: r.description ?? undefined,
     image: r.thumbnailUrl ?? undefined,
     structure: extractTree(r.structure),
+    cwd: r.cwd ?? undefined,
   }));
 }
 

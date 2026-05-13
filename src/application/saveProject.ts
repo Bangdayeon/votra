@@ -1,5 +1,6 @@
 import { aggregateSessionMetrics } from "@/domain/session/aggregateSessionMetrics";
 import { extractErrors } from "@/domain/session/extractErrors";
+import { extractFileEdits } from "@/domain/session/extractFileEdits";
 import type { AgentKind } from "@/domain/agent/types";
 import type { Session } from "@/domain/session/types";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
@@ -15,6 +16,8 @@ export type SaveProjectInput = {
   structure?: Record<string, unknown>;
   /** 썸네일 (data URL 또는 외부 URL) */
   thumbnailUrl?: string;
+  /** 로컬 폴더 절대경로 — tooltip 등에서 path prefix 자를 때 사용 */
+  cwd?: string;
   sessions: Session[];
 };
 
@@ -29,10 +32,12 @@ export async function saveProject(
     description: input.description,
     thumbnailUrl: input.thumbnailUrl,
     structure: input.structure,
+    cwd: input.cwd,
     agent: input.agent,
     sessions: input.sessions.map((s) => {
       const m = aggregateSessionMetrics(s.events);
       const errors = extractErrors(s);
+      const fileEdits = extractFileEdits(s.events);
       return {
         title: s.title,
         model: m.model ?? "unknown",
@@ -45,6 +50,12 @@ export async function saveProject(
           errorType: e.errorType,
           errorMessage: e.errorMessage,
           occurredAt: new Date(e.occurredAt),
+        })),
+        events: fileEdits.map((f) => ({
+          type: "FILE_EDIT" as const,
+          occurredAt: new Date(f.occurredAt),
+          path: f.path,
+          toolName: f.toolName,
         })),
       };
     }),

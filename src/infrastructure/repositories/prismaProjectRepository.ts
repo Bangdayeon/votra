@@ -21,6 +21,7 @@ export const prismaProjectRepository: ProjectRepository = {
         description: r.description,
         thumbnailUrl: r.thumbnailUrl,
         structure: r.structure,
+        cwd: r.cwd,
         firstAgentSource: r.agents[0]?.source ?? null,
       }),
     );
@@ -35,6 +36,7 @@ export const prismaProjectRepository: ProjectRepository = {
         description: data.description,
         thumbnailUrl: data.thumbnailUrl,
         structure: data.structure as Prisma.InputJsonValue | undefined,
+        cwd: data.cwd,
         agents: { create: [{ source }] },
         sessions: {
           create: data.sessions.map((s) => ({
@@ -57,6 +59,24 @@ export const prismaProjectRepository: ProjectRepository = {
                       errorType: e.errorType,
                       errorMessage: e.errorMessage,
                       occurredAt: e.occurredAt,
+                    })),
+                  }
+                : undefined,
+            events:
+              s.events && s.events.length > 0
+                ? {
+                    create: s.events.map((e) => ({
+                      type: e.type,
+                      timestamp: e.occurredAt,
+                      metadata:
+                        e.path || e.toolName
+                          ? ({
+                              ...(e.path ? { path: e.path } : {}),
+                              ...(e.toolName
+                                ? { toolName: e.toolName }
+                                : {}),
+                            } as Prisma.InputJsonValue)
+                          : undefined,
                     })),
                   }
                 : undefined,
