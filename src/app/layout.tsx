@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 
+import { SideNavigation } from "@/components/SideNavigation";
 import "@/styles/globals.css";
 
 const pretendard = localFont({
@@ -22,7 +23,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={pretendard.variable}>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <div className="flex min-h-screen">
+          <SideNavigation />
+          <main className="flex-1">{children}</main>
+        </div>
+      </body>
     </html>
   );
 }
