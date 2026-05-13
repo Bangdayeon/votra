@@ -1,8 +1,15 @@
 "use client";
 
 import { ProjectsProvider, type Project } from "@/components/ProjectsContext";
+import { CurrentUserProvider } from "@/components/CurrentUserContext";
 import { SideNavigation } from "@/components/SideNavigation";
 import { SidebarProvider, useSidebar } from "@/components/SidebarContext";
+
+export type AppShellUser = {
+  id: string;
+  email: string;
+  name: string | null;
+};
 
 function ShellLayout({ children }: { children: React.ReactNode }) {
   const { open } = useSidebar();
@@ -20,15 +27,19 @@ function ShellLayout({ children }: { children: React.ReactNode }) {
 export function AppShell({
   children,
   initialProjects,
+  currentUser,
 }: {
   children: React.ReactNode;
   initialProjects: Project[];
+  currentUser: AppShellUser;
 }) {
   return (
-    <SidebarProvider>
-      <ProjectsProvider initial={initialProjects}>
-        <ShellLayout>{children}</ShellLayout>
-      </ProjectsProvider>
-    </SidebarProvider>
+    <CurrentUserProvider user={currentUser}>
+      <SidebarProvider>
+        <ProjectsProvider initial={initialProjects}>
+          <ShellLayout>{children}</ShellLayout>
+        </ProjectsProvider>
+      </SidebarProvider>
+    </CurrentUserProvider>
   );
 }

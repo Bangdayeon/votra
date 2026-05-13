@@ -2,13 +2,13 @@
 
 import Image from "next/image";
 import { Icon } from "./Icon";
-import { CircleUserRound } from "lucide-react";
 
 import { AddProjectDialog } from "@/components/AddProjectDialog";
 import { useProjects } from "@/components/ProjectsContext";
 import { SideNavMenuItem } from "@/components/SideNavMenuItem";
 import { useSidebar } from "@/components/SidebarContext";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/UserMenu";
 
 export function SideNavigation() {
   const { open, toggle } = useSidebar();
@@ -53,10 +53,7 @@ export function SideNavigation() {
         </ul>
 
         <div className="flex items-center justify-center border-t border-border py-3">
-          <CircleUserRound
-            className="size-7 text-muted-foreground"
-            strokeWidth={1.5}
-          />
+          <UserMenu compact />
         </div>
       </aside>
     );
@@ -106,9 +103,8 @@ export function SideNavigation() {
         </ul>
       </div>
 
-      <div className="flex items-center gap-2 border-t border-border px-4 py-3">
-        <CircleUserRound className="size-7 text-muted-foreground" strokeWidth={1.5} />
-        <span className="text-sm">user name</span>
+      <div className="border-t border-border px-4 py-3">
+        <UserMenu />
       </div>
     </aside>
   );

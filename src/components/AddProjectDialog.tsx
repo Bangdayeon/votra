@@ -1,10 +1,13 @@
 "use client";
 
-import { Loader2, Plus } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Loader2, Plus, RefreshCw } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
 
-import { addProject } from "@/app/actions/addProject";
-import { detectAgent } from "@/domain/agent/detectAgent";
+import { addLocalProject } from "@/app/actions/addLocalProject";
+import {
+  discoverProjects,
+  type DiscoverProjectsResult,
+} from "@/app/actions/discoverProjects";
 import type { FolderNode } from "@/components/FolderTree";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -30,25 +34,44 @@ const SKIP_DIRS = new Set([
   ".vercel",
 ]);
 
-type ScanResult = {
-  tree: FolderNode[];
-  jsonlFiles: { path: string; content: string }[];
-};
-
-type Props = {
-  onAdded: () => void;
-};
+type Props = { onAdded: () => void };
 
 export function AddProjectDialog({ onAdded }: Props) {
   const [open, setOpen] = useState(false);
-  const [scan, setScan] = useState<ScanResult | null>(null);
+  const [discovered, setDiscovered] = useState<DiscoverProjectsResult | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  const [agentLabel, setAgentLabel] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [codeTree, setCodeTree] = useState<FolderNode[] | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [discovering, setDiscovering] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  async function handlePickFolder() {
+  useEffect(() => {
+    if (open && !discovered) {
+      void runDiscover();
+    }
+  }, [open, discovered]);
+
+  async function runDiscover() {
+    setDiscovering(true);
+    setError(null);
+    try {
+      const result = await discoverProjects();
+      setDiscovered(result);
+      if (result.claude.length > 0) {
+        const first = result.claude[0];
+        setSelectedKey(first.encodedPath);
+        setTitle(first.shortName);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "프로젝트 검색 실패");
+    } finally {
+      setDiscovering(false);
+    }
+  }
+
+  async function handlePickCodeFolder() {
     setError(null);
     const picker = (
       window as unknown as {
@@ -59,29 +82,16 @@ export function AddProjectDialog({ onAdded }: Props) {
       setError("이 브라우저는 폴더 선택을 지원하지 않아요. Chrome/Edge/Brave 를 써주세요.");
       return;
     }
-
     let handle: FileSystemDirectoryHandle;
     try {
       handle = await picker();
     } catch {
       return;
     }
-
     setScanning(true);
     try {
-      const result = await scanDirectory(handle, "");
-      const rootName = handle.name || "프로젝트";
-      const rootTree: FolderNode[] = [
-        { name: rootName, children: result.tree, defaultOpen: true },
-      ];
-      const folderFiles = result.jsonlFiles.map((f) => ({
-        relativePath: f.path,
-        readText: () => Promise.resolve(f.content),
-      }));
-      const adapter = detectAgent(folderFiles);
-      setScan({ tree: rootTree, jsonlFiles: result.jsonlFiles });
-      setTitle(rootName);
-      setAgentLabel(adapter?.label ?? null);
+      const tree = await scanFolderTree(handle, "");
+      setCodeTree([{ name: handle.name || "프로젝트", children: tree, defaultOpen: true }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "폴더를 읽지 못했어요.");
     } finally {
@@ -90,12 +100,13 @@ export function AddProjectDialog({ onAdded }: Props) {
   }
 
   function handleSubmit() {
-    if (!scan) return;
+    if (!selectedKey) return;
     startTransition(async () => {
-      const result = await addProject({
+      const result = await addLocalProject({
+        agentKind: "CLAUDE",
+        encodedPath: selectedKey,
         title,
-        tree: scan.tree,
-        jsonlFiles: scan.jsonlFiles,
+        tree: codeTree ?? undefined,
       });
       if (result.ok) {
         resetState();
@@ -108,14 +119,15 @@ export function AddProjectDialog({ onAdded }: Props) {
   }
 
   function resetState() {
-    setScan(null);
+    setDiscovered(null);
+    setSelectedKey(null);
     setTitle("");
-    setAgentLabel(null);
+    setCodeTree(null);
     setError(null);
   }
 
-  const canSubmit =
-    !pending && !scanning && scan !== null && title.length > 0 && agentLabel !== null;
+  const claudeProjects = discovered?.claude ?? [];
+  const canSubmit = !pending && selectedKey !== null && title.length > 0;
 
   return (
     <Dialog
@@ -135,34 +147,65 @@ export function AddProjectDialog({ onAdded }: Props) {
           프로젝트 추가
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>프로젝트 추가</DialogTitle>
           <DialogDescription>
-            로컬 폴더를 선택하면 jsonl 파일만 읽고 폴더 구조를 함께 저장해요.
+            ~/.claude/projects 에서 자동 감지된 Claude Code 프로젝트 목록이에요. 클릭해서 추가하세요.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handlePickFolder}
-            disabled={scanning || pending}
-            className="w-fit"
-          >
-            {scanning && <Loader2 className="size-4 animate-spin" />}
-            폴더 선택
-          </Button>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              {discovering
+                ? "검색 중..."
+                : `${claudeProjects.length} 개 발견`}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={runDiscover}
+              disabled={discovering}
+            >
+              <RefreshCw className={cn("size-3", discovering && "animate-spin")} />
+              다시 검색
+            </Button>
+          </div>
 
-          {scan && (
-            <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-              <div>jsonl 파일 {scan.jsonlFiles.length} 개</div>
-              <div className="text-muted-foreground">agent: {agentLabel ?? "감지 안 됨"}</div>
-            </div>
-          )}
+          <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto rounded-md border border-border p-1">
+            {claudeProjects.length === 0 && !discovering && (
+              <li className="px-3 py-2 text-sm text-muted-foreground">
+                감지된 프로젝트가 없어요. ~/.claude/projects/ 가 비어있을 수 있어요.
+              </li>
+            )}
+            {claudeProjects.map((p) => {
+              const selected = p.encodedPath === selectedKey;
+              return (
+                <li key={p.encodedPath}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedKey(p.encodedPath);
+                      setTitle(p.shortName);
+                    }}
+                    className={cn(
+                      "flex w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left text-sm transition-colors",
+                      selected ? "bg-primary/10 text-primary" : "hover:bg-accent",
+                    )}
+                  >
+                    <span className="font-medium">{p.shortName}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {p.displayPath} · 세션 {p.sessionCount} 개
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
 
-          {scan && (
+          {selectedKey && (
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium">프로젝트 이름</span>
               <input
@@ -172,6 +215,38 @@ export function AddProjectDialog({ onAdded }: Props) {
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
               />
             </label>
+          )}
+
+          {selectedKey && (
+            <div className="flex flex-col gap-1 text-sm">
+              <span className="font-medium">
+                코드 폴더 <span className="text-xs text-muted-foreground">(선택, 아키텍처용)</span>
+              </span>
+              {codeTree ? (
+                <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
+                  <span className="text-sm">{codeTree[0]?.name}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCodeTree(null)}
+                  >
+                    제거
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePickCodeFolder}
+                  disabled={scanning}
+                  className="w-fit"
+                >
+                  {scanning && <Loader2 className="size-4 animate-spin" />}
+                  폴더 선택
+                </Button>
+              )}
+            </div>
           )}
 
           {error && (
@@ -195,13 +270,11 @@ export function AddProjectDialog({ onAdded }: Props) {
   );
 }
 
-async function scanDirectory(
+async function scanFolderTree(
   handle: FileSystemDirectoryHandle,
   basePath: string,
-): Promise<ScanResult> {
+): Promise<FolderNode[]> {
   const tree: FolderNode[] = [];
-  const jsonlFiles: { path: string; content: string }[] = [];
-
   const entries = (
     handle as unknown as {
       entries: () => AsyncIterable<[string, FileSystemHandle]>;
@@ -211,18 +284,11 @@ async function scanDirectory(
   for await (const [name, child] of entries) {
     if (SKIP_DIRS.has(name)) continue;
     const childPath = basePath ? `${basePath}/${name}` : name;
-
     if (child.kind === "directory") {
-      const sub = await scanDirectory(child as FileSystemDirectoryHandle, childPath);
-      tree.push({ name, children: sub.tree });
-      jsonlFiles.push(...sub.jsonlFiles);
+      const sub = await scanFolderTree(child as FileSystemDirectoryHandle, childPath);
+      tree.push({ name, children: sub });
     } else {
       tree.push({ name });
-      if (name.toLowerCase().endsWith(".jsonl")) {
-        const file = await (child as FileSystemFileHandle).getFile();
-        const text = await file.text();
-        jsonlFiles.push({ path: childPath, content: text });
-      }
     }
   }
 
@@ -233,5 +299,5 @@ async function scanDirectory(
     return a.name.localeCompare(b.name);
   });
 
-  return { tree, jsonlFiles };
+  return tree;
 }

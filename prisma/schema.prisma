@@ -32,9 +32,14 @@ enum ProjectRole {
 // ────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+  id           String  @id @default(cuid())
+  email        String  @unique
+  name         String?
+  /// bcrypt 해시. axhub SSO 가입자 등 비밀번호 미설정 사용자는 null
+  passwordHash String?
+  /// axhub 플랫폼의 사용자 식별자. axhub SSO 로 가입/연결되면 채워짐
+  axhubUserId  String? @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
