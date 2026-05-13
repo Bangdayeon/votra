@@ -12,6 +12,8 @@ export type AddLocalProjectInput = {
   encodedPath: string;
   title: string;
   tree?: FolderNode[];
+  /** 썸네일 이미지 data URL (예: "data:image/png;base64,...") */
+  thumbnailUrl?: string;
 };
 
 export type AddLocalProjectResult =
@@ -37,6 +39,7 @@ export async function addLocalProject(
     title: input.title,
     agent: "CLAUDE",
     structure: input.tree ? { tree: input.tree } : undefined,
+    thumbnailUrl: input.thumbnailUrl,
     sessions,
   });
 

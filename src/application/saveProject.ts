@@ -14,6 +14,8 @@ export type SaveProjectInput = {
   agent: AgentSource;
   /** `Project.structure` 에 그대로 저장될 JSON (예: { tree: FolderNode[] }) */
   structure?: Record<string, unknown>;
+  /** 썸네일 (data URL 또는 외부 URL). DB `Project.thumbnailUrl` */
+  thumbnailUrl?: string;
   sessions: Session[];
 };
 
@@ -24,6 +26,7 @@ export async function saveProject(input: SaveProjectInput): Promise<string> {
     data: {
       title: input.title,
       ownerId: owner.id,
+      thumbnailUrl: input.thumbnailUrl,
       structure: input.structure as Prisma.InputJsonValue | undefined,
       agents: { create: [{ source: input.agent }] },
       sessions: {
