@@ -5,6 +5,6 @@ runtime:
     port: 3000
     health_path: /
 build:
-    install: pnpm install --frozen-lockfile
-    build: pnpm build
+    install: npm install
+    build: npm run build
     start: npm start
