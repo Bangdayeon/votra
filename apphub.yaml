@@ -1,8 +1,0 @@
-name: votra
-framework: nextjs
-port: 3000
-health_check_path: /
-build:
-  command: npm run build
-run:
-  command: npm run start
