@@ -8,7 +8,7 @@ import {
   discoverProjects,
   type DiscoverProjectsResult,
 } from "@/app/actions/discoverProjects";
-import type { FolderNode } from "@/components/FolderTree";
+import type { FolderColor, FolderNode } from "@/components/FolderTree";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -47,6 +47,7 @@ export function AddProjectDialog({ onAdded }: Props) {
   const [discovered, setDiscovered] = useState<DiscoverProjectsResult | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [codeTree, setCodeTree] = useState<FolderNode[] | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -98,7 +99,15 @@ export function AddProjectDialog({ onAdded }: Props) {
     setScanning(true);
     try {
       const tree = await scanFolderTree(handle, "");
-      setCodeTree([{ name: handle.name || "프로젝트", children: tree, defaultOpen: true }]);
+      const rootName = handle.name || "프로젝트";
+      setCodeTree([
+        {
+          name: rootName,
+          color: colorForFolder(rootName, true),
+          children: tree,
+          defaultOpen: true,
+        },
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "폴더를 읽지 못했어요.");
     } finally {
@@ -113,6 +122,7 @@ export function AddProjectDialog({ onAdded }: Props) {
         agentKind: "CLAUDE",
         encodedPath: selectedKey,
         title,
+        description: description.trim() || undefined,
         tree: codeTree ?? undefined,
         thumbnailUrl: thumbnailUrl ?? undefined,
       });
@@ -130,6 +140,7 @@ export function AddProjectDialog({ onAdded }: Props) {
     setDiscovered(null);
     setSelectedKey(null);
     setTitle("");
+    setDescription("");
     setCodeTree(null);
     setThumbnailUrl(null);
     setError(null);
@@ -196,10 +207,9 @@ export function AddProjectDialog({ onAdded }: Props) {
             </TooltipProvider>
           </div>
           <DialogDescription>
-            <div>
-              <p>AI 에이전트와 함께 작업한 프로젝트를 자동으로 찾았어요.</p>
-              <p>추가할 항목을 골라주세요.</p>
-            </div>
+            AI 에이전트와 함께 작업한 프로젝트를 자동으로 찾았어요.
+            <br />
+            추가할 항목을 골라주세요.
           </DialogDescription>
         </DialogHeader>
 
@@ -261,6 +271,21 @@ export function AddProjectDialog({ onAdded }: Props) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
+              />
+            </label>
+          )}
+
+          {selectedKey && (
+            <label className="flex flex-col gap-1 text-sm">
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">설명</span>
+              </div>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                placeholder="이 프로젝트가 무슨 작업인지 한 줄로 적어보세요"
+                className="resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
               />
             </label>
           )}
@@ -403,21 +428,46 @@ async function scanFolderTree(
 
   for await (const [name, child] of entries) {
     if (SKIP_DIRS.has(name)) continue;
+    if (child.kind !== "directory") continue; // 파일은 트리에 넣지 않음
     const childPath = basePath ? `${basePath}/${name}` : name;
-    if (child.kind === "directory") {
-      const sub = await scanFolderTree(child as FileSystemDirectoryHandle, childPath);
-      tree.push({ name, children: sub });
-    } else {
-      tree.push({ name });
-    }
+    const sub = await scanFolderTree(
+      child as FileSystemDirectoryHandle,
+      childPath,
+    );
+    tree.push({ name, color: colorForFolder(name, false), children: sub });
   }
 
-  tree.sort((a, b) => {
-    const aDir = a.children !== undefined ? 0 : 1;
-    const bDir = b.children !== undefined ? 0 : 1;
-    if (aDir !== bDir) return aDir - bDir;
-    return a.name.localeCompare(b.name);
-  });
-
+  tree.sort((a, b) => a.name.localeCompare(b.name));
   return tree;
+}
+
+const HIDDEN_FOLDER_COLOR: FolderColor = "amber";
+const ASSETS_FOLDER_COLOR: FolderColor = "yellow";
+const DATA_FOLDER_COLOR: FolderColor = "green";
+const SOURCE_FOLDER_COLOR: FolderColor = "blue";
+
+const ASSET_NAMES = new Set([
+  "public",
+  "assets",
+  "fonts",
+  "images",
+  "icons",
+  "static",
+  "media",
+]);
+const DATA_NAMES = new Set([
+  "prisma",
+  "migrations",
+  "db",
+  "database",
+  "schema",
+  "sql",
+]);
+
+function colorForFolder(name: string, isRoot: boolean): FolderColor {
+  if (isRoot) return SOURCE_FOLDER_COLOR;
+  if (name.startsWith(".")) return HIDDEN_FOLDER_COLOR;
+  if (ASSET_NAMES.has(name)) return ASSETS_FOLDER_COLOR;
+  if (DATA_NAMES.has(name)) return DATA_FOLDER_COLOR;
+  return SOURCE_FOLDER_COLOR;
 }

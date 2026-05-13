@@ -1,7 +1,13 @@
 "use client";
 
-import { FolderTree } from "@/components/FolderTree";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { getProjectMetricsAction } from "@/app/actions/getProjectMetrics";
+import type { ProjectMetrics } from "@/application/getProjectMetrics";
+import { FolderTree, type FolderNode } from "@/components/FolderTree";
 import { useProjects } from "@/components/ProjectsContext";
+import { TokenUsageDonut } from "@/components/TokenUsageDonut";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AGENT_BADGE: Record<string, string> = {
@@ -9,6 +15,24 @@ const AGENT_BADGE: Record<string, string> = {
   gpt: "bg-[#74AA9C]",
   gemini: "bg-[#4285F4]",
 };
+
+const ALWAYS_OPEN_NAMES = new Set(["src"]);
+
+/**
+ * 최상위 폴더는 첫 진입 시 무조건 펼침. 자식 트리 중 이름이 "src" 인 폴더는
+ * 어디든 자동으로 펼친 상태로 두고, 나머지 폴더는 닫힌 채 시작해요.
+ */
+function markDefaultOpen(nodes: FolderNode[], depth = 0): FolderNode[] {
+  return nodes.map((n) => {
+    const isRoot = depth === 0;
+    const shouldOpen = isRoot ? true : ALWAYS_OPEN_NAMES.has(n.name);
+    return {
+      ...n,
+      defaultOpen: shouldOpen,
+      children: n.children ? markDefaultOpen(n.children, depth + 1) : n.children,
+    };
+  });
+}
 
 function Card({
   children,
@@ -28,6 +52,30 @@ function Card({
 
 export default function HomePage() {
   const { selected } = useProjects();
+  const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selected) {
+      setMetrics(null);
+      return;
+    }
+    let cancelled = false;
+    setMetricsLoading(true);
+    getProjectMetricsAction(selected.id)
+      .then((m) => {
+        if (!cancelled) setMetrics(m);
+      })
+      .catch(() => {
+        if (!cancelled) setMetrics(null);
+      })
+      .finally(() => {
+        if (!cancelled) setMetricsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
 
   if (!selected) {
     return (
@@ -74,12 +122,7 @@ export default function HomePage() {
               <h3 className="text-base font-semibold">아키텍처</h3>
               {selected.structure && selected.structure.length > 0 ? (
                 <div className="mt-3">
-                  <FolderTree
-                    tree={selected.structure.map((n) => ({
-                      ...n,
-                      defaultOpen: n.name === "src",
-                    }))}
-                  />
+                  <FolderTree tree={markDefaultOpen(selected.structure)} />
                 </div>
               ) : (
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -90,12 +133,17 @@ export default function HomePage() {
 
             <Card>
               <h3 className="text-base font-semibold">토큰 사용량</h3>
-              <div className="mt-6 grid grid-cols-4 gap-4 text-sm">
-                <span>session별 사용량</span>
-                <span>retry 비용</span>
-                <span>model usage</span>
-                <span>estimated cost</span>
-              </div>
+              {metricsLoading ? (
+                <div className="flex h-48 items-center justify-center">
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : metrics ? (
+                <TokenUsageDonut metrics={metrics} />
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  데이터를 불러오지 못했어요.
+                </p>
+              )}
             </Card>
 
             <Card>

@@ -4,13 +4,16 @@ import { revalidatePath } from "next/cache";
 
 import { saveProject } from "@/application/saveProject";
 import { claudeCodeAdapter } from "@/domain/agent/claudeCode";
+import { extractCwd } from "@/domain/session/extractCwd";
 import type { FolderNode } from "@/components/FolderTree";
 import { loadClaudeProjectFiles } from "@/infrastructure/localScan/loadClaudeProjectFiles";
+import { scanLocalFolderTree } from "@/infrastructure/localScan/scanLocalFolderTree";
 
 export type AddLocalProjectInput = {
   agentKind: "CLAUDE"; // 다른 agent 는 추후
   encodedPath: string;
   title: string;
+  description?: string;
   tree?: FolderNode[];
   /** 썸네일 이미지 data URL (예: "data:image/png;base64,...") */
   thumbnailUrl?: string;
@@ -35,14 +38,26 @@ export async function addLocalProject(
     return { ok: false, error: "세션이 한 개도 발견되지 않았어요." };
   }
 
+  const tree = input.tree ?? (await autoScanTree(sessions));
+
   const projectId = await saveProject({
     title: input.title,
     agent: "CLAUDE",
-    structure: input.tree ? { tree: input.tree } : undefined,
+    description: input.description,
+    structure: tree ? { tree } : undefined,
     thumbnailUrl: input.thumbnailUrl,
     sessions,
   });
 
   revalidatePath("/");
   return { ok: true, projectId };
+}
+
+async function autoScanTree(sessions: Awaited<ReturnType<typeof claudeCodeAdapter.parse>>): Promise<FolderNode[] | undefined> {
+  const cwd = extractCwd(sessions);
+  if (!cwd) return undefined;
+  const children = await scanLocalFolderTree(cwd);
+  if (!children) return undefined;
+  const rootName = cwd.split("/").filter(Boolean).pop() ?? cwd;
+  return [{ name: rootName, color: "blue", children, defaultOpen: true }];
 }

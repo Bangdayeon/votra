@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Icon } from "./Icon";
 
 import { AddProjectDialog } from "@/components/AddProjectDialog";
+import { DeleteProjectButton } from "@/components/DeleteProjectButton";
 import { useProjects } from "@/components/ProjectsContext";
 import { SideNavMenuItem } from "@/components/SideNavMenuItem";
 import { useSidebar } from "@/components/SidebarContext";
@@ -91,12 +92,19 @@ export function SideNavigation() {
 
         <ul className="mt-1 space-y-1">
           {projects.map((project) => (
-            <li key={project.id}>
+            <li key={project.id} className="group relative">
               <SideNavMenuItem
                 title={project.name}
                 image={project.image}
                 selected={project.id === selectedId}
                 onClick={() => select(project.id)}
+                className="pr-9"
+              />
+              <DeleteProjectButton
+                projectId={project.id}
+                projectName={project.name}
+                onDeleted={refresh}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 focus:opacity-100"
               />
             </li>
           ))}
