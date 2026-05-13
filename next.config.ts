@@ -1,28 +1,22 @@
 import type { NextConfig } from "next";
-import type { RuleSetRule } from "webpack";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
   webpack(config) {
     const fileLoaderRule = config.module.rules.find(
-      (rule: RuleSetRule | undefined): rule is RuleSetRule =>
-        !!rule &&
-        typeof rule === "object" &&
-        rule.test instanceof RegExp &&
-        rule.test.test(".svg"),
+      (rule: { test?: RegExp }) =>
+        rule && rule.test instanceof RegExp && rule.test.test(".svg"),
     );
 
     if (!fileLoaderRule) return config;
 
     config.module.rules.push(
-      // *.svg?url → emit asset URL (Next.js default behavior)
       {
         ...fileLoaderRule,
         test: /\.svg$/i,
         resourceQuery: /url/,
       },
-      // *.svg → React component via SVGR
       {
         test: /\.svg$/i,
         issuer: fileLoaderRule.issuer,
@@ -37,11 +31,7 @@ const nextConfig: NextConfig = {
         use: [
           {
             loader: "@svgr/webpack",
-            options: {
-              svgo: true,
-              titleProp: true,
-              ref: true,
-            },
+            options: { svgo: true, titleProp: true, ref: true },
           },
         ],
       },
