@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 
+import { listProjects } from "@/application/listProjects";
 import { AppShell } from "@/components/AppShell";
 import "@/styles/globals.css";
 
@@ -16,15 +17,16 @@ export const metadata: Metadata = {
   description: "Votra application",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialProjects = await listProjects();
   return (
     <html lang="ko" className={pretendard.variable}>
       <body className="font-sans">
-        <AppShell>{children}</AppShell>
+        <AppShell initialProjects={initialProjects}>{children}</AppShell>
       </body>
     </html>
   );

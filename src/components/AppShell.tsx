@@ -1,6 +1,6 @@
 "use client";
 
-import { ProjectsProvider } from "@/components/ProjectsContext";
+import { ProjectsProvider, type Project } from "@/components/ProjectsContext";
 import { SideNavigation } from "@/components/SideNavigation";
 import { SidebarProvider, useSidebar } from "@/components/SidebarContext";
 
@@ -17,10 +17,16 @@ function ShellLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  initialProjects,
+}: {
+  children: React.ReactNode;
+  initialProjects: Project[];
+}) {
   return (
     <SidebarProvider>
-      <ProjectsProvider>
+      <ProjectsProvider initial={initialProjects}>
         <ShellLayout>{children}</ShellLayout>
       </ProjectsProvider>
     </SidebarProvider>

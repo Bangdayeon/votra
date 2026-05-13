@@ -2,11 +2,9 @@
 
 import Image from "next/image";
 import { Icon } from "./Icon";
-import {
-  CircleUserRound,
-  Plus,
-} from "lucide-react";
+import { CircleUserRound } from "lucide-react";
 
+import { AddProjectDialog } from "@/components/AddProjectDialog";
 import { useProjects } from "@/components/ProjectsContext";
 import { SideNavMenuItem } from "@/components/SideNavMenuItem";
 import { useSidebar } from "@/components/SidebarContext";
@@ -14,7 +12,7 @@ import { Button } from "@/components/ui/button";
 
 export function SideNavigation() {
   const { open, toggle } = useSidebar();
-  const { projects, selectedId, select } = useProjects();
+  const { projects, selectedId, select, refresh } = useProjects();
 
   if (!open) {
     return (
@@ -92,14 +90,7 @@ export function SideNavigation() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-3">
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full justify-start rounded-full px-3 py-2 text-sm font-normal text-muted-foreground"
-        >
-          <Plus className="size-4" />
-          프로젝트 추가
-        </Button>
+        <AddProjectDialog onAdded={refresh} />
 
         <ul className="mt-1 space-y-1">
           {projects.map((project) => (

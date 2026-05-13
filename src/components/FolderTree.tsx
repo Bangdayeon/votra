@@ -9,6 +9,8 @@ export type FolderNode = {
   name: string;
   color?: FolderColor;
   children?: FolderNode[];
+  /** 이 노드를 초기에 펼친 상태로 둘지. 미지정 시 부모 FolderTree 의 defaultOpen 을 따라감 */
+  defaultOpen?: boolean;
 };
 
 export type FolderColor =
@@ -35,7 +37,7 @@ const INDENT_PX = 14;
 
 export function FolderTree({
   tree,
-  defaultOpen = true,
+  defaultOpen = false,
 }: {
   tree: FolderNode[];
   defaultOpen?: boolean;
@@ -64,7 +66,7 @@ function FolderItem({
   defaultOpen: boolean;
 }) {
   const hasChildren = (node.children?.length ?? 0) > 0;
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(node.defaultOpen ?? defaultOpen);
   const colorCls = node.color ? COLOR_CLASS[node.color] : "text-muted-foreground";
 
   const Chevron = open ? ChevronDown : ChevronRight;

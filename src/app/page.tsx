@@ -31,8 +31,9 @@ export default function HomePage() {
 
   if (!selected) {
     return (
-      <div className="flex h-full items-center justify-center px-8 py-6 text-sm text-muted-foreground">
-        왼쪽에서 프로젝트를 선택해 주세요.
+      <div className="flex flex-col gap-2 h-full items-center justify-center px-8 py-6 text-sm text-muted-foreground">
+        <p>아직 등록된 프로젝트가 없어요.</p>
+        <p>프로젝트 추가 버튼을 눌러 프로젝트를 추가해주세요.</p>
       </div>
     );
   }
@@ -73,7 +74,12 @@ export default function HomePage() {
               <h3 className="text-base font-semibold">아키텍처</h3>
               {selected.structure && selected.structure.length > 0 ? (
                 <div className="mt-3">
-                  <FolderTree tree={selected.structure} defaultOpen />
+                  <FolderTree
+                    tree={selected.structure.map((n) => ({
+                      ...n,
+                      defaultOpen: n.name === "src",
+                    }))}
+                  />
                 </div>
               ) : (
                 <p className="mt-2 text-sm text-muted-foreground">

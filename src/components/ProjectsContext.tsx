@@ -1,16 +1,24 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 
+import { listProjectsAction } from "@/app/actions/listProjects";
 import type { FolderNode } from "@/components/FolderTree";
 
 export type Project = {
   id: string;
   name: string;
-  agent?: "claude" | "gpt" | "gemini" | string;
+  agent?: string;
   image?: string;
   description?: string;
-  /** 폴더 트리 — Prisma `Project.structure` JSON 의 `tree` 와 같은 형식 */
+  /** 폴더 트리 — Prisma `Project.structure` JSON 의 `tree` 와 같은 형식 (현재는 undefined) */
   structure?: FolderNode[];
 };
 
@@ -18,7 +26,9 @@ type ProjectsCtx = {
   projects: Project[];
   selectedId: string | null;
   selected: Project | null;
+  refreshing: boolean;
   select: (id: string) => void;
+  refresh: () => void;
 };
 
 const ProjectsContext = createContext<ProjectsCtx | null>(null);
@@ -31,55 +41,26 @@ export function useProjects(): ProjectsCtx {
   return ctx;
 }
 
-const SAMPLE_TREE_A: FolderNode[] = [
-  { name: ".agents", color: "amber" },
-  { name: ".axhub", color: "amber" },
-  { name: ".claude", color: "amber" },
-  { name: ".next", color: "amber" },
-  { name: "node_modules", color: "gray" },
-  {
-    name: "prisma",
-    color: "green",
-    children: [{ name: "migrations", color: "green" }],
-  },
-  {
-    name: "public",
-    color: "yellow",
-    children: [
-      { name: "fonts", color: "yellow" },
-      { name: "images", color: "yellow" },
-    ],
-  },
-  {
-    name: "src",
-    color: "blue",
-    children: [
-      { name: "app", color: "blue" },
-      { name: "application", color: "blue" },
-      { name: "assets", color: "blue", children: [{ name: "icons", color: "yellow" }] },
-      { name: "components", color: "blue" },
-      { name: "domain", color: "blue" },
-      { name: "hooks", color: "blue" },
-      { name: "infrastructure", color: "blue" },
-      { name: "lib", color: "blue" },
-      { name: "shared", color: "blue" },
-      { name: "styles", color: "blue" },
-      { name: "types", color: "blue" },
-    ],
-  },
-];
+export function ProjectsProvider({
+  children,
+  initial,
+}: {
+  children: React.ReactNode;
+  initial: Project[];
+}) {
+  const [projects, setProjects] = useState<Project[]>(initial);
+  const [selectedId, setSelectedId] = useState<string | null>(initial[0]?.id ?? null);
+  const [refreshing, startTransition] = useTransition();
 
-const INITIAL_PROJECTS: Project[] = [
-  { id: "a", name: "프로젝트 A", agent: "claude", structure: SAMPLE_TREE_A },
-  { id: "b", name: "프로젝트 B", agent: "gpt" },
-  { id: "c", name: "프로젝트 C", agent: "gemini" },
-];
-
-export function ProjectsProvider({ children }: { children: React.ReactNode }) {
-  const [projects] = useState<Project[]>(INITIAL_PROJECTS);
-  const [selectedId, setSelectedId] = useState<string | null>(
-    INITIAL_PROJECTS[0]?.id ?? null,
-  );
+  const refresh = useCallback(() => {
+    startTransition(async () => {
+      const fresh = await listProjectsAction();
+      setProjects(fresh);
+      if (!fresh.some((p) => p.id === selectedId)) {
+        setSelectedId(fresh[0]?.id ?? null);
+      }
+    });
+  }, [selectedId]);
 
   const value = useMemo<ProjectsCtx>(() => {
     const selected = projects.find((p) => p.id === selectedId) ?? null;
@@ -87,9 +68,11 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
       projects,
       selectedId,
       selected,
+      refreshing,
       select: setSelectedId,
+      refresh,
     };
-  }, [projects, selectedId]);
+  }, [projects, selectedId, refreshing, refresh]);
 
   return (
     <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>

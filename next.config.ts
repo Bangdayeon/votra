@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   webpack(config) {
     const fileLoaderRule = config.module.rules.find(
       (rule: { test?: RegExp }) =>
