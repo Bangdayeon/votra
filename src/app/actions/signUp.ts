@@ -3,8 +3,8 @@
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/infrastructure/db/prisma";
-import { hashPassword } from "@/infrastructure/auth/password";
-import { setSessionCookie } from "@/infrastructure/auth/session";
+import { hashPassword } from "@/infrastructure/auth/hashPassword";
+import { setSessionCookie } from "@/infrastructure/auth/setSessionCookie";
 
 export type SignUpState = { error?: string };
 

@@ -2,7 +2,7 @@ import "server-only";
 
 import { prisma } from "@/infrastructure/db/prisma";
 
-import { readSessionFromCookies } from "./session";
+import { readSessionFromCookies } from "./readSessionFromCookies";
 
 export async function getCurrentUser() {
   const session = await readSessionFromCookies();

@@ -1,9 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  SESSION_COOKIE_NAME,
-  verifySessionJwt,
-} from "@/infrastructure/auth/session";
+import { SESSION_COOKIE_NAME } from "@/infrastructure/auth/sessionConfig";
+import { verifySessionJwt } from "@/infrastructure/auth/verifySessionJwt";
 
 const PUBLIC_PATHS = [/^\/auth\//, /^\/api\//];
 

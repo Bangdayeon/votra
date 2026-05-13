@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { clearSessionCookie } from "@/infrastructure/auth/session";
+import { clearSessionCookie } from "@/infrastructure/auth/clearSessionCookie";
 
 export async function signOutAction(): Promise<void> {
   await clearSessionCookie();

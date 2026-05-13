@@ -8,7 +8,9 @@ import {
   discoverProjects,
   type DiscoverProjectsResult,
 } from "@/app/actions/discoverProjects";
-import type { FolderColor, FolderNode } from "@/components/FolderTree";
+import type { FolderNode } from "@/components/FolderTree";
+import { colorForFolder } from "@/lib/colorForFolder";
+import { scanFolderTree } from "@/lib/scanFolderTree";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,19 +28,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-
-const SKIP_DIRS = new Set([
-  "node_modules",
-  ".git",
-  ".next",
-  ".turbo",
-  ".cache",
-  "dist",
-  "build",
-  "out",
-  "coverage",
-  ".vercel",
-]);
 
 type Props = { onAdded: () => void };
 
@@ -415,59 +404,3 @@ function readAsDataUrl(file: File): Promise<string> {
   });
 }
 
-async function scanFolderTree(
-  handle: FileSystemDirectoryHandle,
-  basePath: string,
-): Promise<FolderNode[]> {
-  const tree: FolderNode[] = [];
-  const entries = (
-    handle as unknown as {
-      entries: () => AsyncIterable<[string, FileSystemHandle]>;
-    }
-  ).entries();
-
-  for await (const [name, child] of entries) {
-    if (SKIP_DIRS.has(name)) continue;
-    if (child.kind !== "directory") continue; // 파일은 트리에 넣지 않음
-    const childPath = basePath ? `${basePath}/${name}` : name;
-    const sub = await scanFolderTree(
-      child as FileSystemDirectoryHandle,
-      childPath,
-    );
-    tree.push({ name, color: colorForFolder(name, false), children: sub });
-  }
-
-  tree.sort((a, b) => a.name.localeCompare(b.name));
-  return tree;
-}
-
-const HIDDEN_FOLDER_COLOR: FolderColor = "amber";
-const ASSETS_FOLDER_COLOR: FolderColor = "yellow";
-const DATA_FOLDER_COLOR: FolderColor = "green";
-const SOURCE_FOLDER_COLOR: FolderColor = "blue";
-
-const ASSET_NAMES = new Set([
-  "public",
-  "assets",
-  "fonts",
-  "images",
-  "icons",
-  "static",
-  "media",
-]);
-const DATA_NAMES = new Set([
-  "prisma",
-  "migrations",
-  "db",
-  "database",
-  "schema",
-  "sql",
-]);
-
-function colorForFolder(name: string, isRoot: boolean): FolderColor {
-  if (isRoot) return SOURCE_FOLDER_COLOR;
-  if (name.startsWith(".")) return HIDDEN_FOLDER_COLOR;
-  if (ASSET_NAMES.has(name)) return ASSETS_FOLDER_COLOR;
-  if (DATA_NAMES.has(name)) return DATA_FOLDER_COLOR;
-  return SOURCE_FOLDER_COLOR;
-}

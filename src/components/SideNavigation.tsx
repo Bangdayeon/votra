@@ -1,11 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { Icon } from "./Icon";
 
 import { AddProjectDialog } from "@/components/AddProjectDialog";
-import { DeleteProjectButton } from "@/components/DeleteProjectButton";
-import { useProjects } from "@/components/ProjectsContext";
+import { DeleteProjectConfirmDialog } from "@/components/DeleteProjectConfirmDialog";
+import { EditProjectDialog } from "@/components/EditProjectDialog";
+import {
+  useProjects,
+  type Project,
+} from "@/components/ProjectsContext";
 import { SideNavMenuItem } from "@/components/SideNavMenuItem";
 import { useSidebar } from "@/components/SidebarContext";
 import { Button } from "@/components/ui/button";
@@ -14,6 +19,10 @@ import { UserMenu } from "@/components/UserMenu";
 export function SideNavigation() {
   const { open, toggle } = useSidebar();
   const { projects, selectedId, select, refresh } = useProjects();
+  const [editing, setEditing] = useState<Project | null>(null);
+  const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(
+    null,
+  );
 
   if (!open) {
     return (
@@ -61,59 +70,69 @@ export function SideNavigation() {
   }
 
   return (
-    <aside className="flex h-screen w-full shrink-0 flex-col overflow-hidden border-r border-border bg-background">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4">
-        <div className="flex items-center gap-3">
-          <Image
-            src="/assets/images/logo.svg"
-            alt="votra logo"
-            width={32}
-            height={32}
-            priority
-          />
-          <span className="text-xl font-medium leading-none">
-            <span className="text-foreground">vo</span>
-            <span className="text-primary">tra</span>
-          </span>
+    <>
+      <aside className="flex h-screen w-full shrink-0 flex-col overflow-hidden border-r border-border bg-background">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/assets/images/logo.svg"
+              alt="votra logo"
+              width={32}
+              height={32}
+              priority
+            />
+            <span className="text-xl font-medium leading-none">
+              <span className="text-foreground">vo</span>
+              <span className="text-primary">tra</span>
+            </span>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={toggle}
+            aria-label="사이드바 닫기"
+          >
+            <Icon icon="IC_Sidenav" />
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={toggle}
-          aria-label="사이드바 닫기"
-        >
-          <Icon icon="IC_Sidenav" />
-        </Button>
-      </div>
 
-      <div className="flex-1 overflow-y-auto px-2 py-3">
-        <AddProjectDialog onAdded={refresh} />
+        <div className="flex-1 overflow-y-auto px-2 py-3">
+          <AddProjectDialog onAdded={refresh} />
 
-        <ul className="mt-1 space-y-1">
-          {projects.map((project) => (
-            <li key={project.id} className="group relative">
-              <SideNavMenuItem
-                title={project.name}
-                image={project.image}
-                selected={project.id === selectedId}
-                onClick={() => select(project.id)}
-                className="pr-9"
-              />
-              <DeleteProjectButton
-                projectId={project.id}
-                projectName={project.name}
-                onDeleted={refresh}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 focus:opacity-100"
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
+          <ul className="mt-1 space-y-1">
+            {projects.map((project) => (
+              <li key={project.id} className="group">
+                <SideNavMenuItem
+                  title={project.name}
+                  image={project.image}
+                  selected={project.id === selectedId}
+                  onClick={() => select(project.id)}
+                  onEdit={() => setEditing(project)}
+                  onDelete={() =>
+                    setDeleting({ id: project.id, name: project.name })
+                  }
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
 
-      <div className="border-t border-border px-4 py-3">
-        <UserMenu />
-      </div>
-    </aside>
+        <div className="border-t border-border px-4 py-3">
+          <UserMenu />
+        </div>
+      </aside>
+
+      <EditProjectDialog
+        project={editing}
+        onClose={() => setEditing(null)}
+        onSaved={refresh}
+      />
+      <DeleteProjectConfirmDialog
+        project={deleting}
+        onClose={() => setDeleting(null)}
+        onDeleted={refresh}
+      />
+    </>
   );
 }

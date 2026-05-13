@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/infrastructure/db/prisma";
-import { setSessionCookie } from "@/infrastructure/auth/session";
+import { setSessionCookie } from "@/infrastructure/auth/setSessionCookie";
 
 export type AxhubSignInState = { error?: string };
 
