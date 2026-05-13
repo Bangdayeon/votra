@@ -1,8 +1,11 @@
 "use server";
 
-import { listProjects as listProjectsImpl } from "@/application/listProjects";
-import type { ProjectListItem } from "@/application/listProjects";
+import {
+  listProjects as listProjectsImpl,
+  type ProjectListItem,
+} from "@/application/listProjects";
+import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 export async function listProjectsAction(): Promise<ProjectListItem[]> {
-  return listProjectsImpl();
+  return listProjectsImpl({ projects: prismaProjectRepository });
 }

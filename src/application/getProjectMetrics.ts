@@ -1,6 +1,4 @@
-import "server-only";
-
-import { prisma } from "@/infrastructure/db/prisma";
+import type { SessionRepository } from "@/application/ports/sessionRepository";
 
 export type SessionTokenRow = {
   id: string;
@@ -18,6 +16,11 @@ export type ModelUsageRow = {
   totalTokens: number;
 };
 
+export type ErrorTypeRow = {
+  errorType: string;
+  count: number;
+};
+
 export type ProjectMetrics = {
   sessions: SessionTokenRow[];
   totals: {
@@ -27,28 +30,27 @@ export type ProjectMetrics = {
     sessionCount: number;
   };
   byModel: ModelUsageRow[];
+  byErrorType: ErrorTypeRow[];
 };
 
-export async function getProjectMetrics(projectId: string): Promise<ProjectMetrics> {
-  const sessions = await prisma.session.findMany({
-    where: { projectId },
-    orderBy: { startedAt: "asc" },
-    include: { tokenUsage: true },
-  });
+export async function getProjectMetrics(
+  projectId: string,
+  deps: { sessions: SessionRepository },
+): Promise<ProjectMetrics> {
+  const [sessions, errorTypes] = await Promise.all([
+    deps.sessions.findManyByProject(projectId),
+    deps.sessions.findErrorTypesByProject(projectId),
+  ]);
 
-  const rows: SessionTokenRow[] = sessions.map((s, idx) => {
-    const input = s.tokenUsage?.inputTokens ?? 0;
-    const output = s.tokenUsage?.outputTokens ?? 0;
-    return {
-      id: s.id,
-      title: s.title ?? `세션 ${idx + 1}`,
-      model: s.model,
-      inputTokens: input,
-      outputTokens: output,
-      totalTokens: input + output,
-      startedAt: s.startedAt?.toISOString() ?? null,
-    };
-  });
+  const rows: SessionTokenRow[] = sessions.map((s, idx) => ({
+    id: s.id,
+    title: s.title ?? `세션 ${idx + 1}`,
+    model: s.model,
+    inputTokens: s.inputTokens,
+    outputTokens: s.outputTokens,
+    totalTokens: s.inputTokens + s.outputTokens,
+    startedAt: s.startedAt?.toISOString() ?? null,
+  }));
 
   const totals = rows.reduce(
     (acc, r) => ({
@@ -71,5 +73,5 @@ export async function getProjectMetrics(projectId: string): Promise<ProjectMetri
     .map(([model, v]) => ({ model, ...v }))
     .sort((a, b) => b.totalTokens - a.totalTokens);
 
-  return { sessions: rows, totals, byModel };
+  return { sessions: rows, totals, byModel, byErrorType: errorTypes };
 }

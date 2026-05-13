@@ -1,7 +1,8 @@
-import "server-only";
+import type { ProjectRepository } from "@/application/ports/projectRepository";
 
-import { prisma } from "@/infrastructure/db/prisma";
-
-export async function deleteProject(id: string): Promise<void> {
-  await prisma.project.delete({ where: { id } });
+export async function deleteProject(
+  id: string,
+  deps: { projects: ProjectRepository },
+): Promise<void> {
+  await deps.projects.delete(id);
 }

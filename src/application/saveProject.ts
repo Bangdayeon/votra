@@ -1,62 +1,54 @@
-import "server-only";
-
-import { Prisma, type AgentSource } from "@prisma/client";
-
-import { prisma } from "@/infrastructure/db/prisma";
+import { aggregateSessionMetrics } from "@/domain/session/aggregateSessionMetrics";
+import { extractErrors } from "@/domain/session/extractErrors";
+import type { AgentKind } from "@/domain/agent/types";
 import type { Session } from "@/domain/session/types";
-
-import { aggregateSessionMetrics } from "./aggregateSessionMetrics";
+import type { ProjectRepository } from "@/application/ports/projectRepository";
+import type { UserRepository } from "@/application/ports/userRepository";
 
 const DEFAULT_USER_EMAIL = "default@votra.local";
 
 export type SaveProjectInput = {
   title: string;
-  agent: AgentSource;
+  agent: AgentKind;
   description?: string;
   /** `Project.structure` 에 그대로 저장될 JSON (예: { tree: FolderNode[] }) */
   structure?: Record<string, unknown>;
-  /** 썸네일 (data URL 또는 외부 URL). DB `Project.thumbnailUrl` */
+  /** 썸네일 (data URL 또는 외부 URL) */
   thumbnailUrl?: string;
   sessions: Session[];
 };
 
-export async function saveProject(input: SaveProjectInput): Promise<string> {
-  const owner = await getOrCreateDefaultUser();
-
-  const project = await prisma.project.create({
-    data: {
-      title: input.title,
-      ownerId: owner.id,
-      description: input.description,
-      thumbnailUrl: input.thumbnailUrl,
-      structure: input.structure as Prisma.InputJsonValue | undefined,
-      agents: { create: [{ source: input.agent }] },
-      sessions: {
-        create: input.sessions.map((session) => buildSessionCreate(session, input.agent)),
-      },
-    },
-    select: { id: true },
+export async function saveProject(
+  input: SaveProjectInput,
+  deps: { projects: ProjectRepository; users: UserRepository },
+): Promise<string> {
+  const owner = await getOrCreateDefaultUser(deps.users);
+  return deps.projects.create({
+    title: input.title,
+    ownerId: owner.id,
+    description: input.description,
+    thumbnailUrl: input.thumbnailUrl,
+    structure: input.structure,
+    agent: input.agent,
+    sessions: input.sessions.map((s) => {
+      const m = aggregateSessionMetrics(s.events);
+      const errors = extractErrors(s);
+      return {
+        title: s.title,
+        model: m.model ?? "unknown",
+        startedAt: parseDate(s.startedAt),
+        endedAt: parseDate(s.endedAt),
+        inputTokens: m.inputTokens,
+        outputTokens: m.outputTokens,
+        totalTokens: m.totalTokens,
+        errors: errors.map((e) => ({
+          errorType: e.errorType,
+          errorMessage: e.errorMessage,
+          occurredAt: new Date(e.occurredAt),
+        })),
+      };
+    }),
   });
-
-  return project.id;
-}
-
-function buildSessionCreate(session: Session, source: AgentSource) {
-  const metrics = aggregateSessionMetrics(session.events);
-  return {
-    title: session.title,
-    source,
-    model: metrics.model ?? "unknown",
-    startedAt: parseDate(session.startedAt),
-    endedAt: parseDate(session.endedAt),
-    tokenUsage: {
-      create: {
-        inputTokens: metrics.inputTokens,
-        outputTokens: metrics.outputTokens,
-        totalTokens: metrics.totalTokens,
-      },
-    },
-  };
 }
 
 function parseDate(iso: string | undefined): Date | undefined {
@@ -65,10 +57,8 @@ function parseDate(iso: string | undefined): Date | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
-async function getOrCreateDefaultUser() {
-  const existing = await prisma.user.findUnique({ where: { email: DEFAULT_USER_EMAIL } });
+async function getOrCreateDefaultUser(users: UserRepository) {
+  const existing = await users.findByEmail(DEFAULT_USER_EMAIL);
   if (existing) return existing;
-  return prisma.user.create({
-    data: { email: DEFAULT_USER_EMAIL, name: "default" },
-  });
+  return users.create({ email: DEFAULT_USER_EMAIL, name: "default" });
 }

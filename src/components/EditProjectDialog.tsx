@@ -108,7 +108,8 @@ export function EditProjectDialog({ project, onClose, onSaved }: Props) {
   function handleSave() {
     if (!project) return;
     startTransition(async () => {
-      const result = await updateProjectAction(project.id, {
+      const result = await updateProjectAction({
+        id: project.id,
         title: title.trim(),
         description: description.trim().length > 0 ? description.trim() : null,
         thumbnailUrl,

@@ -6,17 +6,17 @@ import {
   updateProject,
   type UpdateProjectInput,
 } from "@/application/updateProject";
+import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 export type UpdateProjectResult =
   | { ok: true }
   | { ok: false; error: string };
 
 export async function updateProjectAction(
-  id: string,
   input: UpdateProjectInput,
 ): Promise<UpdateProjectResult> {
   try {
-    await updateProject(id, input);
+    await updateProject(input, { projects: prismaProjectRepository });
     revalidatePath("/");
     return { ok: true };
   } catch (err) {

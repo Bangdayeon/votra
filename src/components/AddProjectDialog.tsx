@@ -58,7 +58,7 @@ export function AddProjectDialog({ onAdded }: Props) {
       setDiscovered(result);
       if (result.claude.length > 0) {
         const first = result.claude[0];
-        setSelectedKey(first.encodedPath);
+        setSelectedKey(first.key);
         setTitle(first.shortName);
       }
     } catch (err) {
@@ -106,10 +106,12 @@ export function AddProjectDialog({ onAdded }: Props) {
 
   function handleSubmit() {
     if (!selectedKey) return;
+    const picked = claudeProjects.find((p) => p.key === selectedKey);
+    if (!picked) return;
     startTransition(async () => {
       const result = await addLocalProject({
         agentKind: "CLAUDE",
-        encodedPath: selectedKey,
+        sources: picked.sources,
         title,
         description: description.trim() || undefined,
         tree: codeTree ?? undefined,
@@ -228,13 +230,13 @@ export function AddProjectDialog({ onAdded }: Props) {
               </li>
             )}
             {claudeProjects.map((p) => {
-              const selected = p.encodedPath === selectedKey;
+              const selected = p.key === selectedKey;
               return (
-                <li key={p.encodedPath}>
+                <li key={p.key}>
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedKey(p.encodedPath);
+                      setSelectedKey(p.key);
                       setTitle(p.shortName);
                     }}
                     className={cn(

@@ -6,6 +6,8 @@ import { saveProject } from "@/application/saveProject";
 import { detectAgent } from "@/domain/agent/detectAgent";
 import type { FolderFile } from "@/domain/agent/types";
 import type { FolderNode } from "@/components/FolderTree";
+import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
+import { prismaUserRepository } from "@/infrastructure/repositories/prismaUserRepository";
 
 export type AddProjectInput = {
   title: string;
@@ -43,12 +45,15 @@ export async function addProject(input: AddProjectInput): Promise<AddProjectResu
     return { ok: false, error: "세션이 한 개도 발견되지 않았어요." };
   }
 
-  const projectId = await saveProject({
-    title: input.title,
-    agent: adapter.kind,
-    structure: { tree: input.tree },
-    sessions,
-  });
+  const projectId = await saveProject(
+    {
+      title: input.title,
+      agent: adapter.kind,
+      structure: { tree: input.tree },
+      sessions,
+    },
+    { projects: prismaProjectRepository, users: prismaUserRepository },
+  );
 
   revalidatePath("/");
   return { ok: true, projectId };

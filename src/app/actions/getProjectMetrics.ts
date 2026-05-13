@@ -1,12 +1,13 @@
 "use server";
 
 import {
-  getProjectMetrics as getProjectMetricsImpl,
+  getProjectMetrics,
   type ProjectMetrics,
 } from "@/application/getProjectMetrics";
+import { prismaSessionRepository } from "@/infrastructure/repositories/prismaSessionRepository";
 
 export async function getProjectMetricsAction(
   projectId: string,
 ): Promise<ProjectMetrics> {
-  return getProjectMetricsImpl(projectId);
+  return getProjectMetrics(projectId, { sessions: prismaSessionRepository });
 }

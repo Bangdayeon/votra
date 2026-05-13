@@ -1,6 +1,6 @@
 "use client";
 
-import type { ProjectMetrics, SessionTokenRow } from "@/application/getProjectMetrics";
+import type { ProjectMetrics } from "@/application/getProjectMetrics";
 import { MiniDonut, type DonutSegment } from "@/components/MiniDonut";
 
 const SESSION_PALETTE = [
@@ -21,12 +21,18 @@ const MODEL_COLOR_RULES: Array<{ match: string; color: string }> = [
 
 const FALLBACK_COLOR = "#9CA3AF";
 
-/** USD per million tokens (대략적인 Claude 가격, 2026-01 기준) */
-const MODEL_PRICES: Array<{ match: string; input: number; output: number }> = [
-  { match: "opus", input: 15, output: 75 },
-  { match: "sonnet", input: 3, output: 15 },
-  { match: "haiku", input: 0.8, output: 4 },
+/** 자주 등장하는 tool 별 색상. 매칭 안 되면 ERROR_PALETTE 로 순환. */
+const ERROR_COLOR_RULES: Array<{ match: string; color: string }> = [
+  { match: "Bash", color: "#E0A57B" },
+  { match: "Edit", color: "#E0635F" },
+  { match: "Write", color: "#E07BB6" },
+  { match: "Read", color: "#E0B97B" },
+  { match: "Grep", color: "#7BC67E" },
+  { match: "Glob", color: "#7BE0D4" },
+  { match: "Task", color: "#A843B1" },
+  { match: "WebFetch", color: "#7BA6E0" },
 ];
+const ERROR_PALETTE = ["#B07BE0", "#7BC67E", "#E0635F", "#7BE0D4", "#E07BB6", "#7BA6E0"];
 
 function modelColor(model: string): string {
   const lower = model.toLowerCase();
@@ -36,31 +42,17 @@ function modelColor(model: string): string {
   return FALLBACK_COLOR;
 }
 
-function priceFor(model: string): { input: number; output: number } | null {
-  const lower = model.toLowerCase();
-  for (const rule of MODEL_PRICES) {
-    if (lower.includes(rule.match)) return { input: rule.input, output: rule.output };
+function errorColor(errorType: string, index: number): string {
+  for (const rule of ERROR_COLOR_RULES) {
+    if (errorType === rule.match) return rule.color;
   }
-  return null;
-}
-
-function sessionCostUsd(s: SessionTokenRow): number {
-  const price = priceFor(s.model);
-  if (!price) return 0;
-  return (s.inputTokens * price.input + s.outputTokens * price.output) / 1_000_000;
+  return ERROR_PALETTE[index % ERROR_PALETTE.length];
 }
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return n.toLocaleString();
-}
-
-function formatCost(usd: number): string {
-  if (usd === 0) return "$0";
-  if (usd < 0.01) return "<$0.01";
-  if (usd < 1) return `$${usd.toFixed(2)}`;
-  return `$${usd.toFixed(2)}`;
 }
 
 /** 세그먼트 N개 초과 시 top-N + "기타" 로 압축 */
@@ -100,24 +92,14 @@ export function TokenUsageDonut({ metrics }: Props) {
     value: m.totalTokens,
     color: modelColor(m.model),
   }));
-  const topModel = metrics.byModel[0];
-
-  // 4. 예상 비용 (모델별 누적)
-  const costByModel = new Map<string, number>();
-  for (const s of metrics.sessions) {
-    const c = sessionCostUsd(s);
-    costByModel.set(s.model, (costByModel.get(s.model) ?? 0) + c);
-  }
-  const costSegs: DonutSegment[] = [...costByModel.entries()]
-    .filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1])
-    .map(([model, v]) => ({
-      label: model,
-      value: v,
-      color: modelColor(model),
-    }));
-  const totalCost = costSegs.reduce((s, x) => s + x.value, 0);
-  const topCost = costSegs[0];
+  // 4. 에러 유형 분포 (tool 이름 기준)
+  const errorSegs: DonutSegment[] = metrics.byErrorType.map((e, i) => ({
+    label: e.errorType,
+    value: e.count,
+    color: errorColor(e.errorType, i),
+  }));
+  const totalErrors = errorSegs.reduce((s, x) => s + x.value, 0);
+  const topError = metrics.byErrorType[0];
 
   return (
     <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
@@ -173,19 +155,30 @@ export function TokenUsageDonut({ metrics }: Props) {
       />
 
       <MiniDonut
-        title="예상 비용"
-        segments={costSegs}
-        centerValue={formatCost(totalCost)}
-        centerLabel="총 USD"
-        emptyText="가격표에 없는 모델이에요"
+        title="에러 유형 분포"
+        segments={errorSegs}
+        centerValue={String(totalErrors)}
+        centerLabel="총 에러"
+        emptyText="에러 기록 없음"
         footer={
           <>
-            {topCost && (
+            {topError && (
               <p className="truncate">
-                최대 · {topCost.label} ({formatCost(topCost.value)})
+                최다 · {topError.errorType} ({topError.count}회)
               </p>
             )}
-            <p className="text-[10px] opacity-70">대략적인 가격 기반 추정값</p>
+            <ul className="space-y-0.5">
+              {metrics.byErrorType.slice(0, 4).map((e, i) => (
+                <li key={e.errorType} className="flex items-center gap-1.5 truncate">
+                  <span
+                    className="inline-block size-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: errorColor(e.errorType, i) }}
+                  />
+                  <span className="truncate">{e.errorType}</span>
+                  <span className="ml-auto shrink-0">{e.count}회</span>
+                </li>
+              ))}
+            </ul>
           </>
         }
       />

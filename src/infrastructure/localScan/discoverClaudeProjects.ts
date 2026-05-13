@@ -4,19 +4,34 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+export type ClaudeProjectSource = {
+  /** ~/.claude/projects/ 아래의 폴더명 (슬러그) */
+  folder: string;
+  /** 폴더 안의 jsonl 파일명 */
+  file: string;
+};
+
 export type DiscoveredClaudeProject = {
-  /** 폴더명 (예: "-Users-bibi-code-my-app") — load 시 키로 사용 */
-  encodedPath: string;
-  /** jsonl 의 cwd 필드에서 복원한 실제 경로 (없으면 encodedPath) */
+  /** React key / 식별자. cwd 가 있으면 cwd, 없으면 폴더 슬러그. */
+  key: string;
+  /** 표시용 절대 경로. jsonl 의 cwd 필드 우선, 없으면 폴더 슬러그. */
   displayPath: string;
-  /** 파일명만 추출한 간단한 이름 (예: "my-app") */
+  /** displayPath 의 마지막 세그먼트. */
   shortName: string;
   sessionCount: number;
-  /** 가장 최근 jsonl 의 mtime (정렬용) */
   lastModifiedMs: number;
+  /** 이 프로젝트에 속하는 jsonl 들 — loader 가 그대로 읽어요. */
+  sources: ClaudeProjectSource[];
 };
 
 const PROJECTS_ROOT = join(homedir(), ".claude", "projects");
+
+type Bucket = {
+  key: string;
+  displayPath: string;
+  lastModifiedMs: number;
+  sources: ClaudeProjectSource[];
+};
 
 export async function discoverClaudeProjects(): Promise<DiscoveredClaudeProject[]> {
   let entries;
@@ -26,52 +41,66 @@ export async function discoverClaudeProjects(): Promise<DiscoveredClaudeProject[
     return [];
   }
 
-  const results: DiscoveredClaudeProject[] = [];
+  const buckets = new Map<string, Bucket>();
+
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    const dir = join(PROJECTS_ROOT, entry.name);
-    const item = await inspectProject(entry.name, dir);
-    if (item) results.push(item);
+    const folder = entry.name;
+    const dir = join(PROJECTS_ROOT, folder);
+    let files: string[];
+    try {
+      files = await readdir(dir);
+    } catch {
+      continue;
+    }
+    for (const file of files) {
+      if (!file.toLowerCase().endsWith(".jsonl")) continue;
+      const fullPath = join(dir, file);
+      const [cwd, mtimeMs] = await Promise.all([
+        extractCwd(fullPath),
+        statMtime(fullPath),
+      ]);
+      const key = cwd ?? folder;
+      const displayPath = cwd ?? folder;
+      const bucket = buckets.get(key);
+      if (bucket) {
+        bucket.sources.push({ folder, file });
+        if (mtimeMs > bucket.lastModifiedMs) bucket.lastModifiedMs = mtimeMs;
+      } else {
+        buckets.set(key, {
+          key,
+          displayPath,
+          lastModifiedMs: mtimeMs,
+          sources: [{ folder, file }],
+        });
+      }
+    }
+  }
+
+  const results: DiscoveredClaudeProject[] = [];
+  for (const b of buckets.values()) {
+    const shortName = b.displayPath.split("/").filter(Boolean).pop() ?? b.key;
+    results.push({
+      key: b.key,
+      displayPath: b.displayPath,
+      shortName,
+      sessionCount: b.sources.length,
+      lastModifiedMs: b.lastModifiedMs,
+      sources: b.sources,
+    });
   }
 
   results.sort((a, b) => b.lastModifiedMs - a.lastModifiedMs);
   return results;
 }
 
-async function inspectProject(
-  encodedPath: string,
-  dir: string,
-): Promise<DiscoveredClaudeProject | null> {
-  let files: string[];
+async function statMtime(filePath: string): Promise<number> {
   try {
-    files = await readdir(dir);
+    const s = await stat(filePath);
+    return s.mtimeMs;
   } catch {
-    return null;
+    return 0;
   }
-  const sessions = files.filter((f) => f.toLowerCase().endsWith(".jsonl"));
-  if (sessions.length === 0) return null;
-
-  let lastModifiedMs = 0;
-  for (const f of sessions) {
-    try {
-      const s = await stat(join(dir, f));
-      if (s.mtimeMs > lastModifiedMs) lastModifiedMs = s.mtimeMs;
-    } catch {
-      /* ignore */
-    }
-  }
-
-  const cwd = await extractCwd(join(dir, sessions[0]));
-  const displayPath = cwd ?? encodedPath;
-  const shortName = displayPath.split("/").filter(Boolean).pop() ?? encodedPath;
-
-  return {
-    encodedPath,
-    displayPath,
-    shortName,
-    sessionCount: sessions.length,
-    lastModifiedMs,
-  };
 }
 
 async function extractCwd(filePath: string): Promise<string | null> {

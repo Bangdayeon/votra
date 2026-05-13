@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
-import { deleteProject as deleteProjectImpl } from "@/application/deleteProject";
+import { deleteProject } from "@/application/deleteProject";
+import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 export type DeleteProjectResult =
   | { ok: true }
@@ -10,7 +11,7 @@ export type DeleteProjectResult =
 
 export async function deleteProjectAction(id: string): Promise<DeleteProjectResult> {
   try {
-    await deleteProjectImpl(id);
+    await deleteProject(id, { projects: prismaProjectRepository });
     revalidatePath("/");
     return { ok: true };
   } catch (err) {

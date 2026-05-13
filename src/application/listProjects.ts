@@ -1,7 +1,5 @@
-import "server-only";
-
 import type { FolderNode } from "@/components/FolderTree";
-import { prisma } from "@/infrastructure/db/prisma";
+import type { ProjectRepository } from "@/application/ports/projectRepository";
 
 export type ProjectListItem = {
   id: string;
@@ -12,19 +10,17 @@ export type ProjectListItem = {
   structure?: FolderNode[];
 };
 
-export async function listProjects(): Promise<ProjectListItem[]> {
-  const projects = await prisma.project.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { agents: { take: 1 } },
-  });
-
-  return projects.map((p) => ({
-    id: p.id,
-    name: p.title,
-    agent: p.agents[0]?.source.toLowerCase(),
-    description: p.description ?? undefined,
-    image: p.thumbnailUrl ?? undefined,
-    structure: extractTree(p.structure),
+export async function listProjects(deps: {
+  projects: ProjectRepository;
+}): Promise<ProjectListItem[]> {
+  const rows = await deps.projects.list();
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.title,
+    agent: r.firstAgentSource?.toLowerCase(),
+    description: r.description ?? undefined,
+    image: r.thumbnailUrl ?? undefined,
+    structure: extractTree(r.structure),
   }));
 }
 
