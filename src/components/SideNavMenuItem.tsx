@@ -63,14 +63,14 @@ export function SideNavMenuItem({
           <Image
             src={image}
             alt=""
-            width={20}
-            height={20}
-            className="size-5 rounded-full object-cover"
+            width={28}
+            height={28}
+            className="size-7 rounded-full object-cover"
             aria-hidden
           />
         ) : (
           <span
-            className="size-5 rounded-full"
+            className="size-7 rounded-full"
             style={{ backgroundColor: colorFromTitle(title) }}
             aria-hidden
           />
@@ -85,7 +85,7 @@ export function SideNavMenuItem({
       variant="ghost"
       onClick={onClick}
       className={cn(
-        "w-full justify-start rounded-full px-3 py-2 text-sm font-normal",
+        "w-full justify-start rounded-full px-1 py-2 text-sm font-normal",
         selected &&
           "bg-primary/15 font-semibold text-primary hover:bg-primary/20 hover:text-primary",
         className,
@@ -95,14 +95,14 @@ export function SideNavMenuItem({
         <Image
           src={image}
           alt=""
-          width={20}
-          height={20}
-          className="size-5 shrink-0 rounded-full object-cover"
+          width={28}
+          height={28}
+          className="size-7 shrink-0 rounded-full object-cover"
           aria-hidden
         />
       ) : (
         <span
-          className="size-5 shrink-0 rounded-full"
+          className="size-7 shrink-0 rounded-full"
           style={{ backgroundColor: colorFromTitle(title) }}
           aria-hidden
         />
