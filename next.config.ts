@@ -3,6 +3,7 @@ import type { RuleSetRule } from "webpack";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: "standalone",
   webpack(config) {
     const fileLoaderRule = config.module.rules.find(
       (rule: RuleSetRule | undefined): rule is RuleSetRule =>
