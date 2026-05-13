@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { AgentSource } from "@prisma/client";
+import { Prisma, type AgentSource } from "@prisma/client";
 
 import { prisma } from "@/infrastructure/db/prisma";
 import type { Session } from "@/domain/session/types";
@@ -12,6 +12,8 @@ const DEFAULT_USER_EMAIL = "default@votra.local";
 export type SaveProjectInput = {
   title: string;
   agent: AgentSource;
+  /** `Project.structure` 에 그대로 저장될 JSON (예: { tree: FolderNode[] }) */
+  structure?: Record<string, unknown>;
   sessions: Session[];
 };
 
@@ -22,6 +24,7 @@ export async function saveProject(input: SaveProjectInput): Promise<string> {
     data: {
       title: input.title,
       ownerId: owner.id,
+      structure: input.structure as Prisma.InputJsonValue | undefined,
       agents: { create: [{ source: input.agent }] },
       sessions: {
         create: input.sessions.map((session) => buildSessionCreate(session, input.agent)),
