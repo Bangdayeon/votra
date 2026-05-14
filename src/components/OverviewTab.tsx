@@ -8,6 +8,7 @@ import type { ProjectMetrics } from "@/application/getProjectMetrics";
 import { Card } from "@/components/Card";
 import { ClaudeFilesCard } from "@/components/ClaudeFilesCard";
 import { OtherMetricsCard } from "@/components/OtherMetricsCard";
+import { ProjectHeaderCard } from "@/components/ProjectHeaderCard";
 import type { Project } from "@/components/ProjectsContext";
 import { RetryCostCard } from "@/components/RetryCostCard";
 import { SessionTokensCard } from "@/components/SessionTokensCard";
@@ -35,44 +36,48 @@ export function OverviewTab({ selected }: { selected: Project }) {
   }, [selected.id]);
 
   return (
-    <div className="flex h-full min-h-0 gap-6">
-      <ClaudeFilesCard selected={selected} />
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <ProjectHeaderCard selected={selected} />
 
-      {metricsLoading && (
-        <>
-          <Card className="flex flex-1 items-center justify-center">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          </Card>
-          <Card className="flex flex-1 items-center justify-center">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          </Card>
-        </>
-      )}
+      <div className="flex min-h-0 flex-1 gap-6">
+        <ClaudeFilesCard selected={selected} />
 
-      {!metricsLoading && metrics && (
-        <>
-          <SessionTokensCard metrics={metrics} className="flex-1" />
-          <section className="flex flex-1 flex-col gap-6 min-h-0">
-            <OtherMetricsCard metrics={metrics} className="flex-1" />
-            <RetryCostCard retryCount={0} retryTokens={0} />
-          </section>
-        </>
-      )}
+        {metricsLoading && (
+          <>
+            <Card className="flex flex-1 items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </Card>
+            <Card className="flex flex-1 items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </Card>
+          </>
+        )}
 
-      {!metricsLoading && !metrics && (
-        <>
-          <Card className="flex-1">
-            <p className="text-sm text-muted-foreground">
-              데이터를 불러오지 못했어요.
-            </p>
-          </Card>
-          <Card className="flex-1">
-            <p className="text-sm text-muted-foreground">
-              데이터를 불러오지 못했어요.
-            </p>
-          </Card>
-        </>
-      )}
+        {!metricsLoading && metrics && (
+          <>
+            <SessionTokensCard metrics={metrics} className="flex-1" />
+            <section className="flex flex-1 flex-col gap-6 min-h-0">
+              <OtherMetricsCard metrics={metrics} className="flex-1" />
+              <RetryCostCard retryCount={0} retryTokens={0} />
+            </section>
+          </>
+        )}
+
+        {!metricsLoading && !metrics && (
+          <>
+            <Card className="flex-1">
+              <p className="text-sm text-muted-foreground">
+                데이터를 불러오지 못했어요.
+              </p>
+            </Card>
+            <Card className="flex-1">
+              <p className="text-sm text-muted-foreground">
+                데이터를 불러오지 못했어요.
+              </p>
+            </Card>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { aggregateSessionMetrics } from "@/domain/session/aggregateSessionMetrics";
 import { extractErrors } from "@/domain/session/extractErrors";
-import { extractFileEdits } from "@/domain/session/extractFileEdits";
+import { extractTimeline } from "@/domain/session/extractTimeline";
 import type { AgentKind } from "@/domain/agent/types";
 import type { Session } from "@/domain/session/types";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
@@ -37,7 +37,7 @@ export async function saveProject(
     sessions: input.sessions.map((s) => {
       const m = aggregateSessionMetrics(s.events);
       const errors = extractErrors(s);
-      const fileEdits = extractFileEdits(s.events);
+      const timeline = extractTimeline(s);
       return {
         title: s.title,
         model: m.model ?? "unknown",
@@ -51,12 +51,7 @@ export async function saveProject(
           errorMessage: e.errorMessage,
           occurredAt: new Date(e.occurredAt),
         })),
-        events: fileEdits.map((f) => ({
-          type: "FILE_EDIT" as const,
-          occurredAt: new Date(f.occurredAt),
-          path: f.path,
-          toolName: f.toolName,
-        })),
+        events: timeline,
       };
     }),
   });

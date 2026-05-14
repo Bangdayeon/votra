@@ -3,10 +3,26 @@ import "server-only";
 import { Prisma, type AgentSource } from "@prisma/client";
 
 import type {
+  ProjectEventCreate,
   ProjectListRow,
   ProjectRepository,
 } from "@/application/ports/projectRepository";
 import { prisma } from "@/infrastructure/db/prisma";
+
+function buildEventMetadata(
+  e: ProjectEventCreate,
+): Prisma.InputJsonValue | undefined {
+  const meta: Record<string, unknown> = {};
+  if (e.path) meta.path = e.path;
+  if (e.toolName) meta.toolName = e.toolName;
+  if (e.errorType) meta.errorType = e.errorType;
+  if (e.isError) meta.isError = true;
+  if (e.uuid) meta.uuid = e.uuid;
+  if (e.parentUuid) meta.parentUuid = e.parentUuid;
+  return Object.keys(meta).length > 0
+    ? (meta as Prisma.InputJsonValue)
+    : undefined;
+}
 
 export const prismaProjectRepository: ProjectRepository = {
   list: async () => {
@@ -67,16 +83,10 @@ export const prismaProjectRepository: ProjectRepository = {
                 ? {
                     create: s.events.map((e) => ({
                       type: e.type,
+                      role: e.role,
+                      content: e.content,
                       timestamp: e.occurredAt,
-                      metadata:
-                        e.path || e.toolName
-                          ? ({
-                              ...(e.path ? { path: e.path } : {}),
-                              ...(e.toolName
-                                ? { toolName: e.toolName }
-                                : {}),
-                            } as Prisma.InputJsonValue)
-                          : undefined,
+                      metadata: buildEventMetadata(e),
                     })),
                   }
                 : undefined,

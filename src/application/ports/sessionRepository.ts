@@ -33,10 +33,30 @@ export type SessionScoringRow = {
   messageCount: number;
 };
 
+/** session detail timeline 한 줄 — buildPromptBranches 입력. */
+export type SessionEventRow = {
+  id: string;
+  type:
+    | "PROMPT"
+    | "ASSISTANT"
+    | "TOOL_CALL"
+    | "FILE_EDIT"
+    | "ERROR"
+    | "COMMIT"
+    | "SYSTEM"
+    | "SESSION_META";
+  role: string | null;
+  content: string | null;
+  timestamp: Date;
+  /** path · toolName · errorType · isError */
+  metadata: Record<string, unknown> | null;
+};
+
 export type SessionRepository = {
   findManyByProject: (projectId: string) => Promise<SessionMetricRow[]>;
   findErrorTypesByProject: (projectId: string) => Promise<ErrorTypeCount[]>;
   findScoringRowsByProject: (
     projectId: string,
   ) => Promise<SessionScoringRow[]>;
+  findEventsBySession: (sessionId: string) => Promise<SessionEventRow[]>;
 };

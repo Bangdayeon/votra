@@ -234,9 +234,11 @@ const edgeTypes: EdgeTypes = { gradient: GradientEdge };
 export function BranchGraph({
   nodes: branchNodes,
   cwd,
+  onSelect,
 }: {
   nodes: BranchNode[];
   cwd?: string;
+  onSelect?: (id: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
@@ -244,10 +246,12 @@ export function BranchGraph({
     branchNodes[branchNodes.length - 1]?.id ?? null,
   );
 
-  // prop 이 갈리면 마지막 노드로 재선택
+  // prop 이 갈리면 마지막 노드로 재선택 + 부모에 알림
   useEffect(() => {
-    setSelectedId(branchNodes[branchNodes.length - 1]?.id ?? null);
-  }, [branchNodes]);
+    const next = branchNodes[branchNodes.length - 1]?.id ?? null;
+    setSelectedId(next);
+    if (next) onSelect?.(next);
+  }, [branchNodes, onSelect]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -301,8 +305,9 @@ export function BranchGraph({
   const handleNodeClick = useCallback(
     (_e: React.MouseEvent, node: Node) => {
       setSelectedId(node.id);
+      onSelect?.(node.id);
     },
-    [],
+    [onSelect],
   );
 
   return (

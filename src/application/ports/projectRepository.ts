@@ -17,11 +17,22 @@ export type SessionErrorCreate = {
 };
 
 export type ProjectEventCreate = {
-  /** Prisma EventType — 일단 파일 수정 (`FILE_EDIT`) 만 저장. 필요시 확장. */
-  type: "FILE_EDIT";
+  /** Prisma EventType — 세션 detail timeline 렌더링용. */
+  type: "PROMPT" | "ASSISTANT" | "TOOL_CALL" | "FILE_EDIT" | "ERROR";
   occurredAt: Date;
+  /** "user" | "assistant" | "system" 등 — DB Event.role */
+  role?: string;
+  /** PROMPT/ASSISTANT 본문 — UI 에서 보여줄 짧은 라벨 (saver 가 cap). */
+  content?: string;
   path?: string;
   toolName?: string;
+  /** TOOL_CALL 결과가 에러였는지 — detail view 색상에 사용. */
+  isError?: boolean;
+  errorType?: string;
+  /** raw JSONL event uuid (또는 한 raw event 안의 sub-event 합성 uuid). 트리 분기 키. */
+  uuid?: string;
+  /** 부모 event uuid. fork 감지용. */
+  parentUuid?: string;
 };
 
 export type ProjectSessionCreate = {

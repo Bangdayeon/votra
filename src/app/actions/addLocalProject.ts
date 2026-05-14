@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { saveProject } from "@/application/saveProject";
 import { claudeCodeAdapter } from "@/domain/agent/claudeCode";
+import type { FolderFile } from "@/domain/agent/types";
 import { extractCwd } from "@/domain/session/extractCwd";
 import type { FolderNode } from "@/components/FolderTree";
 import type { ClaudeProjectSource } from "@/infrastructure/localScan/discoverClaudeProjects";
@@ -12,9 +13,15 @@ import { scanLocalFolderTree } from "@/infrastructure/localScan/scanLocalFolderT
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 import { prismaUserRepository } from "@/infrastructure/repositories/prismaUserRepository";
 
+/** 클라이언트가 이미 read 해서 보내는 jsonl 한 개 (원격 SaaS 분기) */
+export type InlineClaudeFile = { relativePath: string; content: string };
+
 export type AddLocalProjectInput = {
   agentKind: "CLAUDE"; // 다른 agent 는 추후
-  sources: ClaudeProjectSource[];
+  /** 서버 fs 로 읽을 sources (로컬 dev 분기) — inlineFiles 와 둘 중 하나만 */
+  sources?: ClaudeProjectSource[];
+  /** 브라우저 picker 로 이미 read 한 파일들 (원격 SaaS 분기) */
+  inlineFiles?: InlineClaudeFile[];
   title: string;
   description?: string;
   tree?: FolderNode[];
@@ -30,11 +37,8 @@ export async function addLocalProject(
   input: AddLocalProjectInput,
 ): Promise<AddLocalProjectResult> {
   if (!input.title) return { ok: false, error: "프로젝트 이름이 없어요." };
-  if (!input.sources || input.sources.length === 0) {
-    return { ok: false, error: "선택된 작업 기록이 없어요." };
-  }
 
-  const files = await loadClaudeProjectFiles(input.sources);
+  const files = await resolveFiles(input);
   if (files.length === 0) {
     return { ok: false, error: "jsonl 파일이 없어요." };
   }
@@ -45,7 +49,10 @@ export async function addLocalProject(
   }
 
   const cwd = extractCwd(sessions);
-  const tree = input.tree ?? (cwd ? await autoScanTree(cwd) : undefined);
+  // inlineFiles 분기 (원격 SaaS) 에서는 서버가 사용자 디스크에 접근 못 하므로 autoScanTree 스킵
+  const canAutoScan = !input.inlineFiles;
+  const tree =
+    input.tree ?? (canAutoScan && cwd ? await autoScanTree(cwd) : undefined);
 
   const projectId = await saveProject(
     {
@@ -62,6 +69,19 @@ export async function addLocalProject(
 
   revalidatePath("/");
   return { ok: true, projectId };
+}
+
+async function resolveFiles(input: AddLocalProjectInput): Promise<FolderFile[]> {
+  if (input.inlineFiles && input.inlineFiles.length > 0) {
+    return input.inlineFiles.map((f) => ({
+      relativePath: f.relativePath,
+      readText: async () => f.content,
+    }));
+  }
+  if (input.sources && input.sources.length > 0) {
+    return loadClaudeProjectFiles(input.sources);
+  }
+  return [];
 }
 
 async function autoScanTree(cwd: string): Promise<FolderNode[] | undefined> {

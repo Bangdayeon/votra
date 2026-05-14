@@ -3,13 +3,17 @@
 import { Info, Loader2, Plus, RefreshCw, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
-import { addLocalProject } from "@/app/actions/addLocalProject";
+import {
+  addLocalProject,
+  type InlineClaudeFile,
+} from "@/app/actions/addLocalProject";
 import {
   discoverProjects,
   type DiscoverProjectsResult,
 } from "@/app/actions/discoverProjects";
 import type { FolderNode } from "@/components/FolderTree";
 import { colorForFolder } from "@/lib/colorForFolder";
+import { scanClaudeProjects, type ScannedClaudeProject } from "@/lib/scanClaudeProjects";
 import { scanFolderTree } from "@/lib/scanFolderTree";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +38,7 @@ type Props = { onAdded: () => void };
 export function AddProjectDialog({ onAdded }: Props) {
   const [open, setOpen] = useState(false);
   const [discovered, setDiscovered] = useState<DiscoverProjectsResult | null>(null);
+  const [scannedClaude, setScannedClaude] = useState<ScannedClaudeProject[] | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -63,6 +68,41 @@ export function AddProjectDialog({ onAdded }: Props) {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "프로젝트 검색 실패");
+    } finally {
+      setDiscovering(false);
+    }
+  }
+
+  async function handlePickClaudeFolder() {
+    setError(null);
+    const picker = (
+      window as unknown as {
+        showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle>;
+      }
+    ).showDirectoryPicker;
+    if (typeof picker !== "function") {
+      setError("이 브라우저는 폴더 선택을 지원하지 않아요. Chrome/Edge/Brave 를 써주세요.");
+      return;
+    }
+    let handle: FileSystemDirectoryHandle;
+    try {
+      handle = await picker();
+    } catch {
+      return;
+    }
+    setDiscovering(true);
+    try {
+      const scanned = await scanClaudeProjects(handle);
+      setScannedClaude(scanned);
+      if (scanned.length > 0) {
+        const first = scanned[0];
+        setSelectedKey(first.key);
+        setTitle(first.shortName);
+      } else {
+        setError(".jsonl 파일이 없어요. .claude/projects 폴더가 맞는지 확인해주세요.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Claude 폴더를 읽지 못했어요.");
     } finally {
       setDiscovering(false);
     }
@@ -106,12 +146,28 @@ export function AddProjectDialog({ onAdded }: Props) {
 
   function handleSubmit() {
     if (!selectedKey) return;
-    const picked = claudeProjects.find((p) => p.key === selectedKey);
-    if (!picked) return;
+    const scanned = scannedClaude?.find((p) => p.key === selectedKey);
+    const server = discovered?.claude.find((p) => p.key === selectedKey);
+    if (!scanned && !server) return;
     startTransition(async () => {
+      let inlineFiles: InlineClaudeFile[] | undefined;
+      if (scanned) {
+        try {
+          inlineFiles = await Promise.all(
+            scanned.fileHandles.map(async (h) => ({
+              relativePath: h.relativePath,
+              content: await h.file.text(),
+            })),
+          );
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "파일을 읽지 못했어요.");
+          return;
+        }
+      }
       const result = await addLocalProject({
         agentKind: "CLAUDE",
-        sources: picked.sources,
+        sources: scanned ? undefined : server!.sources,
+        inlineFiles,
         title,
         description: description.trim() || undefined,
         tree: codeTree ?? undefined,
@@ -129,6 +185,7 @@ export function AddProjectDialog({ onAdded }: Props) {
 
   function resetState() {
     setDiscovered(null);
+    setScannedClaude(null);
     setSelectedKey(null);
     setTitle("");
     setDescription("");
@@ -154,7 +211,9 @@ export function AddProjectDialog({ onAdded }: Props) {
     setThumbnailUrl(dataUrl);
   }
 
-  const claudeProjects = discovered?.claude ?? [];
+  const claudeProjects: { key: string; displayPath: string; shortName: string; sessionCount: number }[] =
+    scannedClaude ?? discovered?.claude ?? [];
+  const showPicker = !discovering && claudeProjects.length === 0 && discovered !== null;
   const canSubmit = !pending && selectedKey !== null && title.length > 0;
 
   return (
@@ -211,20 +270,48 @@ export function AddProjectDialog({ onAdded }: Props) {
                 ? "검색 중..."
                 : `${claudeProjects.length} 개 발견`}
             </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={runDiscover}
-              disabled={discovering}
-            >
-              <RefreshCw className={cn("size-3", discovering && "animate-spin")} />
-              다시 검색
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handlePickClaudeFolder}
+                disabled={discovering}
+              >
+                폴더 직접 선택
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={runDiscover}
+                disabled={discovering}
+              >
+                <RefreshCw className={cn("size-3", discovering && "animate-spin")} />
+                다시 검색
+              </Button>
+            </div>
           </div>
 
+          {showPicker && (
+            <div className="flex flex-col gap-2 rounded-md border border-dashed border-border p-3 text-sm">
+              <span className="text-muted-foreground">
+                자동 검색 결과가 없어요. <code>~/.claude/projects</code> 폴더를 직접 골라주세요.
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePickClaudeFolder}
+                className="w-fit"
+              >
+                Claude 폴더 선택
+              </Button>
+            </div>
+          )}
+
           <ul className="custom-scrollbar flex max-h-64 flex-col gap-1 overflow-y-auto rounded-md border border-border p-1">
-            {claudeProjects.length === 0 && !discovering && (
+            {claudeProjects.length === 0 && !discovering && !showPicker && (
               <li className="px-3 py-2 text-sm text-muted-foreground">
                 아직 작업 기록이 없어요. Claude 와 한 번이라도 작업한 뒤 다시 와주세요.
               </li>

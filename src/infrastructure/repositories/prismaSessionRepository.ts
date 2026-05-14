@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   ErrorTypeCount,
+  SessionEventRow,
   SessionMetricRow,
   SessionRepository,
   SessionScoringRow,
@@ -86,7 +87,41 @@ export const prismaSessionRepository: SessionRepository = {
       };
     });
   },
+
+  findEventsBySession: async (sessionId) => {
+    const events = await prisma.event.findMany({
+      where: { sessionId },
+      orderBy: { timestamp: "asc" },
+      select: {
+        id: true,
+        type: true,
+        role: true,
+        content: true,
+        timestamp: true,
+        metadata: true,
+      },
+    });
+    return events.map(
+      (e): SessionEventRow => ({
+        id: e.id,
+        type: e.type,
+        role: e.role,
+        content: e.content,
+        timestamp: e.timestamp,
+        metadata: toMetadataObject(e.metadata),
+      }),
+    );
+  },
 };
+
+function toMetadataObject(
+  metadata: unknown,
+): Record<string, unknown> | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+  return metadata as Record<string, unknown>;
+}
 
 function readPathFromMetadata(metadata: unknown): string | null {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
