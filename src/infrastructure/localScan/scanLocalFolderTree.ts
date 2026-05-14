@@ -4,22 +4,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { FolderColor, FolderNode } from "@/components/FolderTree";
-
-const SKIP_DIRS = new Set([
-  "node_modules",
-  ".git",
-  ".next",
-  ".turbo",
-  ".cache",
-  "dist",
-  "build",
-  "out",
-  "coverage",
-  ".vercel",
-]);
-
-const MAX_DEPTH = 8;
-const MAX_ENTRIES = 5000;
+import { MAX_DEPTH, MAX_ENTRIES, SKIP_DIRS } from "@/infrastructure/localScan/scanLimits";
 
 const ASSET_NAMES = new Set([
   "public",

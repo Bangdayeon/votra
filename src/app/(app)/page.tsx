@@ -18,18 +18,18 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex h-full flex-col px-8 py-6">
-      <Tabs defaultValue="overview" className="flex flex-1 flex-col gap-6">
+    <div className="flex h-full min-h-0 flex-col px-8 py-6">
+      <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col gap-6">
         <TabsList className="border-b border-[#C5C5C5]">
           <TabsTrigger value="overview">개요</TabsTrigger>
           <TabsTrigger value="branch">브랜치</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="flex-1 pb-10">
+        <TabsContent value="overview" className="min-h-0 flex-1 pb-10">
           <OverviewTab selected={selected} />
         </TabsContent>
 
-        <TabsContent value="branch" className="flex-1">
+        <TabsContent value="branch" className="min-h-0 flex-1">
           <BranchTab selected={selected} />
         </TabsContent>
       </Tabs>
