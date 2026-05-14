@@ -34,9 +34,9 @@ export function BranchTab({ selected }: { selected: Project }) {
   return (
     <Card>
       <p className="text-sm text-muted-foreground">
-        {selected.name} 의 세션 흐름
+        {selected.name}의 세션 흐름
       </p>
-      <div className="py-10">
+      <div className="py-3">
         {loading ? (
           <div className="flex h-16 items-center justify-center">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />

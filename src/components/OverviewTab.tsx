@@ -7,14 +7,10 @@ import { getProjectMetricsAction } from "@/app/actions/getProjectMetrics";
 import type { ProjectMetrics } from "@/application/getProjectMetrics";
 import { Card } from "@/components/Card";
 import { FolderTree, type FolderNode } from "@/components/FolderTree";
+import { OtherMetricsCard } from "@/components/OtherMetricsCard";
 import type { Project } from "@/components/ProjectsContext";
-import { TokenUsageDonut } from "@/components/TokenUsageDonut";
-
-const AGENT_BADGE: Record<string, string> = {
-  claude: "bg-[#E0A57B]",
-  gpt: "bg-[#74AA9C]",
-  gemini: "bg-[#4285F4]",
-};
+import { RetryCostCard } from "@/components/RetryCostCard";
+import { SessionTokensCard } from "@/components/SessionTokensCard";
 
 const ALWAYS_OPEN_NAMES = new Set(["src"]);
 
@@ -56,31 +52,9 @@ export function OverviewTab({ selected }: { selected: Project }) {
     };
   }, [selected.id]);
 
-  const badgeColor = selected.agent
-    ? (AGENT_BADGE[selected.agent] ?? "bg-muted-foreground")
-    : null;
-
   return (
-    <div className="grid grid-cols-2 gap-6">
-      <Card className="col-span-2">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold">{selected.name}</h2>
-          {selected.agent && badgeColor && (
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-medium text-white ${badgeColor}`}
-            >
-              {selected.agent}
-            </span>
-          )}
-        </div>
-        {selected.description && (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {selected.description}
-          </p>
-        )}
-      </Card>
-
-      <Card className="row-span-2 min-h-[480px]">
+    <div className="flex h-full gap-6">
+      <Card className="flex flex-1 flex-col overflow-y-auto">
         <h3 className="text-base font-semibold">아키텍처</h3>
         {selected.structure && selected.structure.length > 0 ? (
           <div className="mt-3">
@@ -93,26 +67,41 @@ export function OverviewTab({ selected }: { selected: Project }) {
         )}
       </Card>
 
-      <Card>
-        <h3 className="text-base font-semibold">토큰 사용량</h3>
-        {metricsLoading ? (
-          <div className="flex h-48 items-center justify-center">
+      {metricsLoading && (
+        <>
+          <Card className="flex flex-1 items-center justify-center">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : metrics ? (
-          <TokenUsageDonut metrics={metrics} />
-        ) : (
-          <p className="mt-2 text-sm text-muted-foreground">
-            데이터를 불러오지 못했어요.
-          </p>
-        )}
-      </Card>
+          </Card>
+          <Card className="flex flex-1 items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </Card>
+        </>
+      )}
 
-      <Card>
-        <p className="text-sm text-foreground">
-          또 뭘 보여주지.. 없으면 없애도 됨.. 세션 개수? 가이드 문서?
-        </p>
-      </Card>
+      {!metricsLoading && metrics && (
+        <>
+          <SessionTokensCard metrics={metrics} className="flex-1" />
+          <section className="flex flex-1 flex-col gap-6 min-h-0">
+            <OtherMetricsCard metrics={metrics} className="flex-1" />
+            <RetryCostCard retryCount={0} retryTokens={0} />
+          </section>
+        </>
+      )}
+
+      {!metricsLoading && !metrics && (
+        <>
+          <Card className="flex-1">
+            <p className="text-sm text-muted-foreground">
+              데이터를 불러오지 못했어요.
+            </p>
+          </Card>
+          <Card className="flex-1">
+            <p className="text-sm text-muted-foreground">
+              데이터를 불러오지 못했어요.
+            </p>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

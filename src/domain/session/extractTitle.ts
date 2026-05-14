@@ -4,6 +4,15 @@ const TITLE_MAX_LENGTH = 40;
 const WRAPPED_PROMPT_PREFIX = "<";
 
 export function extractTitle(events: RawEvent[]): string {
+  // Claude Code 는 같은 sessionId 로 ai-title 을 여러 번 emit 해요. 마지막 게 최신.
+  // ai-title 은 이미 짧은 generated title 이라 slice 안 함 (tooltip 에서 풀로 보여줘야 함).
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i];
+    if (e.type === "ai-title" && typeof e.aiTitle === "string" && e.aiTitle) {
+      return e.aiTitle;
+    }
+  }
+
   const summary = events.find((e) => e.type === "summary" && typeof e.summary === "string");
   if (summary?.summary) {
     return summary.summary.slice(0, TITLE_MAX_LENGTH);

@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 export type DonutSegment = {
   label: string;
   value: number;
@@ -9,7 +11,7 @@ export type DonutSegment = {
 };
 
 type Props = {
-  title: string;
+  title?: string;
   segments: DonutSegment[];
   /** 도넛 중앙에 들어갈 큰 값 */
   centerValue: string;
@@ -43,7 +45,7 @@ export function MiniDonut({
 
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="text-sm font-medium">{title}</h4>
+      {title && <h4 className="text-sm font-medium">{title}</h4>}
       <div className="flex flex-col items-center">
         <div className="relative" style={{ width: size, height: size }}>
           <svg width={size} height={size}>
@@ -59,25 +61,31 @@ export function MiniDonut({
               segments.map((seg) => {
                 const portion = seg.value / total;
                 const dash = portion * circumference;
-                const node = (
-                  <circle
-                    key={seg.label}
-                    cx={cx}
-                    cy={cy}
-                    r={radius}
-                    fill="none"
-                    stroke={seg.color}
-                    strokeWidth={thickness}
-                    strokeDasharray={`${dash} ${circumference - dash}`}
-                    strokeDashoffset={-offset}
-                    transform={`rotate(-90 ${cx} ${cy})`}
-                  />
-                );
+                const currentOffset = offset;
                 offset += dash;
-                return node;
+                return (
+                  <Tooltip key={seg.label}>
+                    <TooltipTrigger asChild>
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={radius}
+                        fill="none"
+                        stroke={seg.color}
+                        strokeWidth={thickness}
+                        strokeDasharray={`${dash} ${circumference - dash}`}
+                        strokeDashoffset={-currentOffset}
+                        transform={`rotate(-90 ${cx} ${cy})`}
+                        style={{ cursor: "pointer" }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{seg.label}</TooltipContent>
+                  </Tooltip>
+                );
               })}
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
+          {/* pointer-events-none: 가운데 라벨이 segment 호버 가로채지 않게 */}
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-base font-semibold leading-tight">{centerValue}</span>
             {centerLabel && (
               <span className="text-[10px] text-muted-foreground leading-tight">

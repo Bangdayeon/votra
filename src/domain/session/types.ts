@@ -40,6 +40,7 @@ export type RawEvent = {
   userType?: string;
   message?: RawMessage;
   summary?: string;
+  aiTitle?: string;
   leafUuid?: string;
   [key: string]: unknown;
 };
