@@ -73,7 +73,7 @@ export function SessionTokensCard({ metrics, className }: Props) {
         세션 {sortedSessions.length} 개
       </p>
 
-      <ul className="mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+      <ul className="custom-scrollbar mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
         {sortedSessions.map((s, i) => (
           <SessionListItem
             key={s.id}

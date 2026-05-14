@@ -48,7 +48,7 @@ export function SideNavigation() {
           </Button>
         </div>
 
-        <ul className="flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
+        <ul className="custom-scrollbar flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
           {projects.map((project) => (
             <li key={project.id}>
               <SideNavMenuItem
@@ -97,7 +97,7 @@ export function SideNavigation() {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2 py-3">
+        <div className="custom-scrollbar flex-1 overflow-y-auto px-2 py-3">
           <AddProjectDialog onAdded={refresh} />
 
           <ul className="mt-1 space-y-1">

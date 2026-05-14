@@ -223,7 +223,7 @@ export function AddProjectDialog({ onAdded }: Props) {
             </Button>
           </div>
 
-          <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto rounded-md border border-border p-1">
+          <ul className="custom-scrollbar flex max-h-64 flex-col gap-1 overflow-y-auto rounded-md border border-border p-1">
             {claudeProjects.length === 0 && !discovering && (
               <li className="px-3 py-2 text-sm text-muted-foreground">
                 아직 작업 기록이 없어요. Claude 와 한 번이라도 작업한 뒤 다시 와주세요.

@@ -21,7 +21,7 @@ function ShellLayout({ children }: { children: React.ReactNode }) {
       style={{ gridTemplateColumns: `${open ? 240 : 64}px 1fr` }}
     >
       <SideNavigation />
-      <main className="overflow-auto bg-[#F7F6F3]">{children}</main>
+      <main className="custom-scrollbar overflow-auto bg-[#F7F6F3]">{children}</main>
     </div>
   );
 }

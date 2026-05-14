@@ -105,7 +105,7 @@ export function OtherMetricsCard({ metrics, className }: Props) {
               })}
             </div>
 
-            <ul className="mt-3 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+            <ul className="custom-scrollbar mt-3 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
               {errorSegs.map((seg) => (
                 <li key={seg.label} className="flex items-center gap-2 text-xs">
                   <span

@@ -36,6 +36,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --color-gray200: oklch(0.922 0 0);
 }
 
 .dark {
@@ -70,6 +71,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --color-gray200: oklch(1 0 0 / 15%);
 }
 
 @theme inline {
@@ -121,4 +123,35 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ========== CUSTOM SCROLL BAR ========== */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-gray200);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background-color: transparent;
+  margin: 8px 4px 8px 0;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gray200) transparent;
+}
+
+/* Firefox 대응 */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
