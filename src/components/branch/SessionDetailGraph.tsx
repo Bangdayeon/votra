@@ -19,6 +19,7 @@ import type {
   AiActionNode,
   PromptBranch,
 } from "@/application/getSessionPromptBranches";
+import type { FileEditChange } from "@/domain/session/deriveFileEdits";
 import type { SessionStatus } from "@/domain/session/scoreSession";
 import { formatUserCommand } from "@/shared/lib/formatUserCommand";
 
@@ -297,6 +298,55 @@ function formatToolInput(input: unknown): string | null {
   }
 }
 
+function CodePane({
+  text,
+  tint,
+}: {
+  text: string;
+  tint: "before" | "after";
+}) {
+  const lines = text.length === 0 ? [""] : text.split("\n");
+  const bg =
+    tint === "before"
+      ? "bg-[#FF5252]/8 text-[#7a1a1a] dark:text-[#ffb4b4]"
+      : "bg-[#7AC74F]/10 text-[#1f4a13] dark:text-[#b9eaa1]";
+  return (
+    <div className={`overflow-auto ${bg} font-mono text-[11px] leading-[1.55]`}>
+      {lines.map((line, i) => (
+        <div key={i} className="flex">
+          <span className="w-8 shrink-0 select-none border-r border-border/40 px-1 text-right text-[10px] text-muted-foreground">
+            {i + 1}
+          </span>
+          <span className="whitespace-pre px-2">{line || " "}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FileEditDiff({ edits }: { edits: FileEditChange[] }) {
+  return (
+    <div className="mt-1.5 flex flex-col gap-2">
+      {edits.map((edit, idx) => (
+        <div
+          key={idx}
+          className="overflow-hidden rounded-md border border-border"
+        >
+          {edits.length > 1 && (
+            <div className="border-b border-border bg-muted/50 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              edit {idx + 1}
+            </div>
+          )}
+          <div className="grid grid-cols-2 divide-x divide-border">
+            <CodePane text={edit.before} tint="before" />
+            <CodePane text={edit.after} tint="after" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * 단일 action 카드 본문 (라벨 + 시간 + 텍스트 + TOOL_CALL 의 동작 토글).
  * 단독 action 행과 tool-run 내부 child 양쪽에서 동일한 모양으로 사용.
@@ -311,6 +361,10 @@ function renderActionCard(
     a.kind === "TOOL_CALL" ? formatToolInput(a.toolInput) : null;
   const toolSummary =
     a.kind === "TOOL_CALL" ? summarizeToolAction(a.label, a.toolInput) : null;
+  const fileEdits =
+    a.kind === "FILE_EDIT" && a.fileEdits && a.fileEdits.length > 0
+      ? a.fileEdits
+      : null;
   const isExpanded = expandedToolIds.has(a.id);
   return (
     <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-border bg-card px-3 py-2 text-sm">
@@ -365,6 +419,28 @@ function renderActionCard(
               {toolInputText}
             </pre>
           )}
+        </>
+      )}
+      {fileEdits && (
+        <>
+          <button
+            type="button"
+            onClick={() => toggleToolExpanded(a.id)}
+            aria-expanded={isExpanded}
+            className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground transition hover:text-foreground"
+          >
+            <span
+              aria-hidden
+              className="inline-block transition-transform"
+              style={{
+                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+              }}
+            >
+              ▸
+            </span>
+            {isExpanded ? "변경 접기" : "변경 보기"}
+          </button>
+          {isExpanded && <FileEditDiff edits={fileEdits} />}
         </>
       )}
     </div>

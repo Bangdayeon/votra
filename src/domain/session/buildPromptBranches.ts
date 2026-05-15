@@ -1,4 +1,8 @@
 import type { SessionEventRow } from "@/application/ports/sessionRepository";
+import {
+  deriveFileEdits,
+  type FileEditChange,
+} from "@/domain/session/deriveFileEdits";
 import type { SessionStatus } from "@/domain/session/scoreSession";
 
 export type AiActionKind = "TOOL_CALL" | "FILE_EDIT" | "ASSISTANT" | "ERROR";
@@ -12,6 +16,8 @@ export type AiActionNode = {
   occurredAt: Date;
   /** TOOL_CALL 일 때 raw tool input (없을 수 있음 — 구버전 row). */
   toolInput?: unknown;
+  /** FILE_EDIT 일 때, parent TOOL_CALL 의 toolInput 에서 파생한 원본/편집본 페어. */
+  fileEdits?: FileEditChange[];
   children: AiActionNode[];
 };
 
@@ -100,10 +106,18 @@ function buildActionTree(
   const childrenByParent = new Map<string | null, AiActionNode[]>();
   const allNodes: AiActionNode[] = [];
 
+  // FILE_EDIT 노드에 붙일 toolInput 을 미리 모은다 (FILE_EDIT.parentUuid === TOOL_CALL.uuid).
+  const toolCallByUuid = new Map<string, SessionEventRow>();
+  for (const e of followers) {
+    if (e.type !== "TOOL_CALL") continue;
+    const uuid = readUuid(e.metadata);
+    if (uuid) toolCallByUuid.set(uuid, e);
+  }
+
   let lastUuid: string | null = promptUuid ?? null;
 
   for (const e of followers) {
-    const node = makeActionNode(e);
+    const node = makeActionNode(e, toolCallByUuid);
     allNodes.push(node);
     const uuid = readUuid(e.metadata);
     const parentUuid = readParentUuid(e.metadata);
@@ -165,7 +179,10 @@ function linearChain(nodes: AiActionNode[]): AiActionNode[] {
   return nodes.length > 0 ? [nodes[0]] : [];
 }
 
-function makeActionNode(e: SessionEventRow): AiActionNode {
+function makeActionNode(
+  e: SessionEventRow,
+  toolCallByUuid: Map<string, SessionEventRow>,
+): AiActionNode {
   if (e.type === "ERROR") {
     return {
       id: e.id,
@@ -188,12 +205,21 @@ function makeActionNode(e: SessionEventRow): AiActionNode {
     };
   }
   if (e.type === "FILE_EDIT") {
+    const parentUuid = readParentUuid(e.metadata);
+    const parent = parentUuid ? toolCallByUuid.get(parentUuid) : undefined;
+    const parentToolName = parent ? readToolName(parent.metadata) : null;
+    const parentToolInput = parent ? readToolInput(parent.metadata) : undefined;
+    const fileEdits =
+      parentToolName && parentToolInput !== undefined
+        ? deriveFileEdits(parentToolName, parentToolInput)
+        : undefined;
     return {
       id: e.id,
       kind: "FILE_EDIT",
       label: shortPath(readPath(e.metadata)) ?? "file",
       isError: false,
       occurredAt: e.timestamp,
+      fileEdits,
       children: [],
     };
   }
