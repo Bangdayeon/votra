@@ -47,6 +47,8 @@ export type ProjectEventCreate = {
   content?: string;
   path?: string;
   toolName?: string;
+  /** TOOL_CALL raw input (capped). detail view 토글에서 동작 표시용. */
+  toolInput?: unknown;
   /** TOOL_CALL 결과가 에러였는지 — detail view 색상에 사용. */
   isError?: boolean;
   errorType?: string;

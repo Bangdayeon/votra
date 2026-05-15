@@ -10,6 +10,8 @@ export type AiActionNode = {
   label: string;
   isError: boolean;
   occurredAt: Date;
+  /** TOOL_CALL 일 때 raw tool input (없을 수 있음 — 구버전 row). */
+  toolInput?: unknown;
   children: AiActionNode[];
 };
 
@@ -181,6 +183,7 @@ function makeActionNode(e: SessionEventRow): AiActionNode {
       label: readToolName(e.metadata) ?? "tool",
       isError: false,
       occurredAt: e.timestamp,
+      toolInput: readToolInput(e.metadata),
       children: [],
     };
   }
@@ -228,6 +231,11 @@ function readToolName(meta: Record<string, unknown> | null): string | null {
   if (!meta) return null;
   const v = meta.toolName;
   return typeof v === "string" && v.length > 0 ? v : null;
+}
+
+function readToolInput(meta: Record<string, unknown> | null): unknown {
+  if (!meta) return undefined;
+  return meta.toolInput;
 }
 
 function readErrorType(meta: Record<string, unknown> | null): string | null {

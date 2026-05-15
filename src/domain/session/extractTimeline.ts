@@ -62,6 +62,7 @@ export function extractTimeline(session: Session): ProjectEventCreate[] {
         type: "TOOL_CALL",
         role: "assistant",
         toolName: b.name,
+        toolInput: capToolInput(b.input),
         occurredAt: ts,
       });
       if (EDIT_TOOLS.has(b.name)) {
@@ -187,4 +188,24 @@ function parseTs(iso: string | undefined): Date {
 
 function cap(s: string): string {
   return s.length > CONTENT_CAP ? `${s.slice(0, CONTENT_CAP - 1)}…` : s;
+}
+
+const TOOL_INPUT_STRING_CAP = 1000;
+
+/** tool_use.input 의 string 값을 잘라 DB metadata 크기 폭주를 방지. */
+function capToolInput(input: unknown): unknown {
+  if (typeof input === "string") {
+    return input.length > TOOL_INPUT_STRING_CAP
+      ? `${input.slice(0, TOOL_INPUT_STRING_CAP - 1)}…`
+      : input;
+  }
+  if (Array.isArray(input)) return input.map(capToolInput);
+  if (input !== null && typeof input === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+      out[k] = capToolInput(v);
+    }
+    return out;
+  }
+  return input;
 }

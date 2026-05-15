@@ -28,7 +28,7 @@ const STATUS_COLOR: Record<SessionStatus, string> = {
   red: "#FF5252",
 };
 
-const NODE_SIZE = 20;
+const NODE_SIZE = 14;
 const NODE_BORDER = 4;
 const STROKE_WIDTH = 4;
 const GRAPH_HEIGHT = 60;
@@ -66,6 +66,7 @@ function CircleNode({ data }: NodeProps<CircleNodeType>) {
             border: `${NODE_BORDER}px solid ${color}`,
             boxSizing: "border-box",
             cursor: "pointer",
+            boxShadow: data.filled ? `0 0 0 1px ${color}` : undefined,
           }}
         >
           <Handle

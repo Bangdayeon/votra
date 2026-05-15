@@ -16,6 +16,7 @@ function buildEventMetadata(
   const meta: Record<string, unknown> = {};
   if (e.path) meta.path = e.path;
   if (e.toolName) meta.toolName = e.toolName;
+  if (e.toolInput !== undefined) meta.toolInput = e.toolInput;
   if (e.errorType) meta.errorType = e.errorType;
   if (e.isError) meta.isError = true;
   if (e.uuid) meta.uuid = e.uuid;
