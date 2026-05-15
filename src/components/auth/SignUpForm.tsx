@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 
 const INITIAL: SignUpState = {};
 
-export function SignUpForm() {
+export function SignUpForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signUpAction, INITIAL);
 
   return (
@@ -23,6 +23,7 @@ export function SignUpForm() {
       </div>
 
       <form action={action} className="flex flex-col gap-3">
+        {next && <input type="hidden" name="next" value={next} />}
         <label className="flex flex-col gap-1 text-sm">
           이메일
           <Input
@@ -60,11 +61,14 @@ export function SignUpForm() {
         <span className="flex-1 border-t border-border" />
       </div>
 
-      <AxhubSignInButton />
+      <AxhubSignInButton next={next} />
 
       <p className="text-center text-sm text-muted-foreground">
         이미 계정이 있으세요?{" "}
-        <Link href="/auth/sign-in" className="text-primary underline">
+        <Link
+          href={next ? `/auth/sign-in?next=${encodeURIComponent(next)}` : "/auth/sign-in"}
+          className="text-primary underline"
+        >
           로그인
         </Link>
       </p>

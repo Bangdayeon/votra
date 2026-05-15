@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/infrastructure/db/prisma";
 import { setSessionCookie } from "@/infrastructure/auth/setSessionCookie";
 import { randomProfileAppearance } from "@/domain/user/profileAppearance";
+import { safeNextPath } from "@/shared/lib/safeNextPath";
 
 export type AxhubSignInState = { error?: string };
 
@@ -19,7 +20,10 @@ export type AxhubSignInState = { error?: string };
  *
  * 환경에서 둘 다 못 잡으면 명시적 에러를 반환합니다.
  */
-export async function signInWithAxhubAction(): Promise<AxhubSignInState> {
+export async function signInWithAxhubAction(
+  next?: string,
+): Promise<AxhubSignInState> {
+  const safeNext = safeNextPath(next);
   const h = await headers();
   let axhubUserId =
     h.get("x-apphub-user-id") || h.get("x-axhub-user-id") || null;
@@ -75,5 +79,5 @@ export async function signInWithAxhubAction(): Promise<AxhubSignInState> {
   });
 
   await setSessionCookie(user.id);
-  redirect("/");
+  redirect(safeNext);
 }

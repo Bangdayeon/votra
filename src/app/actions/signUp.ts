@@ -6,6 +6,7 @@ import { prisma } from "@/infrastructure/db/prisma";
 import { hashPassword } from "@/infrastructure/auth/hashPassword";
 import { setSessionCookie } from "@/infrastructure/auth/setSessionCookie";
 import { randomProfileAppearance } from "@/domain/user/profileAppearance";
+import { safeNextPath } from "@/shared/lib/safeNextPath";
 
 export type SignUpState = { error?: string };
 
@@ -16,6 +17,7 @@ export async function signUpAction(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const name = String(formData.get("name") ?? "").trim() || null;
   const password = String(formData.get("password") ?? "");
+  const next = safeNextPath(formData.get("next")?.toString());
 
   if (!email.includes("@")) return { error: "올바른 이메일을 입력해 주세요." };
   if (password.length < 8) return { error: "비밀번호는 8자 이상이어야 해요." };
@@ -31,5 +33,5 @@ export async function signUpAction(
   });
 
   await setSessionCookie(user.id);
-  redirect("/");
+  redirect(next);
 }

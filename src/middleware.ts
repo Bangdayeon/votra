@@ -6,7 +6,7 @@ import { verifySessionJwt } from "@/infrastructure/auth/verifySessionJwt";
 const PUBLIC_PATHS = [/^\/auth\//, /^\/api\//];
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const { pathname, search } = req.nextUrl;
 
   if (PUBLIC_PATHS.some((re) => re.test(pathname))) {
     return NextResponse.next();
@@ -18,7 +18,8 @@ export async function middleware(req: NextRequest) {
   if (!session) {
     const url = req.nextUrl.clone();
     url.pathname = "/auth/sign-in";
-    url.searchParams.set("next", pathname);
+    url.search = "";
+    url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
   }
 
