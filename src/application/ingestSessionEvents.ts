@@ -44,7 +44,7 @@ export async function ingestSessionEvents(
   }
 
   // CLI 의 source 는 .claude/projects 하위 파일/폴더 경로라서 RawEvent.cwd
-  // (실제 작업 디렉토리) 와 다르게 떨어져요. addLocalProject 와 매칭 키를 맞추려고
+  // (실제 작업 디렉토리) 와 다르게 떨어져요. 프로젝트 매칭 키를 맞추려고
   // raw event 에서 cwd 를 먼저 뽑고, 없을 때만 source 로 fallback.
   const asSessions: Session[] = input.sessions.map((s) => ({
     id: s.id,
