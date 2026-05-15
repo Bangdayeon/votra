@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ingestClaudeFiles } from "@/application/ingestClaudeFiles";
 import { saveProject } from "@/application/saveProject";
 import { claudeCodeAdapter } from "@/domain/agent/claudeCode";
 import type { FolderFile } from "@/domain/agent/types";
@@ -9,7 +10,9 @@ import { extractCwd } from "@/domain/session/extractCwd";
 import type { FolderNode } from "@/components/FolderTree";
 import type { ClaudeProjectSource } from "@/infrastructure/localScan/discoverClaudeProjects";
 import { loadClaudeProjectFiles } from "@/infrastructure/localScan/loadClaudeProjectFiles";
+import { scanClaudeFilesForIngest } from "@/infrastructure/localScan/scanClaudeFilesForIngest";
 import { scanLocalFolderTree } from "@/infrastructure/localScan/scanLocalFolderTree";
+import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 import { prismaUserRepository } from "@/infrastructure/repositories/prismaUserRepository";
 
@@ -66,6 +69,16 @@ export async function addLocalProject(
     },
     { projects: prismaProjectRepository, users: prismaUserRepository },
   );
+
+  // 로컬 dev 분기에서만 서버 fs 가 사용자 머신과 같은 디스크라 스캔이 의미 있어요.
+  // 원격 SaaS (inlineFiles) 에서는 CLI 가 별도 ingest 엔드포인트로 보내야 함.
+  if (canAutoScan && cwd) {
+    const files = await scanClaudeFilesForIngest(cwd);
+    await ingestClaudeFiles(
+      { projectId, files },
+      { claudeFiles: prismaClaudeFileRepository },
+    );
+  }
 
   revalidatePath("/");
   return { ok: true, projectId };

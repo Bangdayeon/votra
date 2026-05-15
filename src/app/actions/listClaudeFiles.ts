@@ -2,9 +2,12 @@
 
 import { listClaudeFiles } from "@/application/listClaudeFiles";
 import type { ClaudeFileRecord } from "@/domain/claudeFiles/types";
+import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 
 export async function listClaudeFilesAction(
-  cwd?: string,
+  projectId: string,
 ): Promise<ClaudeFileRecord[]> {
-  return listClaudeFiles(cwd);
+  return listClaudeFiles(projectId, {
+    claudeFiles: prismaClaudeFileRepository,
+  });
 }

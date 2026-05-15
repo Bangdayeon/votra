@@ -16,7 +16,7 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    listClaudeFilesAction(selected.cwd)
+    listClaudeFilesAction(selected.id)
       .then((r) => {
         if (!cancelled) setRecords(r);
       })
@@ -29,7 +29,7 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
     return () => {
       cancelled = true;
     };
-  }, [selected.id, selected.cwd]);
+  }, [selected.id]);
 
   return (
     <Card className="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto">

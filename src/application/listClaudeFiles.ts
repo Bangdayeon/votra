@@ -1,28 +1,25 @@
+import type { ClaudeFileRepository } from "@/application/ports/claudeFileRepository";
 import { gradeFromScore } from "@/domain/claudeFiles/gradeFromScore";
 import { scoreClaudeFile } from "@/domain/claudeFiles/scoreClaudeFile";
 import type { ClaudeFileRecord } from "@/domain/claudeFiles/types";
-import { discoverClaudeFiles } from "@/infrastructure/localScan/discoverClaudeFiles";
-import { readClaudeFile } from "@/infrastructure/localScan/readClaudeFile";
 
 export async function listClaudeFiles(
-  cwd?: string,
+  projectId: string,
+  deps: { claudeFiles: ClaudeFileRepository },
 ): Promise<ClaudeFileRecord[]> {
-  const discovered = await discoverClaudeFiles(cwd);
-  const records: ClaudeFileRecord[] = [];
-  for (const d of discovered) {
-    const file = await readClaudeFile(d.absPath);
-    if (!file) continue;
-    const score = scoreClaudeFile(file.content, d.kind, file.mtime);
-    records.push({
-      absPath: d.absPath,
-      displayPath: d.displayPath,
-      kind: d.kind,
-      scope: d.scope,
-      contentLength: file.content.length,
-      mtime: file.mtime,
+  const rows = await deps.claudeFiles.findByProject(projectId);
+  const now = Date.now();
+  return rows.map((r) => {
+    const score = scoreClaudeFile(r.content, r.kind, r.mtime, now);
+    return {
+      absPath: r.absPath,
+      displayPath: r.displayPath,
+      kind: r.kind,
+      scope: r.scope,
+      contentLength: r.content.length,
+      mtime: r.mtime,
       score,
       grade: gradeFromScore(score.total),
-    });
-  }
-  return records;
+    };
+  });
 }
