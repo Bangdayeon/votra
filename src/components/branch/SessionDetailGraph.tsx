@@ -20,6 +20,7 @@ import type {
   PromptBranch,
 } from "@/application/getSessionPromptBranches";
 import type { SessionStatus } from "@/domain/session/scoreSession";
+import { formatUserCommand } from "@/shared/lib/formatUserCommand";
 
 const STATUS_COLOR: Record<SessionStatus, string> = {
   green: "#7AC74F",
@@ -340,7 +341,7 @@ export function SessionDetailGraph({
                   </span>
                 </div>
                 <p className="whitespace-pre-wrap break-words leading-relaxed">
-                  {selectedBranch.title}
+                  {formatUserCommand(selectedBranch.title)}
                 </p>
               </div>
             </div>
