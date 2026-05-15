@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { SignUpForm } from "@/components/SignUpForm";
+import { SignUpForm } from "@/components/auth/SignUpForm";
 import { getCurrentUser } from "@/infrastructure/auth/currentUser";
 
 export default async function SignUpPage() {

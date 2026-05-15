@@ -11,7 +11,7 @@ import {
   discoverProjects,
   type DiscoverProjectsResult,
 } from "@/app/actions/discoverProjects";
-import type { FolderNode } from "@/components/FolderTree";
+import type { FolderNode } from "@/shared/folder/types";
 import { colorForFolder } from "@/lib/colorForFolder";
 import { scanClaudeProjects, type ScannedClaudeProject } from "@/lib/scanClaudeProjects";
 import { scanFolderTree } from "@/lib/scanFolderTree";

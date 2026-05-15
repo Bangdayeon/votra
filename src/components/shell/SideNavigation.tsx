@@ -2,19 +2,19 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { Icon } from "./Icon";
 
-import { AddProjectDialog } from "@/components/AddProjectDialog";
-import { DeleteProjectConfirmDialog } from "@/components/DeleteProjectConfirmDialog";
-import { EditProjectDialog } from "@/components/EditProjectDialog";
+import { AddProjectDialog } from "@/components/project/AddProjectDialog";
+import { Icon } from "@/components/common/Icon";
+import { DeleteProjectConfirmDialog } from "@/components/project/DeleteProjectConfirmDialog";
+import { EditProjectDialog } from "@/components/project/EditProjectDialog";
 import {
   useProjects,
   type Project,
-} from "@/components/ProjectsContext";
-import { SideNavMenuItem } from "@/components/SideNavMenuItem";
-import { useSidebar } from "@/components/SidebarContext";
+} from "@/components/project/ProjectsContext";
+import { SideNavMenuItem } from "@/components/shell/SideNavMenuItem";
+import { useSidebar } from "@/components/shell/SidebarContext";
 import { Button } from "@/components/ui/button";
-import { UserMenu } from "@/components/UserMenu";
+import { UserMenu } from "@/components/shell/UserMenu";
 
 export function SideNavigation() {
   const { open, toggle } = useSidebar();

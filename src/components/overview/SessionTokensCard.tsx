@@ -6,8 +6,8 @@ import type {
   ProjectMetrics,
   SessionTokenRow,
 } from "@/application/getProjectMetrics";
-import { Card } from "@/components/Card";
-import { MiniDonut, type DonutSegment } from "@/components/MiniDonut";
+import { Card } from "@/components/common/Card";
+import { MiniDonut, type DonutSegment } from "@/components/charts/MiniDonut";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const SESSION_PALETTE = [
@@ -21,6 +21,7 @@ const SESSION_PALETTE = [
 ];
 
 const FALLBACK_COLOR = "#9CA3AF";
+const DONUT_TOP_N = 5;
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -28,8 +29,8 @@ function formatTokens(n: number): string {
   return n.toLocaleString();
 }
 
-/** donut 가독성 위해 6 개 초과 시 top 5 + 기타 로 압축. 리스트는 압축 안 함 */
-function compactSegments(segs: DonutSegment[], topN = 5): DonutSegment[] {
+/** donut 가독성 위해 topN 초과 시 top + 기타 로 압축. 리스트는 압축 안 함 */
+function compactSegments(segs: DonutSegment[], topN = DONUT_TOP_N): DonutSegment[] {
   if (segs.length <= topN) return segs;
   const top = segs.slice(0, topN);
   const restTotal = segs.slice(topN).reduce((s, x) => s + x.value, 0);
@@ -74,13 +75,21 @@ export function SessionTokensCard({ metrics, className }: Props) {
       </p>
 
       <ul className="custom-scrollbar mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
-        {sortedSessions.map((s, i) => (
-          <SessionListItem
-            key={s.id}
-            session={s}
-            color={SESSION_PALETTE[i % SESSION_PALETTE.length]}
-          />
-        ))}
+        {sortedSessions.map((s, i) => {
+          const isInOthers =
+            sortedSessions.length > DONUT_TOP_N && i >= DONUT_TOP_N;
+          return (
+            <SessionListItem
+              key={s.id}
+              session={s}
+              color={
+                isInOthers
+                  ? FALLBACK_COLOR
+                  : SESSION_PALETTE[i % SESSION_PALETTE.length]
+              }
+            />
+          );
+        })}
       </ul>
     </Card>
   );

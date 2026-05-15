@@ -1,8 +1,8 @@
 "use client";
 
 import type { ProjectMetrics } from "@/application/getProjectMetrics";
-import { Card } from "@/components/Card";
-import { MiniBarList, type BarItem } from "@/components/MiniBarList";
+import { Card } from "@/components/common/Card";
+import { MiniBarList, type BarItem } from "@/components/charts/MiniBarList";
 
 const MODEL_COLOR_RULES: Array<{ match: string; color: string }> = [
   { match: "opus", color: "#A843B1" },

@@ -1,4 +1,4 @@
-import type { FolderNode } from "@/components/FolderTree";
+import type { FolderNode } from "@/shared/folder/types";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
 
 export type ProjectListItem = {

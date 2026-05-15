@@ -4,23 +4,7 @@ import { ChevronDown, ChevronRight, Folder, FolderOpen } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
-
-export type FolderNode = {
-  name: string;
-  color?: FolderColor;
-  children?: FolderNode[];
-  /** 이 노드를 초기에 펼친 상태로 둘지. 미지정 시 부모 FolderTree 의 defaultOpen 을 따라감 */
-  defaultOpen?: boolean;
-};
-
-export type FolderColor =
-  | "amber"
-  | "yellow"
-  | "green"
-  | "blue"
-  | "purple"
-  | "rose"
-  | "gray";
+import type { FolderColor, FolderNode } from "@/shared/folder/types";
 
 const COLOR_CLASS: Record<FolderColor, string> = {
   amber: "text-amber-500",

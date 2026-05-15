@@ -7,9 +7,9 @@ import { getProjectBranchNodesAction } from "@/app/actions/getProjectBranchNodes
 import { getSessionPromptBranchesAction } from "@/app/actions/getSessionPromptBranches";
 import type { BranchNode } from "@/application/getProjectBranchNodes";
 import type { PromptBranch } from "@/application/getSessionPromptBranches";
-import { BranchGraph } from "@/components/BranchGraph";
-import type { Project } from "@/components/ProjectsContext";
-import { SessionDetailGraph } from "@/components/SessionDetailGraph";
+import { BranchGraph } from "@/components/branch/BranchGraph";
+import type { Project } from "@/components/project/ProjectsContext";
+import { SessionDetailGraph } from "@/components/branch/SessionDetailGraph";
 import {
   Dialog,
   DialogContent,

@@ -1,8 +1,8 @@
 "use client";
 
-import { BranchTab } from "@/components/BranchTab";
-import { OverviewTab } from "@/components/OverviewTab";
-import { useProjects } from "@/components/ProjectsContext";
+import { BranchTab } from "@/components/branch/BranchTab";
+import { OverviewTab } from "@/components/overview/OverviewTab";
+import { useProjects } from "@/components/project/ProjectsContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function HomePage() {

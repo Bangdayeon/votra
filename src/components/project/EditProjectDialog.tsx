@@ -4,8 +4,8 @@ import { Info, Loader2, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import { updateProjectAction } from "@/app/actions/updateProject";
-import type { FolderNode } from "@/components/FolderTree";
-import type { Project } from "@/components/ProjectsContext";
+import type { FolderNode } from "@/shared/folder/types";
+import type { Project } from "@/components/project/ProjectsContext";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

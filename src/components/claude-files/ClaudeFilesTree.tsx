@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { ClaudeFileGradeBadge } from "@/components/ClaudeFileGradeBadge";
+import { ClaudeFileGradeBadge } from "@/components/claude-files/ClaudeFileGradeBadge";
 import type {
   ClaudeFileRecord,
   ClaudeFileScope,

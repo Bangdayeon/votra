@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { saveProject } from "@/application/saveProject";
 import { detectAgent } from "@/domain/agent/detectAgent";
 import type { FolderFile } from "@/domain/agent/types";
-import type { FolderNode } from "@/components/FolderTree";
+import type { FolderNode } from "@/shared/folder/types";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 import { prismaUserRepository } from "@/infrastructure/repositories/prismaUserRepository";
 

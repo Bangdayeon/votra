@@ -1,4 +1,4 @@
-import type { FolderColor } from "@/components/FolderTree";
+import type { FolderColor } from "@/shared/folder/types";
 
 const ASSET_NAMES = new Set([
   "public",

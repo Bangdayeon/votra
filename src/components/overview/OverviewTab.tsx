@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 
 import { getProjectMetricsAction } from "@/app/actions/getProjectMetrics";
 import type { ProjectMetrics } from "@/application/getProjectMetrics";
-import { Card } from "@/components/Card";
-import { ClaudeFilesCard } from "@/components/ClaudeFilesCard";
-import { OtherMetricsCard } from "@/components/OtherMetricsCard";
-import { ProjectHeaderCard } from "@/components/ProjectHeaderCard";
-import type { Project } from "@/components/ProjectsContext";
-import { RetryCostCard } from "@/components/RetryCostCard";
-import { SessionTokensCard } from "@/components/SessionTokensCard";
+import { Card } from "@/components/common/Card";
+import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
+import { OtherMetricsCard } from "@/components/overview/OtherMetricsCard";
+import { ProjectHeaderCard } from "@/components/project/ProjectHeaderCard";
+import type { Project } from "@/components/project/ProjectsContext";
+import { RetryCostCard } from "@/components/overview/RetryCostCard";
+import { SessionTokensCard } from "@/components/overview/SessionTokensCard";
 
 export function OverviewTab({ selected }: { selected: Project }) {
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);

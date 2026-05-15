@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 
 import { signOutAction } from "@/app/actions/signOut";
 import { updateProfileAppearanceAction } from "@/app/actions/updateProfileAppearance";
-import { useCurrentUser } from "@/components/CurrentUserContext";
+import { useCurrentUser } from "@/components/shell/CurrentUserContext";
 import { Button } from "@/components/ui/button";
 import {
   Popover,

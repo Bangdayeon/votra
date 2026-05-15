@@ -4,9 +4,9 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { listClaudeFilesAction } from "@/app/actions/listClaudeFiles";
-import { Card } from "@/components/Card";
-import { ClaudeFilesTree } from "@/components/ClaudeFilesTree";
-import type { Project } from "@/components/ProjectsContext";
+import { Card } from "@/components/common/Card";
+import { ClaudeFilesTree } from "@/components/claude-files/ClaudeFilesTree";
+import type { Project } from "@/components/project/ProjectsContext";
 import type { ClaudeFileRecord } from "@/domain/claudeFiles/types";
 
 export function ClaudeFilesCard({ selected }: { selected: Project }) {

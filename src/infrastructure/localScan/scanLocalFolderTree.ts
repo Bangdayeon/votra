@@ -3,7 +3,7 @@ import "server-only";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { FolderColor, FolderNode } from "@/components/FolderTree";
+import type { FolderColor, FolderNode } from "@/shared/folder/types";
 import { MAX_DEPTH, MAX_ENTRIES, SKIP_DIRS } from "@/infrastructure/localScan/scanLimits";
 
 const ASSET_NAMES = new Set([

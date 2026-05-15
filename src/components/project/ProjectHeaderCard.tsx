@@ -1,5 +1,5 @@
-import { Card } from "@/components/Card";
-import type { Project } from "@/components/ProjectsContext";
+import { Card } from "@/components/common/Card";
+import type { Project } from "@/components/project/ProjectsContext";
 
 export function ProjectHeaderCard({ selected }: { selected: Project }) {
   const agentLabel = selected.agent?.toLowerCase();

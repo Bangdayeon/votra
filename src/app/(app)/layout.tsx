@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { listProjectsAction } from "@/app/actions/listProjects";
-import { AppShell } from "@/components/AppShell";
+import { AppShell } from "@/components/shell/AppShell";
 import { getCurrentUser } from "@/infrastructure/auth/currentUser";
 
 export default async function AppLayout({

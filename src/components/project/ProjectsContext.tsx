@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import { listProjectsAction } from "@/app/actions/listProjects";
-import type { FolderNode } from "@/components/FolderTree";
+import type { FolderNode } from "@/shared/folder/types";
 
 export type Project = {
   id: string;

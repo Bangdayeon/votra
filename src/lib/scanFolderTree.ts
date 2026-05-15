@@ -1,6 +1,6 @@
 "use client";
 
-import type { FolderNode } from "@/components/FolderTree";
+import type { FolderNode } from "@/shared/folder/types";
 import { colorForFolder } from "@/lib/colorForFolder";
 
 const SKIP_DIRS = new Set([

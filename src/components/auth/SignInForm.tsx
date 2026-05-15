@@ -3,22 +3,22 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
-import { signUpAction, type SignUpState } from "@/app/actions/signUp";
-import { AxhubSignInButton } from "@/components/AxhubSignInButton";
+import { signInAction, type SignInState } from "@/app/actions/signIn";
+import { AxhubSignInButton } from "@/components/auth/AxhubSignInButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const INITIAL: SignUpState = {};
+const INITIAL: SignInState = {};
 
-export function SignUpForm() {
-  const [state, action, pending] = useActionState(signUpAction, INITIAL);
+export function SignInForm() {
+  const [state, action, pending] = useActionState(signInAction, INITIAL);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold">회원가입</h1>
+        <h1 className="text-xl font-semibold">로그인</h1>
         <p className="text-sm text-muted-foreground">
-          새 votra 계정을 만들어요.
+          votra 계정으로 로그인해요.
         </p>
       </div>
 
@@ -33,16 +33,11 @@ export function SignUpForm() {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          이름 (선택)
-          <Input type="text" name="name" autoComplete="name" />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          비밀번호 (8자 이상)
+          비밀번호
           <Input
             type="password"
             name="password"
-            autoComplete="new-password"
-            minLength={8}
+            autoComplete="current-password"
             required
           />
         </label>
@@ -50,7 +45,7 @@ export function SignUpForm() {
           <p className="text-sm text-destructive">{state.error}</p>
         )}
         <Button type="submit" disabled={pending} className="mt-2">
-          {pending ? "가입 중…" : "가입하기"}
+          {pending ? "로그인 중…" : "로그인"}
         </Button>
       </form>
 
@@ -63,9 +58,9 @@ export function SignUpForm() {
       <AxhubSignInButton />
 
       <p className="text-center text-sm text-muted-foreground">
-        이미 계정이 있으세요?{" "}
-        <Link href="/auth/sign-in" className="text-primary underline">
-          로그인
+        계정이 없으세요?{" "}
+        <Link href="/auth/sign-up" className="text-primary underline">
+          회원가입
         </Link>
       </p>
     </div>

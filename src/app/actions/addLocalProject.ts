@@ -7,7 +7,7 @@ import { saveProject } from "@/application/saveProject";
 import { claudeCodeAdapter } from "@/domain/agent/claudeCode";
 import type { FolderFile } from "@/domain/agent/types";
 import { extractCwd } from "@/domain/session/extractCwd";
-import type { FolderNode } from "@/components/FolderTree";
+import type { FolderNode } from "@/shared/folder/types";
 import type { ClaudeProjectSource } from "@/infrastructure/localScan/discoverClaudeProjects";
 import { loadClaudeProjectFiles } from "@/infrastructure/localScan/loadClaudeProjectFiles";
 import { scanClaudeFilesForIngest } from "@/infrastructure/localScan/scanClaudeFilesForIngest";

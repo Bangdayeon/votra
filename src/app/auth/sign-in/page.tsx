@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { SignInForm } from "@/components/SignInForm";
+import { SignInForm } from "@/components/auth/SignInForm";
 import { getCurrentUser } from "@/infrastructure/auth/currentUser";
 
 export default async function SignInPage() {
