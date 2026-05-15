@@ -12,9 +12,9 @@ declare global {
 }
 
 function createPrisma(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error("DATABASE_URL is not set");
-  const adapter = new PrismaNeon({ connectionString });
+  const adapter = new PrismaNeon({
+    connectionString: process.env.DATABASE_URL ?? "",
+  });
   return new PrismaClient({
     adapter,
     log:
