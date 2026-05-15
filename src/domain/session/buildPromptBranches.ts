@@ -18,6 +18,8 @@ export type AiActionNode = {
   toolInput?: unknown;
   /** FILE_EDIT 일 때, parent TOOL_CALL 의 toolInput 에서 파생한 원본/편집본 페어. */
   fileEdits?: FileEditChange[];
+  /** ERROR 일 때 tool_result 본문 (capped). 토글로 노출. */
+  errorDetail?: string;
   children: AiActionNode[];
 };
 
@@ -184,12 +186,14 @@ function makeActionNode(
   toolCallByUuid: Map<string, SessionEventRow>,
 ): AiActionNode {
   if (e.type === "ERROR") {
+    const detail = e.content?.trim() ?? "";
     return {
       id: e.id,
       kind: "ERROR",
       label: readErrorType(e.metadata) ?? "Error",
       isError: true,
       occurredAt: e.timestamp,
+      errorDetail: detail.length > 0 ? detail : undefined,
       children: [],
     };
   }

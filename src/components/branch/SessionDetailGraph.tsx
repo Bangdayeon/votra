@@ -365,6 +365,8 @@ function renderActionCard(
     a.kind === "FILE_EDIT" && a.fileEdits && a.fileEdits.length > 0
       ? a.fileEdits
       : null;
+  const errorDetail =
+    a.kind === "ERROR" && a.errorDetail ? a.errorDetail : null;
   const isExpanded = expandedToolIds.has(a.id);
   return (
     <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-border bg-card px-3 py-2 text-sm">
@@ -441,6 +443,32 @@ function renderActionCard(
             {isExpanded ? "변경 접기" : "변경 보기"}
           </button>
           {isExpanded && <FileEditDiff edits={fileEdits} />}
+        </>
+      )}
+      {errorDetail && (
+        <>
+          <button
+            type="button"
+            onClick={() => toggleToolExpanded(a.id)}
+            aria-expanded={isExpanded}
+            className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-[#FF5252] transition hover:opacity-80"
+          >
+            <span
+              aria-hidden
+              className="inline-block transition-transform"
+              style={{
+                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+              }}
+            >
+              ▸
+            </span>
+            {isExpanded ? "에러 상세 접기" : "에러 상세 보기"}
+          </button>
+          {isExpanded && (
+            <pre className="mt-1.5 max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-md border border-[#FF5252]/30 bg-[#FF5252]/8 px-2.5 py-2 text-[11px] leading-relaxed text-[#7a1a1a] dark:text-[#ffb4b4]">
+              {errorDetail}
+            </pre>
+          )}
         </>
       )}
     </div>
