@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma, type AgentSource } from "@prisma/client";
 
 import type {
+  IngestEventInput,
   ProjectEventCreate,
   ProjectListRow,
   ProjectRepository,
@@ -121,4 +122,107 @@ export const prismaProjectRepository: ProjectRepository = {
   delete: async (id) => {
     await prisma.project.delete({ where: { id } });
   },
+
+  findByCwd: async (cwd) => {
+    const row = await prisma.project.findFirst({
+      where: { cwd },
+      select: { id: true, ownerId: true },
+      orderBy: { createdAt: "asc" },
+    });
+    return row ?? null;
+  },
+
+  createForIngest: async ({ cwd, title, ownerId, agent }) => {
+    const project = await prisma.project.create({
+      data: {
+        title,
+        ownerId,
+        cwd,
+        agents: { create: [{ source: agent as AgentSource }] },
+      },
+      select: { id: true, ownerId: true },
+    });
+    return project;
+  },
+
+  upsertIngestSession: async ({ projectId, agent, session }) => {
+    const source = agent as AgentSource;
+    const row = await prisma.session.upsert({
+      where: {
+        projectId_externalId: { projectId, externalId: session.externalId },
+      },
+      create: {
+        projectId,
+        externalId: session.externalId,
+        source,
+        model: session.model,
+        title: session.title,
+        startedAt: session.startedAt,
+        endedAt: session.endedAt,
+        tokenUsage: { create: {} },
+      },
+      update: {
+        title: session.title ?? undefined,
+        model: session.model,
+        // 시작 시각은 첫 ingest 값을 유지, 종료 시각은 가장 최신으로 갱신
+        endedAt: session.endedAt ?? undefined,
+      },
+      select: { id: true },
+    });
+    return row.id;
+  },
+
+  findExistingEventUuids: async (sessionId, uuids) => {
+    if (uuids.length === 0) return new Set();
+    const rows = await prisma.event.findMany({
+      where: { sessionId, externalUuid: { in: uuids } },
+      select: { externalUuid: true },
+    });
+    const set = new Set<string>();
+    for (const r of rows) if (r.externalUuid) set.add(r.externalUuid);
+    return set;
+  },
+
+  appendEvents: async (sessionId, events) => {
+    if (events.length === 0) return 0;
+    const result = await prisma.event.createMany({
+      data: events.map((e) => toEventCreateData(sessionId, e)),
+      skipDuplicates: true,
+    });
+    return result.count;
+  },
+
+  addTokenUsage: async (sessionId, delta) => {
+    if (delta.inputTokens === 0 && delta.outputTokens === 0) return;
+    const total = delta.inputTokens + delta.outputTokens;
+    await prisma.sessionTokenUsage.upsert({
+      where: { sessionId },
+      create: {
+        sessionId,
+        inputTokens: delta.inputTokens,
+        outputTokens: delta.outputTokens,
+        totalTokens: total,
+      },
+      update: {
+        inputTokens: { increment: delta.inputTokens },
+        outputTokens: { increment: delta.outputTokens },
+        totalTokens: { increment: total },
+      },
+    });
+  },
 };
+
+function toEventCreateData(
+  sessionId: string,
+  e: IngestEventInput,
+): Prisma.EventCreateManyInput {
+  return {
+    sessionId,
+    type: e.type,
+    role: e.role,
+    content: e.content,
+    timestamp: e.occurredAt,
+    metadata: buildEventMetadata(e),
+    externalUuid: e.uuid ?? null,
+  };
+}

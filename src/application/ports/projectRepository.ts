@@ -1,5 +1,26 @@
 import type { AgentKind } from "@/domain/agent/types";
 
+export type IngestProjectRef = {
+  id: string;
+  ownerId: string;
+};
+
+export type IngestSessionInput = {
+  /** raw jsonl sessionId — DB session 매핑 키로만 사용. */
+  externalId: string;
+  title?: string;
+  model: string;
+  startedAt?: Date;
+  endedAt?: Date;
+};
+
+export type IngestEventInput = ProjectEventCreate;
+
+export type IngestTokenDelta = {
+  inputTokens: number;
+  outputTokens: number;
+};
+
 export type ProjectListRow = {
   id: string;
   title: string;
@@ -72,4 +93,26 @@ export type ProjectRepository = {
   create: (data: ProjectCreateInput) => Promise<string>;
   update: (input: ProjectUpdateInput) => Promise<void>;
   delete: (id: string) => Promise<void>;
+
+  findByCwd: (cwd: string) => Promise<IngestProjectRef | null>;
+  createForIngest: (input: {
+    cwd: string;
+    title: string;
+    ownerId: string;
+    agent: AgentKind;
+  }) => Promise<IngestProjectRef>;
+  upsertIngestSession: (input: {
+    projectId: string;
+    agent: AgentKind;
+    session: IngestSessionInput;
+  }) => Promise<string>;
+  findExistingEventUuids: (
+    sessionId: string,
+    uuids: string[],
+  ) => Promise<Set<string>>;
+  appendEvents: (
+    sessionId: string,
+    events: IngestEventInput[],
+  ) => Promise<number>;
+  addTokenUsage: (sessionId: string, delta: IngestTokenDelta) => Promise<void>;
 };
