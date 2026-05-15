@@ -27,8 +27,9 @@ function buildEventMetadata(
 }
 
 export const prismaProjectRepository: ProjectRepository = {
-  list: async () => {
+  list: async ({ ownerId }) => {
     const rows = await prisma.project.findMany({
+      where: { ownerId },
       orderBy: { createdAt: "desc" },
       include: { agents: { take: 1 } },
     });
@@ -124,9 +125,9 @@ export const prismaProjectRepository: ProjectRepository = {
     await prisma.project.delete({ where: { id } });
   },
 
-  findByCwd: async (cwd) => {
+  findByCwd: async ({ cwd, ownerId }) => {
     const row = await prisma.project.findFirst({
-      where: { cwd },
+      where: { cwd, ownerId },
       select: { id: true, ownerId: true },
       orderBy: { createdAt: "asc" },
     });

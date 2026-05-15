@@ -11,10 +11,11 @@ export type ProjectListItem = {
   cwd?: string;
 };
 
-export async function listProjects(deps: {
-  projects: ProjectRepository;
-}): Promise<ProjectListItem[]> {
-  const rows = await deps.projects.list();
+export async function listProjects(
+  args: { ownerId: string },
+  deps: { projects: ProjectRepository },
+): Promise<ProjectListItem[]> {
+  const rows = await deps.projects.list({ ownerId: args.ownerId });
   return rows.map((r) => ({
     id: r.id,
     name: r.title,

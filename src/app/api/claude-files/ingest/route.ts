@@ -46,7 +46,10 @@ export async function POST(req: Request) {
   }
 
   // 세션이 아직 들어오지 않은 cwd 로는 claude file 만 ingest 못 함 (세션 ingest 가 먼저).
-  const project = await prismaProjectRepository.findByCwd(parsed.source);
+  const project = await prismaProjectRepository.findByCwd({
+    cwd: parsed.source,
+    ownerId: user.id,
+  });
   if (!project) {
     return NextResponse.json(
       {

@@ -56,7 +56,10 @@ export async function ingestSessionEvents(
   const projectCwd = extractCwd(asSessions) ?? input.source;
 
   const project =
-    (await deps.projects.findByCwd(projectCwd)) ??
+    (await deps.projects.findByCwd({
+      cwd: projectCwd,
+      ownerId: input.userId,
+    })) ??
     (await deps.projects.createForIngest({
       cwd: projectCwd,
       title: deriveProjectTitle(projectCwd),

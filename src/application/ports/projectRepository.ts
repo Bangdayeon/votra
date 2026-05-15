@@ -91,12 +91,15 @@ export type ProjectUpdateInput = {
 };
 
 export type ProjectRepository = {
-  list: () => Promise<ProjectListRow[]>;
+  list: (args: { ownerId: string }) => Promise<ProjectListRow[]>;
   create: (data: ProjectCreateInput) => Promise<string>;
   update: (input: ProjectUpdateInput) => Promise<void>;
   delete: (id: string) => Promise<void>;
 
-  findByCwd: (cwd: string) => Promise<IngestProjectRef | null>;
+  findByCwd: (args: {
+    cwd: string;
+    ownerId: string;
+  }) => Promise<IngestProjectRef | null>;
   createForIngest: (input: {
     cwd: string;
     title: string;
