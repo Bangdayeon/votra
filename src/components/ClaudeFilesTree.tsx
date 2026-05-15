@@ -199,12 +199,12 @@ function ScoreBreakdown({
 }) {
   const s = record.score;
   const rows: Array<[string, number, number]> = [
-    ["Commands/Workflows", s.commands, 20],
-    ["Architecture Clarity", s.architecture, 20],
-    ["Non-Obvious Patterns", s.patterns, 15],
-    ["Conciseness", s.conciseness, 15],
-    ["Currency", s.currency, 15],
-    ["Actionability", s.actionability, 15],
+    ["명령어/워크플로", s.commands, 20],
+    ["아키텍처 명료성", s.architecture, 20],
+    ["숨겨진 패턴", s.patterns, 15],
+    ["간결성", s.conciseness, 15],
+    ["최신성", s.currency, 15],
+    ["실행 가능성", s.actionability, 15],
   ];
   const mtimeText = new Date(record.mtime).toLocaleString();
 
