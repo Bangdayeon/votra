@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Copy, Plus } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,9 +15,12 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-type Props = { onAdded: () => void };
+type Props = {
+  onAdded: () => void;
+  children?: ReactNode;
+};
 
-export function AddProjectDialog({ onAdded }: Props) {
+export function AddProjectDialog({ onAdded, children }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -29,14 +32,16 @@ export function AddProjectDialog({ onAdded }: Props) {
       }}
     >
       <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full justify-start rounded-full px-3 py-2 text-sm font-normal text-muted-foreground"
-        >
-          <Plus className="size-4" />
-          프로젝트 추가
-        </Button>
+        {children ?? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full justify-start rounded-full px-3 py-2 text-sm font-normal text-muted-foreground"
+          >
+            <Plus className="size-4" />
+            프로젝트 추가
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>

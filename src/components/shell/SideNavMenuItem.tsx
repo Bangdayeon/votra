@@ -157,7 +157,7 @@ function RowMenu({
           aria-label={`${title} 메뉴`}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "absolute right-2 top-1/2 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground focus:opacity-100",
+            "absolute right-2 top-1/2 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground transition-opacity hover:bg-purple-100 hover:text-foreground focus:opacity-100",
             // 기본은 숨김, 부모 row 호버 시 노출. 메뉴 열려있을 땐 계속 노출.
             "opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100",
           )}
