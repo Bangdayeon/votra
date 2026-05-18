@@ -1,9 +1,9 @@
 "use client";
 
 import { ProjectsProvider, type Project } from "@/components/project/ProjectsContext";
-import { CurrentUserProvider } from "@/components/shell/CurrentUserContext";
-import { SideNavigation } from "@/components/shell/SideNavigation";
-import { SidebarProvider, useSidebar } from "@/components/shell/SidebarContext";
+import { CurrentUserProvider } from "@/components/project/shell/CurrentUserContext";
+import { SideNavigation } from "@/components/project/shell/SideNavigation";
+import { SidebarProvider, useSidebar } from "@/components/project/shell/SidebarContext";
 
 export type AppShellUser = {
   id: string;

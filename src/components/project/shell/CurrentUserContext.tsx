@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from "react";
 
-import type { AppShellUser } from "@/components/shell/AppShell";
+import type { AppShellUser } from "@/components/project/shell/AppShell";
 
 const CurrentUserContext = createContext<AppShellUser | null>(null);
 

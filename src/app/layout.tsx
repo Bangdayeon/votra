@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 
+import { Toaster } from "@/components/ui/sonner";
 import "@/styles/globals.css";
 
 const pretendard = localFont({
@@ -22,7 +23,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={pretendard.variable}>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        {children}
+        <Toaster richColors position="top-center" />
+      </body>
     </html>
   );
 }

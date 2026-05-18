@@ -12,10 +12,10 @@ import {
   useProjects,
   type Project,
 } from "@/components/project/ProjectsContext";
-import { SideNavMenuItem } from "@/components/shell/SideNavMenuItem";
-import { useSidebar } from "@/components/shell/SidebarContext";
+import { SideNavMenuItem } from "@/components/project/shell/SideNavMenuItem";
+import { useSidebar } from "@/components/project/shell/SidebarContext";
 import { Button } from "@/components/ui/button";
-import { UserMenu } from "@/components/shell/UserMenu";
+import { UserMenu } from "@/components/project/shell/UserMenu";
 
 export function SideNavigation() {
   const { open, toggle } = useSidebar();
