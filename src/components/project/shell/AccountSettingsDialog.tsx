@@ -308,10 +308,14 @@ function PolicyPane() {
     <div className="flex h-full flex-col gap-6">
       <header>
         <h2 className="text-lg font-semibold">전체 정책</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          이 계정의 모든 프로젝트에 공통으로 적용할 AI 활용 정책을 적어주세요.
-          보안·민감 정보 처리 같은 기준이 여기에 들어가요.
-        </p>
+        <span className="mt-2 text-sm text-muted-foreground">
+          <p>
+            모든 프로젝트에 공통으로 적용할 AI 활용 정책을 적어주세요.
+          </p>
+          <p>
+            ex. 보안·민감 정보 처리 기준 등
+          </p>
+        </span>
       </header>
 
       <div className="relative">
@@ -337,7 +341,7 @@ function PolicyPane() {
         )}
       </div>
 
-      <div className="mt-auto flex justify-end pt-4">
+      <div className="mt-auto flex justify-end py-4">
         <Button
           type="button"
           onClick={onSave}

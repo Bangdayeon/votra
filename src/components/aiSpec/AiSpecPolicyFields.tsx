@@ -65,7 +65,7 @@ export function AiSpecPolicyFields({
           placeholder={guidelinePlaceholder}
           onChange={(e) => onGuidelineChange(e.target.value)}
           className={cn(
-            "min-h-[18rem] w-full resize-y rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm leading-6",
+            "min-h-[18rem] w-full resize-none rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm leading-6",
             "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}
