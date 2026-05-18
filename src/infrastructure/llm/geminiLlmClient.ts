@@ -5,7 +5,7 @@ import {
   GEMINI_ERROR_MESSAGES,
   geminiMessageForFinishReason,
   geminiMessageForStatus,
-} from "@/infrastructure/llm/geminiErrorMessages";
+} from "@/domain/llm/errorMessages";
 
 const MODEL = "gemini-2.5-flash";
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;

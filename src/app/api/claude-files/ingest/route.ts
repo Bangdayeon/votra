@@ -7,7 +7,10 @@ import type {
   ClaudeFileScope,
 } from "@/domain/claudeFiles/types";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
+import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
+import { prismaClaudeFileEvaluationRepository } from "@/infrastructure/repositories/prismaClaudeFileEvaluationRepository";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
+import { prismaPolicyRuleRepository } from "@/infrastructure/repositories/prismaPolicyRuleRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 const PATH_SEP = "/";
@@ -68,7 +71,13 @@ export async function POST(req: Request) {
 
   await ingestClaudeFiles(
     { projectId: project.id, files: parsed.files },
-    { claudeFiles: prismaClaudeFileRepository },
+    {
+      claudeFiles: prismaClaudeFileRepository,
+      evaluations: prismaClaudeFileEvaluationRepository,
+      projects: prismaProjectRepository,
+      policyRules: prismaPolicyRuleRepository,
+      llm: geminiLlmClient,
+    },
   );
 
   return NextResponse.json({

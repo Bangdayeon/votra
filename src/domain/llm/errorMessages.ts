@@ -78,3 +78,18 @@ export function geminiMessageForFinishReason(reason: string): string {
       return GEMINI_ERROR_MESSAGES.UNKNOWN;
   }
 }
+
+/**
+ * UI 노출 직전에 호출. 친절한 메시지면 그대로, raw 패턴이면 정제된 메시지로 변환.
+ *
+ * - `Gemini API <status>: <body>` (legacy) → status/body 기반 친절 메시지
+ * - 그 외 → 그대로 (이미 friendly 라고 가정)
+ */
+export function sanitizeGeminiErrorMessage(message: string): string {
+  const m = message.match(/^Gemini API (\d+):\s*([\s\S]*)$/);
+  if (m) {
+    const status = Number(m[1]);
+    return geminiMessageForStatus(status, m[2]);
+  }
+  return message;
+}

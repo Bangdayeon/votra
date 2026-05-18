@@ -5,11 +5,8 @@ import {
   type ListClaudeFilesResult,
 } from "@/application/listClaudeFiles";
 import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
-import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaClaudeFileEvaluationRepository } from "@/infrastructure/repositories/prismaClaudeFileEvaluationRepository";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
-import { prismaPolicyRuleRepository } from "@/infrastructure/repositories/prismaPolicyRuleRepository";
-import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 const EMPTY: ListClaudeFilesResult = {
   records: [],
@@ -24,8 +21,5 @@ export async function listClaudeFilesAction(
   return listClaudeFiles(projectId, {
     claudeFiles: prismaClaudeFileRepository,
     evaluations: prismaClaudeFileEvaluationRepository,
-    projects: prismaProjectRepository,
-    policyRules: prismaPolicyRuleRepository,
-    llm: geminiLlmClient,
   });
 }

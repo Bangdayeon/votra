@@ -17,6 +17,7 @@ import type {
   ClaudeFileRecord,
   ClaudeFileScope,
 } from "@/domain/claudeFiles/types";
+import { sanitizeGeminiErrorMessage } from "@/domain/llm/errorMessages";
 import type { PolicyRule } from "@/domain/policy/types";
 import { cn } from "@/lib/utils";
 
@@ -306,7 +307,7 @@ function readReason(ev: ClaudeFileRecord["evaluation"]): string {
     case "LOADING":
       return "평가가 아직 완료되지 않았어요.";
     case "ERROR":
-      return `평가 중 오류가 났어요. ${ev.errorMessage}`;
+      return `평가 중 오류가 났어요. ${sanitizeGeminiErrorMessage(ev.errorMessage)}`;
     case "DONE":
       return ev.reason || "평가 결과 설명이 없어요.";
   }
