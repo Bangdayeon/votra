@@ -5,6 +5,7 @@ import type { ProjectSettings } from "@/domain/project/settings/types";
 export type ProjectSettingsBundle = {
   settings: ProjectSettings;
   aiSpecGuideline: string;
+  aiSpecFileName: string | null;
 };
 
 export async function getProjectSettings(
@@ -15,5 +16,6 @@ export async function getProjectSettings(
   return {
     settings: parseProjectSettings(row.settings),
     aiSpecGuideline: row.aiSpecGuideline ?? "",
+    aiSpecFileName: row.aiSpecFileName,
   };
 }

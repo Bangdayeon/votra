@@ -127,6 +127,15 @@ export const prismaProjectRepository: ProjectRepository = {
     if (input.aiSpecGuideline !== undefined) {
       data.aiSpecGuideline = input.aiSpecGuideline;
     }
+    if (input.aiSpecFile !== undefined) {
+      if (input.aiSpecFile === null) {
+        data.aiSpecFileName = null;
+        data.aiSpecFileContent = null;
+      } else {
+        data.aiSpecFileName = input.aiSpecFile.name;
+        data.aiSpecFileContent = input.aiSpecFile.content;
+      }
+    }
     await prisma.project.update({ where: { id: input.id }, data });
   },
 
@@ -137,11 +146,16 @@ export const prismaProjectRepository: ProjectRepository = {
   findSettings: async (id) => {
     const row = await prisma.project.findUnique({
       where: { id },
-      select: { settings: true, aiSpecGuideline: true },
+      select: {
+        settings: true,
+        aiSpecGuideline: true,
+        aiSpecFileName: true,
+      },
     });
     return {
       settings: row?.settings ?? null,
       aiSpecGuideline: row?.aiSpecGuideline ?? null,
+      aiSpecFileName: row?.aiSpecFileName ?? null,
     };
   },
 

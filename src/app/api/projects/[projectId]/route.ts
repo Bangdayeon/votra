@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { getProjectSettings } from "@/application/getProjectSettings";
-import { updateProjectSettings } from "@/application/updateProjectSettings";
+import {
+  updateProjectSettings,
+  type AiSpecFileInput,
+} from "@/application/updateProjectSettings";
+import { AI_SPEC_GUIDELINE_MAX } from "@/domain/aiSpec/types";
+import { parseAiSpecFilePayload } from "@/domain/aiSpec/parseAiSpecFilePayload";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
-
-const AI_SPEC_GUIDELINE_MAX = 8000;
 
 type RouteContext = { params: Promise<{ projectId: string }> };
 
@@ -26,6 +29,7 @@ export async function GET(_req: Request, ctx: RouteContext) {
     ok: true,
     settings: bundle.settings,
     aiSpecGuideline: bundle.aiSpecGuideline,
+    aiSpecFileName: bundle.aiSpecFileName,
   });
 }
 
@@ -58,7 +62,8 @@ export async function PATCH(req: Request, ctx: RouteContext) {
 
   const hasSettings = body.settings !== undefined;
   const hasGuideline = body.aiSpecGuideline !== undefined;
-  if (!hasSettings && !hasGuideline) {
+  const hasFile = body.aiSpecFile !== undefined;
+  if (!hasSettings && !hasGuideline && !hasFile) {
     return NextResponse.json(
       { ok: false, error: "변경할 항목이 없어요." },
       { status: 400 },
@@ -82,11 +87,24 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     guideline = body.aiSpecGuideline;
   }
 
+  let file: AiSpecFileInput | null | undefined;
+  if (hasFile) {
+    const parsed = parseAiSpecFilePayload(body.aiSpecFile);
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { ok: false, error: parsed.error },
+        { status: 400 },
+      );
+    }
+    file = parsed.value;
+  }
+
   await updateProjectSettings(
     {
       id: projectId,
       settings: hasSettings ? parseProjectSettings(body.settings) : undefined,
       aiSpecGuideline: guideline,
+      aiSpecFile: file,
     },
     { projects: prismaProjectRepository },
   );
@@ -98,6 +116,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     ok: true,
     settings: bundle.settings,
     aiSpecGuideline: bundle.aiSpecGuideline,
+    aiSpecFileName: bundle.aiSpecFileName,
   });
 }
 

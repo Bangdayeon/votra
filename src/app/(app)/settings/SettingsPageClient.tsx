@@ -1,10 +1,15 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AiSpecPolicyFields } from "@/components/aiSpec/AiSpecPolicyFields";
 import { useProjects } from "@/components/project/ProjectsContext";
 import { Button } from "@/components/ui/button";
+import {
+  buildAiSpecPolicyPatch,
+  type AiSpecFileChange,
+} from "@/domain/aiSpec/types";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import {
   ANALYSIS_STYLES,
@@ -22,7 +27,7 @@ import { cn } from "@/lib/utils";
 
 const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
   WEB_APP: "웹앱",
-  MOBILE: "모바일",
+  MOBILE_NATIVE: "모바일 네이티브 앱",
   BACKEND: "백엔드",
   OTHER: "기타",
 };
@@ -32,6 +37,7 @@ const ANALYSIS_TARGET_LABELS: Record<AnalysisTarget, string> = {
   SAME_FILE_REPEAT: "동일 파일 반복 수정 감지",
   SESSION_SUMMARY: "세션 요약 생성",
   SECURITY_FILE_CHANGE: "보안 관련 파일 변경 감지",
+  OTHER: "기타",
 };
 
 const ANALYSIS_STYLE_LABELS: Record<AnalysisStyle, string> = {
@@ -40,22 +46,16 @@ const ANALYSIS_STYLE_LABELS: Record<AnalysisStyle, string> = {
 };
 
 const AUTOMATION_LABELS: Record<AutomationMode, string> = {
-  AUTO: "세션 업로드 시 자동 분석",
   MANUAL: "수동으로 직접 실행",
+  AUTO: "세션 업로드 시 자동 분석",
 };
 
-const AI_SPEC_GUIDELINE_MAX = 8000;
-const GUIDELINE_AUTOSAVE_DELAY_MS = 800;
+const PROJECT_TYPE_OTHER_MAX = 80;
+const TARGET_OTHER_ITEM_MAX = 80;
+const TARGET_OTHER_LIST_MAX = 20;
 
 type SaveState =
   | { kind: "idle" }
-  | { kind: "saving" }
-  | { kind: "saved" }
-  | { kind: "error"; message: string };
-
-type GuidelineSaveState =
-  | { kind: "idle" }
-  | { kind: "dirty" }
   | { kind: "saving" }
   | { kind: "saved" }
   | { kind: "error"; message: string };
@@ -112,9 +112,7 @@ function ProjectPicker() {
             <button
               type="button"
               onClick={() =>
-                router.push(
-                  `/settings?project=${encodeURIComponent(p.name)}`,
-                )
+                router.push(`/settings?project=${encodeURIComponent(p.name)}`)
               }
               className="w-full rounded-md border border-[#E4E2DD] bg-white px-4 py-3 text-left text-sm hover:bg-[#F2F0EB]"
             >
@@ -144,12 +142,13 @@ function SettingsForm({
     DEFAULT_PROJECT_SETTINGS,
   );
   const [guideline, setGuideline] = useState("");
+  const [otherTargetDraft, setOtherTargetDraft] = useState("");
+  const [existingFileName, setExistingFileName] = useState<string | null>(null);
+  const [fileChange, setFileChange] = useState<AiSpecFileChange>({
+    kind: "none",
+  });
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
-  const [guidelineState, setGuidelineState] = useState<GuidelineSaveState>({
-    kind: "idle",
-  });
-  const lastSavedGuidelineRef = useRef("");
 
   useEffect(() => {
     let cancelled = false;
@@ -160,12 +159,17 @@ function SettingsForm({
         if (cancelled) return;
         if (isRecord(data) && data.ok === true) {
           setSettings(parseProjectSettings(data.settings));
-          const g =
+          setGuideline(
             typeof data.aiSpecGuideline === "string"
               ? data.aiSpecGuideline
-              : "";
-          setGuideline(g);
-          lastSavedGuidelineRef.current = g;
+              : "",
+          );
+          setExistingFileName(
+            typeof data.aiSpecFileName === "string"
+              ? data.aiSpecFileName
+              : null,
+          );
+          setFileChange({ kind: "none" });
         }
       })
       .catch(() => {
@@ -179,26 +183,57 @@ function SettingsForm({
     };
   }, [projectId]);
 
-  useEffect(() => {
-    if (loading) return;
-    if (guideline === lastSavedGuidelineRef.current) return;
-    setGuidelineState({ kind: "dirty" });
-    const timer = setTimeout(() => {
-      void saveGuideline(projectId, guideline, lastSavedGuidelineRef, setGuidelineState);
-    }, GUIDELINE_AUTOSAVE_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [guideline, loading, projectId]);
-
-  const toggleTarget = useCallback((target: AnalysisTarget) => {
-    setSettings((prev) => {
-      const has = prev.ai.targets.includes(target);
-      const next = has
-        ? prev.ai.targets.filter((t) => t !== target)
-        : [...prev.ai.targets, target];
-      return { ...prev, ai: { ...prev.ai, targets: next } };
-    });
+  const markDirty = useCallback(() => {
     setSaveState({ kind: "idle" });
   }, []);
+
+  const toggleTarget = useCallback(
+    (target: AnalysisTarget) => {
+      setSettings((prev) => {
+        const has = prev.ai.targets.includes(target);
+        const next = has
+          ? prev.ai.targets.filter((t) => t !== target)
+          : [...prev.ai.targets, target];
+        const targetsOther =
+          target === "OTHER" && has ? [] : prev.ai.targetsOther;
+        return { ...prev, ai: { ...prev.ai, targets: next, targetsOther } };
+      });
+      markDirty();
+    },
+    [markDirty],
+  );
+
+  const addOtherTarget = useCallback(() => {
+    const trimmed = otherTargetDraft.trim().slice(0, TARGET_OTHER_ITEM_MAX);
+    if (!trimmed) return;
+    setSettings((prev) => {
+      if (prev.ai.targetsOther.includes(trimmed)) return prev;
+      if (prev.ai.targetsOther.length >= TARGET_OTHER_LIST_MAX) return prev;
+      return {
+        ...prev,
+        ai: {
+          ...prev.ai,
+          targetsOther: [...prev.ai.targetsOther, trimmed],
+        },
+      };
+    });
+    setOtherTargetDraft("");
+    markDirty();
+  }, [otherTargetDraft, markDirty]);
+
+  const removeOtherTarget = useCallback(
+    (item: string) => {
+      setSettings((prev) => ({
+        ...prev,
+        ai: {
+          ...prev.ai,
+          targetsOther: prev.ai.targetsOther.filter((t) => t !== item),
+        },
+      }));
+      markDirty();
+    },
+    [markDirty],
+  );
 
   const onSave = useCallback(async () => {
     setSaveState({ kind: "saving" });
@@ -206,7 +241,10 @@ function SettingsForm({
       const res = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify({
+          settings,
+          ...buildAiSpecPolicyPatch(guideline, fileChange),
+        }),
       });
       const data: unknown = await res.json();
       if (!res.ok || !isRecord(data) || data.ok !== true) {
@@ -217,6 +255,10 @@ function SettingsForm({
         setSaveState({ kind: "error", message: msg });
         return;
       }
+      setExistingFileName(
+        typeof data.aiSpecFileName === "string" ? data.aiSpecFileName : null,
+      );
+      setFileChange({ kind: "none" });
       setSaveState({ kind: "saved" });
     } catch (err) {
       setSaveState({
@@ -224,7 +266,9 @@ function SettingsForm({
         message: err instanceof Error ? err.message : "저장에 실패했어요.",
       });
     }
-  }, [projectId, settings]);
+  }, [projectId, settings, guideline, fileChange]);
+
+  const otherTargetSelected = settings.ai.targets.includes("OTHER");
 
   return (
     <div className="flex h-full min-h-0 flex-col px-8 py-6">
@@ -236,9 +280,7 @@ function SettingsForm({
         <Button
           type="button"
           variant="ghost"
-          onClick={() =>
-            router.push(`/${encodeURIComponent(projectName)}`)
-          }
+          onClick={() => router.push(`/${encodeURIComponent(projectName)}`)}
         >
           뒤로
         </Button>
@@ -257,14 +299,37 @@ function SettingsForm({
             }))}
             disabled={loading}
             onChange={(v) => {
-              setSettings((prev) => ({ ...prev, projectType: v }));
-              setSaveState({ kind: "idle" });
+              setSettings((prev) => ({
+                ...prev,
+                projectType: v,
+                projectTypeOther: v === "OTHER" ? prev.projectTypeOther : "",
+              }));
+              markDirty();
             }}
           />
+          {settings.projectType === "OTHER" && (
+            <input
+              type="text"
+              value={settings.projectTypeOther}
+              disabled={loading}
+              maxLength={PROJECT_TYPE_OTHER_MAX}
+              placeholder="예) CLI 도구, 데이터 파이프라인…"
+              onChange={(e) => {
+                const next = e.target.value;
+                setSettings((prev) => ({ ...prev, projectTypeOther: next }));
+                markDirty();
+              }}
+              className={cn(
+                "h-9 w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-1 text-sm",
+                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            />
+          )}
         </Section>
 
         <Section
-          title="AI 분석 대상"
+          title="AI 주요 분석 대상"
           description="어떤 이벤트를 중요하게 봐야 하나요? 여러 개 선택할 수 있어요."
         >
           <div className="flex flex-col gap-2">
@@ -278,10 +343,71 @@ function SettingsForm({
               />
             ))}
           </div>
+          {otherTargetSelected && (
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={otherTargetDraft}
+                  disabled={loading}
+                  maxLength={TARGET_OTHER_ITEM_MAX}
+                  placeholder="기타 분석 대상을 입력해 주세요"
+                  onChange={(e) => setOtherTargetDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addOtherTarget();
+                    }
+                  }}
+                  className={cn(
+                    "h-9 flex-1 rounded-md border border-[#E4E2DD] bg-white px-3 py-1 text-sm",
+                    "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addOtherTarget}
+                  disabled={
+                    loading ||
+                    otherTargetDraft.trim().length === 0 ||
+                    settings.ai.targetsOther.length >= TARGET_OTHER_LIST_MAX
+                  }
+                >
+                  추가
+                </Button>
+              </div>
+              {settings.ai.targetsOther.length > 0 && (
+                <ul className="flex flex-wrap gap-2">
+                  {settings.ai.targetsOther.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-center gap-2 rounded-md border border-[#E4E2DD] bg-white px-2 py-1 text-xs"
+                    >
+                      <span>{item}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeOtherTarget(item)}
+                        disabled={loading}
+                        aria-label={`${item} 제거`}
+                        className="text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {settings.ai.targetsOther.length} / {TARGET_OTHER_LIST_MAX}
+              </p>
+            </div>
+          )}
         </Section>
 
         <Section
-          title="분석 스타일"
+          title="리포트 스타일"
           description="분석 리포트를 누가 읽을지 알려주세요."
         >
           <RadioGroup
@@ -296,15 +422,12 @@ function SettingsForm({
                 ...prev,
                 ai: { ...prev.ai, style: v },
               }));
-              setSaveState({ kind: "idle" });
+              markDirty();
             }}
           />
         </Section>
 
-        <Section
-          title="자동화"
-          description="언제 분석을 실행할까요?"
-        >
+        <Section title="분석 실행 타이밍" description="언제 분석을 실행할까요?">
           <RadioGroup
             value={settings.ai.automation}
             options={AUTOMATION_MODES.map((m) => ({
@@ -317,34 +440,30 @@ function SettingsForm({
                 ...prev,
                 ai: { ...prev.ai, automation: v },
               }));
-              setSaveState({ kind: "idle" });
+              markDirty();
             }}
           />
         </Section>
 
         <Section
           title="AI 스펙 문서 지침"
-          description="md 파일(CLAUDE.md, AGENTS.md 등)을 평가할 때 AI 에게 줄 지침이에요. 작성 후 잠시 멈추면 자동 저장돼요."
+          description="md 파일(CLAUDE.md, AGENTS.md 등)을 평가할 때 AI 에게 줄 지침이에요."
         >
-          <textarea
-            value={guideline}
+          <AiSpecPolicyFields
+            guideline={guideline}
+            onGuidelineChange={(next) => {
+              setGuideline(next);
+              markDirty();
+            }}
+            existingFileName={existingFileName}
+            fileChange={fileChange}
+            onFileChange={(next) => {
+              setFileChange(next);
+              markDirty();
+            }}
             disabled={loading}
-            rows={5}
-            maxLength={AI_SPEC_GUIDELINE_MAX}
-            onChange={(e) => setGuideline(e.target.value)}
-            placeholder="예) 보안 관련 지침이 명시돼야 해요. 폴더 구조와 의존 방향이 적혀 있어야 통과로 봐주세요."
-            className={cn(
-              "min-h-[8rem] w-full resize-y rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm leading-6",
-              "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-            )}
+            guidelinePlaceholder="예) 보안 관련 지침이 명시돼야 해요. 폴더 구조와 의존 방향이 적혀 있어야 통과로 봐주세요."
           />
-          <div className="flex items-center justify-between">
-            <GuidelineStatus state={guidelineState} />
-            <span className="text-xs text-muted-foreground">
-              {guideline.length} / {AI_SPEC_GUIDELINE_MAX}
-            </span>
-          </div>
         </Section>
 
         <div className="flex items-center gap-3">
@@ -456,54 +575,6 @@ function CheckboxRow({
       <span>{label}</span>
     </label>
   );
-}
-
-async function saveGuideline(
-  projectId: string,
-  value: string,
-  lastSavedRef: { current: string },
-  setState: (s: GuidelineSaveState) => void,
-): Promise<void> {
-  setState({ kind: "saving" });
-  try {
-    const res = await fetch(`/api/projects/${projectId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aiSpecGuideline: value }),
-    });
-    const data: unknown = await res.json();
-    if (!res.ok || !isRecord(data) || data.ok !== true) {
-      const msg =
-        isRecord(data) && typeof data.error === "string"
-          ? data.error
-          : "지침 저장에 실패했어요.";
-      setState({ kind: "error", message: msg });
-      return;
-    }
-    lastSavedRef.current = value;
-    setState({ kind: "saved" });
-  } catch (err) {
-    setState({
-      kind: "error",
-      message: err instanceof Error ? err.message : "지침 저장에 실패했어요.",
-    });
-  }
-}
-
-function GuidelineStatus({ state }: { state: GuidelineSaveState }) {
-  if (state.kind === "dirty") {
-    return <span className="text-xs text-muted-foreground">변경됨…</span>;
-  }
-  if (state.kind === "saving") {
-    return <span className="text-xs text-muted-foreground">저장 중…</span>;
-  }
-  if (state.kind === "saved") {
-    return <span className="text-xs text-emerald-600">자동 저장됨</span>;
-  }
-  if (state.kind === "error") {
-    return <span className="text-xs text-destructive">{state.message}</span>;
-  }
-  return null;
 }
 
 function decodeSlug(raw: string | null): string {

@@ -92,6 +92,8 @@ export type ProjectUpdateInput = {
   settings?: Record<string, unknown> | null;
   /** undefined: 변경 없음. null: 제거. 문자열: 교체. */
   aiSpecGuideline?: string | null;
+  /** undefined: 변경 없음. null: 파일 제거. 객체: 새 파일로 교체. */
+  aiSpecFile?: { name: string; content: string } | null;
 };
 
 export type ProjectRepository = {
@@ -102,6 +104,7 @@ export type ProjectRepository = {
   findSettings: (id: string) => Promise<{
     settings: unknown;
     aiSpecGuideline: string | null;
+    aiSpecFileName: string | null;
   }>;
 
   findByCwd: (args: {
