@@ -29,15 +29,20 @@ export const prismaSessionRepository: SessionRepository = {
   },
 
   findErrorTypesByProject: async (projectId) => {
-    const grouped = await prisma.sessionErrorFlow.groupBy({
-      by: ["errorType"],
-      where: { session: { projectId } },
-      _count: { _all: true },
+    // CLI ingest 는 ERROR 를 Event row (type=ERROR, metadata.errorType) 로만 적재해요.
+    // 옛 folder-picker 경로의 SessionErrorFlow 는 더 이상 쓰이지 않아 Event 가 단일 source.
+    const errorEvents = await prisma.event.findMany({
+      where: { session: { projectId }, type: "ERROR" },
+      select: { metadata: true },
     });
-    const rows: ErrorTypeCount[] = grouped.map((g) => ({
-      errorType: g.errorType,
-      count: g._count._all,
-    }));
+    const counts = new Map<string, number>();
+    for (const e of errorEvents) {
+      const type = readErrorTypeFromMetadata(e.metadata);
+      counts.set(type, (counts.get(type) ?? 0) + 1);
+    }
+    const rows: ErrorTypeCount[] = [...counts.entries()].map(
+      ([errorType, count]) => ({ errorType, count }),
+    );
     rows.sort((a, b) => b.count - a.count);
     return rows;
   },
@@ -48,7 +53,6 @@ export const prismaSessionRepository: SessionRepository = {
       orderBy: { startedAt: "asc" },
       include: {
         tokenUsage: true,
-        errorFlows: { select: { errorType: true } },
         events: {
           select: { type: true, metadata: true, timestamp: true },
           orderBy: { timestamp: "asc" },
@@ -58,6 +62,7 @@ export const prismaSessionRepository: SessionRepository = {
     return sessions.map((s): SessionScoringRow => {
       let editCount = 0;
       let messageCount = 0;
+      const errorTypes: string[] = [];
       const editedFiles: string[] = [];
       const seenPaths = new Set<string>();
       for (const e of s.events) {
@@ -70,6 +75,8 @@ export const prismaSessionRepository: SessionRepository = {
           }
         } else if (e.type === "PROMPT" || e.type === "ASSISTANT") {
           messageCount++;
+        } else if (e.type === "ERROR") {
+          errorTypes.push(readErrorTypeFromMetadata(e.metadata));
         }
       }
       return {
@@ -80,7 +87,7 @@ export const prismaSessionRepository: SessionRepository = {
         endedAt: s.endedAt,
         totalTokens: s.tokenUsage?.totalTokens ?? 0,
         retryCount: s.tokenUsage?.retryCount ?? 0,
-        errorTypes: s.errorFlows.map((e) => e.errorType),
+        errorTypes,
         editCount,
         editedFiles,
         messageCount,
@@ -129,4 +136,12 @@ function readPathFromMetadata(metadata: unknown): string | null {
   }
   const path = (metadata as Record<string, unknown>).path;
   return typeof path === "string" && path.length > 0 ? path : null;
+}
+
+function readErrorTypeFromMetadata(metadata: unknown): string {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return "Unknown";
+  }
+  const v = (metadata as Record<string, unknown>).errorType;
+  return typeof v === "string" && v.length > 0 ? v : "Unknown";
 }
