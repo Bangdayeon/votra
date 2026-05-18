@@ -9,11 +9,12 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { ClaudeFileGradeBadge } from "@/components/claude-files/ClaudeFileGradeBadge";
+import { ClaudeFileSeverityBadge } from "@/components/claude-files/ClaudeFileSeverityBadge";
 import type {
   ClaudeFileRecord,
   ClaudeFileScope,
 } from "@/domain/claudeFiles/types";
+import type { PolicyRule } from "@/domain/policy/types";
 import { cn } from "@/lib/utils";
 
 const ROW = "flex w-full items-center gap-1 rounded px-1 py-0.5 text-sm hover:bg-accent";
@@ -43,9 +44,11 @@ type ScopeGroup = {
 export function ClaudeFilesTree({
   records,
   cwd,
+  rules,
 }: {
   records: ClaudeFileRecord[];
   cwd?: string;
+  rules: PolicyRule[];
 }) {
   const groups = useMemo(() => buildGroups(records, cwd), [records, cwd]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -56,6 +59,7 @@ export function ClaudeFilesTree({
         <ScopeBlock
           key={g.scope}
           group={g}
+          rules={rules}
           selectedPath={selectedPath}
           onSelect={(p) => setSelectedPath((cur) => (cur === p ? null : p))}
         />
@@ -66,10 +70,12 @@ export function ClaudeFilesTree({
 
 function ScopeBlock({
   group,
+  rules,
   selectedPath,
   onSelect,
 }: {
   group: ScopeGroup;
+  rules: PolicyRule[];
   selectedPath: string | null;
   onSelect: (p: string) => void;
 }) {
@@ -109,6 +115,7 @@ function ScopeBlock({
                 key={`${node.name}-${i}`}
                 node={node}
                 depth={1}
+                rules={rules}
                 selectedPath={selectedPath}
                 onSelect={onSelect}
               />
@@ -123,11 +130,13 @@ function ScopeBlock({
 function TreeItem({
   node,
   depth,
+  rules,
   selectedPath,
   onSelect,
 }: {
   node: TreeNode;
   depth: number;
+  rules: PolicyRule[];
   selectedPath: string | null;
   onSelect: (p: string) => void;
 }) {
@@ -159,16 +168,14 @@ function TreeItem({
         <Icon className={cn("size-4 shrink-0", iconColor)} />
         <span className="truncate text-foreground">{node.name}</span>
         {isFile && (
-          <ClaudeFileGradeBadge
-            grade={node.record!.grade}
-            total={node.record!.score.total}
-          />
+          <ClaudeFileSeverityBadge evaluation={node.record!.evaluation} />
         )}
       </button>
 
       {isFile && isSelected && (
         <ScoreBreakdown
           record={node.record!}
+          rules={rules}
           indentPx={depth * INDENT_PX + INDENT_PX + 4}
         />
       )}
@@ -180,6 +187,7 @@ function TreeItem({
               key={`${c.name}-${i}`}
               node={c}
               depth={depth + 1}
+              rules={rules}
               selectedPath={selectedPath}
               onSelect={onSelect}
             />
@@ -192,21 +200,27 @@ function TreeItem({
 
 function ScoreBreakdown({
   record,
+  rules,
   indentPx,
 }: {
   record: ClaudeFileRecord;
+  rules: PolicyRule[];
   indentPx: number;
 }) {
-  const s = record.score;
-  const rows: Array<[string, number, number]> = [
-    ["명령어/워크플로", s.commands, 20],
-    ["아키텍처 명료성", s.architecture, 20],
-    ["숨겨진 패턴", s.patterns, 15],
-    ["간결성", s.conciseness, 15],
-    ["최신성", s.currency, 15],
-    ["실행 가능성", s.actionability, 15],
-  ];
+  const scoreByKey: Record<string, number> = {
+    commands: record.score.commands,
+    architecture: record.score.architecture,
+    patterns: record.score.patterns,
+    conciseness: record.score.conciseness,
+    currency: record.score.currency,
+    actionability: record.score.actionability,
+  };
   const mtimeText = new Date(record.mtime).toLocaleString();
+
+  const weak = rules.filter(
+    (r) => (scoreByKey[r.key] ?? 0) / r.maxPoints < 0.5,
+  );
+  const reason = buildReason(record, weak);
 
   return (
     <div
@@ -216,22 +230,49 @@ function ScoreBreakdown({
       <div className="mb-1 text-[10px] text-muted-foreground truncate">
         {record.absPath}
       </div>
-      <ul className="grid grid-cols-2 gap-x-3 gap-y-0.5">
-        {rows.map(([label, value, max]) => (
-          <li key={label} className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground truncate">{label}</span>
-            <span className="font-mono tabular-nums">
-              {value}
-              <span className="text-muted-foreground">/{max}</span>
-            </span>
-          </li>
-        ))}
+
+      <p className="mb-2 text-[11px] leading-snug text-foreground">{reason}</p>
+
+      <ul className="flex flex-col gap-1">
+        {rules.map((r) => {
+          const value = scoreByKey[r.key] ?? 0;
+          return (
+            <li key={r.key} className="flex flex-col">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-foreground">{r.label}</span>
+                <span className="font-mono tabular-nums">
+                  {value}
+                  <span className="text-muted-foreground">/{r.maxPoints}</span>
+                </span>
+              </div>
+              <span className="text-[10px] leading-snug text-muted-foreground">
+                {r.description}
+              </span>
+            </li>
+          );
+        })}
       </ul>
-      <div className="mt-1 text-[10px] text-muted-foreground">
+      <div className="mt-2 text-[10px] text-muted-foreground">
         수정 시각: {mtimeText}
       </div>
     </div>
   );
+}
+
+function buildReason(record: ClaudeFileRecord, weak: PolicyRule[]): string {
+  const ev = record.evaluation;
+  if (ev.status === "PENDING" || ev.status === "LOADING") {
+    return "평가가 아직 완료되지 않았어요.";
+  }
+  if (ev.status === "ERROR") {
+    return `평가 중 오류가 났어요. ${ev.errorMessage}`;
+  }
+  if (weak.length === 0) {
+    return "모든 평가 항목을 충분히 만족하고 있어요.";
+  }
+  const head = weak.slice(0, 2).map((r) => r.label).join(", ");
+  const tail = weak.length > 2 ? ` 외 ${weak.length - 2}개` : "";
+  return `${head}${tail} 항목이 부족해 이 상태로 평가됐어요.`;
 }
 
 function buildGroups(records: ClaudeFileRecord[], cwd?: string): ScopeGroup[] {

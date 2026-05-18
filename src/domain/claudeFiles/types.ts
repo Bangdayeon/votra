@@ -2,7 +2,37 @@ export type ClaudeFileKind = "CLAUDE" | "AGENTS" | "SKILL";
 
 export type ClaudeFileScope = "global" | "project-root" | "subdir";
 
-export type ClaudeFileGrade = "A" | "B" | "C" | "D" | "F";
+/** 평가 결과 단계 — 🔴/⚠️/✅. status=DONE 일 때만 의미가 있음. */
+export type ClaudeFileSeverity = "OK" | "WARNING" | "DANGER";
+
+/** 평가 진행 상태. 로딩/에러도 DB 에 저장한다. */
+export type ClaudeFileEvaluationStatus =
+  | "PENDING"
+  | "LOADING"
+  | "DONE"
+  | "ERROR";
+
+/** 어떤 기준을 적용해 평가했는지. 캡션 문구 분기에 사용. */
+export type EvaluationCriteria = {
+  basic: boolean;
+  project: boolean;
+  team: boolean;
+};
+
+export type ClaudeFileEvaluation =
+  | {
+      status: "DONE";
+      severity: ClaudeFileSeverity;
+      criteria: EvaluationCriteria;
+      evaluatedAt: number;
+    }
+  | {
+      status: "ERROR";
+      errorMessage: string;
+      criteria: EvaluationCriteria;
+      evaluatedAt: number;
+    }
+  | { status: "PENDING" | "LOADING"; criteria: EvaluationCriteria };
 
 /** 6 criteria × max points. claude-md-management rubric 기준. */
 export type ClaudeFileScore = {
@@ -26,5 +56,5 @@ export type ClaudeFileRecord = {
   /** epoch ms */
   mtime: number;
   score: ClaudeFileScore;
-  grade: ClaudeFileGrade;
+  evaluation: ClaudeFileEvaluation;
 };

@@ -10,7 +10,6 @@ import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
 import { OtherMetricsCard } from "@/components/overview/OtherMetricsCard";
 import { ProjectHeaderCard } from "@/components/project/ProjectHeaderCard";
 import type { Project } from "@/components/project/ProjectsContext";
-import { RetryCostCard } from "@/components/overview/RetryCostCard";
 import { SessionTokensCard } from "@/components/overview/SessionTokensCard";
 
 export function OverviewTab({ selected }: { selected: Project }) {
@@ -43,28 +42,25 @@ export function OverviewTab({ selected }: { selected: Project }) {
         <ClaudeFilesCard selected={selected} />
 
         {metricsLoading && (
-          <>
+          <section className="flex min-h-0 flex-1 flex-col gap-6">
             <Card className="flex flex-1 items-center justify-center">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </Card>
             <Card className="flex flex-1 items-center justify-center">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </Card>
-          </>
+          </section>
         )}
 
         {!metricsLoading && metrics && (
-          <>
+          <section className="flex min-h-0 flex-1 flex-col gap-6">
             <SessionTokensCard metrics={metrics} className="flex-1" />
-            <section className="flex flex-1 flex-col gap-6 min-h-0">
-              <OtherMetricsCard metrics={metrics} className="flex-1" />
-              <RetryCostCard retryCount={0} retryTokens={0} />
-            </section>
-          </>
+            <OtherMetricsCard metrics={metrics} className="flex-1" />
+          </section>
         )}
 
         {!metricsLoading && !metrics && (
-          <>
+          <section className="flex min-h-0 flex-1 flex-col gap-6">
             <Card className="flex-1">
               <p className="text-sm text-muted-foreground">
                 데이터를 불러오지 못했어요.
@@ -75,7 +71,7 @@ export function OverviewTab({ selected }: { selected: Project }) {
                 데이터를 불러오지 못했어요.
               </p>
             </Card>
-          </>
+          </section>
         )}
       </div>
     </div>

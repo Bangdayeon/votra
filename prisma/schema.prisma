@@ -45,6 +45,13 @@ model User {
   /// public 폴더 기준 이미지 경로 (예: /assets/images/profile_dog.png)
   profileImage String?
 
+  /// 계정 전체 (모든 프로젝트) 에 적용할 AI 활용 정책 본문 (자유 텍스트).
+  aiPolicyText        String? @db.Text
+  /// 정책 파일 업로드 시 원본 파일명 (예: "company-ai-policy.md")
+  aiPolicyFileName    String?
+  /// 정책 파일 본문 (텍스트, 512KB 캡)
+  aiPolicyFileContent String? @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -95,16 +102,22 @@ model Project {
   /// AI 가 프로젝트의 md 파일(CLAUDE.md, AGENTS.md 등)을 평가할 때 따를 사용자 지침. 자유 텍스트.
   aiSpecGuideline String? @db.Text
 
+  /// 사용자가 업로드한 AI 스펙 보조 파일 이름 (한 프로젝트에 1개). 없으면 null.
+  aiSpecFileName    String?
+  /// 업로드 파일의 텍스트 본문. 텍스트 파일을 가정하고 그대로 보관 (~512KB cap).
+  aiSpecFileContent String? @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id])
 
-  members     ProjectMember[]
-  agents      ProjectAgent[]
-  sessions    Session[]
-  claudeFiles ClaudeFile[]
+  members              ProjectMember[]
+  agents               ProjectAgent[]
+  sessions             Session[]
+  claudeFiles          ClaudeFile[]
+  claudeFileEvaluations ClaudeFileEvaluation[]
 
   @@index([ownerId])
 }
@@ -318,4 +331,70 @@ model ClaudeFile {
 
   @@unique([projectId, absPath])
   @@index([projectId])
+}
+
+// ────────────────────────────────────────────
+// CLAUDE FILE EVALUATION (AI 정책 문서 평가 상태)
+// 한 ClaudeFile 의 마지막 평가 결과/진행 상태를 캐싱.
+// (projectId, absPath) 로 키잉해 ClaudeFile 재인제스트에도 살아남게 함.
+// ────────────────────────────────────────────
+
+model ClaudeFileEvaluation {
+  id String @id @default(cuid())
+
+  /// "PENDING" | "LOADING" | "DONE" | "ERROR" — domain 의 ClaudeFileEvaluationStatus 와 동기화
+  status String
+
+  /// "OK" | "WARNING" | "DANGER" — status=DONE 일 때만 채워짐
+  severity String?
+
+  /// status=ERROR 일 때 사용자에게 보여줄 사유
+  errorMessage String? @db.Text
+
+  /// 평가 기준 적용 여부 — 사용자가 어떤 기준으로 통과/탈락 판단됐는지 캡션에 사용
+  basedOnBasic   Boolean @default(true)
+  basedOnProject Boolean @default(false)
+  basedOnTeam    Boolean @default(false)
+
+  /// 평가가 끝난 시각 (DONE/ERROR 진입 시각)
+  evaluatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  /// ClaudeFile.absPath 와 매칭. ClaudeFile 재인제스트로 row id 가 바뀌어도 평가 결과는 유지됨.
+  absPath String
+
+  @@unique([projectId, absPath])
+  @@index([projectId])
+}
+
+// ────────────────────────────────────────────
+// POLICY RULE (AI 정책 평가 규칙 — 시스템 기본값)
+// 사용자/팀이 따로 덮어쓰기 전까지 모든 프로젝트가 공유하는 평가 항목.
+// ────────────────────────────────────────────
+
+model PolicyRule {
+  id String @id @default(cuid())
+
+  /// 도메인 ClaudeFileScore 키와 1:1 매칭 ("commands" | "architecture" | "patterns" | "conciseness" | "currency" | "actionability")
+  key String @unique
+
+  /// 사용자에게 보여줄 한국어 라벨
+  label String
+
+  /// 이 규칙이 무엇을 평가하는지 한 줄 설명 — 파일 점수 옆에 "왜" 컨텍스트로 노출
+  description String @db.Text
+
+  /// 이 규칙의 만점 (현재 휴리스틱은 20 또는 15)
+  maxPoints Int
+
+  /// 화면 정렬 순서 (작을수록 위)
+  displayOrder Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

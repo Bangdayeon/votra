@@ -4,27 +4,44 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { listClaudeFilesAction } from "@/app/actions/listClaudeFiles";
+import { listPolicyRulesAction } from "@/app/actions/listPolicyRules";
 import { Card } from "@/components/common/Card";
 import { ClaudeFilesTree } from "@/components/claude-files/ClaudeFilesTree";
 import type { Project } from "@/components/project/ProjectsContext";
-import type { ClaudeFileRecord } from "@/domain/claudeFiles/types";
+import type {
+  ClaudeFileRecord,
+  EvaluationCriteria,
+} from "@/domain/claudeFiles/types";
+import type { PolicyRule } from "@/domain/policy/types";
+
+type State =
+  | { kind: "loading" }
+  | { kind: "error" }
+  | {
+      kind: "ready";
+      records: ClaudeFileRecord[];
+      criteria: EvaluationCriteria;
+      rules: PolicyRule[];
+    };
 
 export function ClaudeFilesCard({ selected }: { selected: Project }) {
-  const [records, setRecords] = useState<ClaudeFileRecord[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    listClaudeFilesAction(selected.id)
-      .then((r) => {
-        if (!cancelled) setRecords(r);
+    setState({ kind: "loading" });
+    Promise.all([listClaudeFilesAction(selected.id), listPolicyRulesAction()])
+      .then(([files, rules]) => {
+        if (!cancelled)
+          setState({
+            kind: "ready",
+            records: files.records,
+            criteria: files.criteria,
+            rules,
+          });
       })
       .catch(() => {
-        if (!cancelled) setRecords(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setState({ kind: "error" });
       });
     return () => {
       cancelled = true;
@@ -34,38 +51,62 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
   return (
     <Card className="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-base font-semibold">
-          AI 동작에 영향을 주는 파일들
-        </h3>
+        <h3 className="text-base font-semibold">AI 정책 문서</h3>
         <span className="text-[10px] text-muted-foreground">
           정적 분석 기반 근사 점수
         </span>
       </div>
 
-      {loading && (
+      <CriteriaCaption
+        criteria={state.kind === "ready" ? state.criteria : null}
+      />
+
+      {state.kind === "loading" && (
         <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
           파일 스캔 중…
         </div>
       )}
 
-      {!loading && records && records.length > 0 && (
+      {state.kind === "ready" && state.records.length > 0 && (
         <div className="mt-3">
-          <ClaudeFilesTree records={records} cwd={selected.cwd} />
+          <ClaudeFilesTree
+            records={state.records}
+            cwd={selected.cwd}
+            rules={state.rules}
+          />
         </div>
       )}
 
-      {!loading && records && records.length === 0 && (
+      {state.kind === "ready" && state.records.length === 0 && (
         <p className="mt-2 text-sm text-muted-foreground">
           AI 영향 파일을 찾지 못했어요.
         </p>
       )}
 
-      {!loading && !records && (
+      {state.kind === "error" && (
         <p className="mt-2 text-sm text-muted-foreground">
           파일을 불러오지 못했어요.
         </p>
       )}
     </Card>
+  );
+}
+
+function CriteriaCaption({
+  criteria,
+}: {
+  criteria: EvaluationCriteria | null;
+}) {
+  const labels: string[] = [];
+  // criteria 가 아직 없으면 (loading) 기본값 안내만 노출 — 한 줄 유지.
+  if (!criteria || criteria.basic) labels.push("기본 세팅");
+  if (criteria?.project) labels.push("프로젝트 정책");
+  if (criteria?.team) labels.push("팀 정책");
+
+  return (
+    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+      {labels.join(" · ")} 기준으로 평가하고 있어요.
+    </p>
   );
 }
