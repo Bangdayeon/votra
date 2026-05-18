@@ -88,6 +88,10 @@ export type ProjectUpdateInput = {
   thumbnailUrl?: string | null;
   /** undefined: 변경 없음. null: 제거. 객체: 교체. */
   structure?: Record<string, unknown> | null;
+  /** undefined: 변경 없음. null: 제거. 객체: 교체. */
+  settings?: Record<string, unknown> | null;
+  /** undefined: 변경 없음. null: 제거. 문자열: 교체. */
+  aiSpecGuideline?: string | null;
 };
 
 export type ProjectRepository = {
@@ -95,6 +99,10 @@ export type ProjectRepository = {
   create: (data: ProjectCreateInput) => Promise<string>;
   update: (input: ProjectUpdateInput) => Promise<void>;
   delete: (id: string) => Promise<void>;
+  findSettings: (id: string) => Promise<{
+    settings: unknown;
+    aiSpecGuideline: string | null;
+  }>;
 
   findByCwd: (args: {
     cwd: string;

@@ -118,11 +118,31 @@ export const prismaProjectRepository: ProjectRepository = {
           ? Prisma.JsonNull
           : (input.structure as Prisma.InputJsonValue);
     }
+    if (input.settings !== undefined) {
+      data.settings =
+        input.settings === null
+          ? Prisma.JsonNull
+          : (input.settings as Prisma.InputJsonValue);
+    }
+    if (input.aiSpecGuideline !== undefined) {
+      data.aiSpecGuideline = input.aiSpecGuideline;
+    }
     await prisma.project.update({ where: { id: input.id }, data });
   },
 
   delete: async (id) => {
     await prisma.project.delete({ where: { id } });
+  },
+
+  findSettings: async (id) => {
+    const row = await prisma.project.findUnique({
+      where: { id },
+      select: { settings: true, aiSpecGuideline: true },
+    });
+    return {
+      settings: row?.settings ?? null,
+      aiSpecGuideline: row?.aiSpecGuideline ?? null,
+    };
   },
 
   findByCwd: async ({ cwd, ownerId }) => {

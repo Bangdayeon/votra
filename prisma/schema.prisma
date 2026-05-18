@@ -89,6 +89,12 @@ model Project {
   /// 로컬 폴더 절대경로 (예: "/Users/bibi/votra"). 파일 경로 표시 시 base prefix
   cwd String?
 
+  /// 프로젝트별 설정 (유형, AI 분석 옵션 등). domain/project/settings/types.ts 의 ProjectSettings 와 동기화.
+  settings Json?
+
+  /// AI 가 프로젝트의 md 파일(CLAUDE.md, AGENTS.md 등)을 평가할 때 따를 사용자 지침. 자유 텍스트.
+  aiSpecGuideline String? @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
