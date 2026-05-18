@@ -1,5 +1,7 @@
+import { ensureProjectGuideline } from "@/application/ensureProjectGuideline";
 import type { ClaudeFileEvaluationRepository } from "@/application/ports/claudeFileEvaluationRepository";
 import type { ClaudeFileRepository } from "@/application/ports/claudeFileRepository";
+import type { PolicyRuleRepository } from "@/application/ports/policyRuleRepository";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
 import { scoreClaudeFile } from "@/domain/claudeFiles/scoreClaudeFile";
 import { severityFromScore } from "@/domain/claudeFiles/severityFromScore";
@@ -8,6 +10,7 @@ import type {
   ClaudeFileRecord,
   EvaluationCriteria,
 } from "@/domain/claudeFiles/types";
+import { buildDefaultGuideline } from "@/domain/policy/buildDefaultGuideline";
 
 export type ListClaudeFilesResult = {
   records: ClaudeFileRecord[];
@@ -21,17 +24,27 @@ export async function listClaudeFiles(
     claudeFiles: ClaudeFileRepository;
     evaluations: ClaudeFileEvaluationRepository;
     projects: ProjectRepository;
+    policyRules: PolicyRuleRepository;
   },
 ): Promise<ListClaudeFilesResult> {
-  const [rows, existingEvals, projectSettings] = await Promise.all([
+  const [rows, existingEvals, projectSettings, rules] = await Promise.all([
     deps.claudeFiles.findByProject(projectId),
     deps.evaluations.findByProject(projectId),
     deps.projects.findSettings(projectId),
+    deps.policyRules.list(),
   ]);
+
+  // 비어 있으면 기본 지침을 채워 DB 에 저장. 이후 평가는 항상 "저장된 지침" 을 기준으로 동작.
+  const guideline = await ensureProjectGuideline(
+    projectId,
+    projectSettings.aiSpecGuideline,
+    deps,
+  );
+  const defaultGuideline = buildDefaultGuideline(rules);
 
   const criteria: EvaluationCriteria = {
     basic: true,
-    project: hasContent(projectSettings.aiSpecGuideline),
+    project: guideline.trim() !== defaultGuideline.trim(),
     team: false, // 팀/회사 보안 지침 저장소가 생기면 이 자리에서 분기.
   };
 
@@ -125,8 +138,4 @@ function fromCached(
 
 function criteriaChanged(a: EvaluationCriteria, b: EvaluationCriteria): boolean {
   return a.basic !== b.basic || a.project !== b.project || a.team !== b.team;
-}
-
-function hasContent(v: string | null): boolean {
-  return typeof v === "string" && v.trim().length > 0;
 }

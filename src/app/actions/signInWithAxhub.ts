@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { prisma } from "@/infrastructure/db/prisma";
 import { setSessionCookie } from "@/infrastructure/auth/setSessionCookie";
+import { DEFAULT_AI_POLICY_TEXT } from "@/domain/aiSpec/types";
 import { randomProfileAppearance } from "@/domain/user/profileAppearance";
 import { safeNextPath } from "@/shared/lib/safeNextPath";
 
@@ -74,6 +75,7 @@ export async function signInWithAxhubAction(
       name: axhubName,
       profileColor: randomAppearance.profileColor,
       profileImage: randomAppearance.profileImage,
+      aiPolicyText: DEFAULT_AI_POLICY_TEXT,
     },
     select: { id: true },
   });

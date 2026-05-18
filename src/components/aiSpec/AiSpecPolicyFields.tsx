@@ -60,12 +60,12 @@ export function AiSpecPolicyFields({
         <textarea
           value={guideline}
           disabled={disabled}
-          rows={5}
+          rows={12}
           maxLength={AI_SPEC_GUIDELINE_MAX}
           placeholder={guidelinePlaceholder}
           onChange={(e) => onGuidelineChange(e.target.value)}
           className={cn(
-            "min-h-[8rem] w-full resize-y rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm leading-6",
+            "min-h-[18rem] w-full resize-y rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm leading-6",
             "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}

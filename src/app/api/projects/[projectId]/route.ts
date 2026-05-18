@@ -9,6 +9,7 @@ import { AI_SPEC_GUIDELINE_MAX } from "@/domain/aiSpec/types";
 import { parseAiSpecFilePayload } from "@/domain/aiSpec/parseAiSpecFilePayload";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { prismaPolicyRuleRepository } from "@/infrastructure/repositories/prismaPolicyRuleRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 type RouteContext = { params: Promise<{ projectId: string }> };
@@ -24,6 +25,7 @@ export async function GET(_req: Request, ctx: RouteContext) {
   }
   const bundle = await getProjectSettings(projectId, {
     projects: prismaProjectRepository,
+    policyRules: prismaPolicyRuleRepository,
   });
   return NextResponse.json({
     ok: true,
@@ -111,6 +113,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
 
   const bundle = await getProjectSettings(projectId, {
     projects: prismaProjectRepository,
+    policyRules: prismaPolicyRuleRepository,
   });
   return NextResponse.json({
     ok: true,

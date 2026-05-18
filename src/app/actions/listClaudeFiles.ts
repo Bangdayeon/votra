@@ -7,6 +7,7 @@ import {
 import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
 import { prismaClaudeFileEvaluationRepository } from "@/infrastructure/repositories/prismaClaudeFileEvaluationRepository";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
+import { prismaPolicyRuleRepository } from "@/infrastructure/repositories/prismaPolicyRuleRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 const EMPTY: ListClaudeFilesResult = {
@@ -23,5 +24,6 @@ export async function listClaudeFilesAction(
     claudeFiles: prismaClaudeFileRepository,
     evaluations: prismaClaudeFileEvaluationRepository,
     projects: prismaProjectRepository,
+    policyRules: prismaPolicyRuleRepository,
   });
 }
