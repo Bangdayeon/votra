@@ -59,7 +59,7 @@ export function SessionTokensCard({ metrics, className }: Props) {
     <Card className={`flex min-h-0 flex-col overflow-hidden ${className ?? ""}`}>
       <h3 className="text-base font-semibold">세션별 토큰 사용량</h3>
 
-      <div className="mt-4 flex justify-center">
+      <div className="mt-4 flex shrink-0 justify-center">
         <MiniDonut
           segments={donutSegments}
           centerValue={formatTokens(metrics.totals.totalTokens)}
@@ -70,7 +70,7 @@ export function SessionTokensCard({ metrics, className }: Props) {
         />
       </div>
 
-      <p className="mt-3 text-xs text-muted-foreground">
+      <p className="mt-3 shrink-0 text-xs text-muted-foreground">
         세션 {sortedSessions.length} 개
       </p>
 
