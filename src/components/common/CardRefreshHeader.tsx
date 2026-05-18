@@ -29,7 +29,7 @@ export function CardRefreshHeader({
   const busy = Boolean(loading || refreshing);
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
-      <div className="flex items-center gap-3 mb-1">
+      <div className="flex w-full items-center justify-between gap-3 mb-1 lg:w-auto lg:justify-start">
         <h3 className="text-base font-semibold">{title}</h3>
         <Button
           type="button"
@@ -48,7 +48,7 @@ export function CardRefreshHeader({
           </span>
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="self-end text-xs text-muted-foreground lg:self-auto">
         마지막 업데이트: {formatRefreshedAt(refreshedAt)}
       </p>
     </div>
