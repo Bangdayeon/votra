@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -29,7 +30,6 @@ type ProjectsCtx = {
   selectedId: string | null;
   selected: Project | null;
   refreshing: boolean;
-  select: (id: string) => void;
   refresh: () => void;
 };
 
@@ -43,6 +43,10 @@ export function useProjects(): ProjectsCtx {
   return ctx;
 }
 
+export function projectHref(name: string): string {
+  return `/${encodeURIComponent(name)}`;
+}
+
 export function ProjectsProvider({
   children,
   initial,
@@ -50,33 +54,47 @@ export function ProjectsProvider({
   children: React.ReactNode;
   initial: Project[];
 }) {
+  const pathname = usePathname();
   const [projects, setProjects] = useState<Project[]>(initial);
-  const [selectedId, setSelectedId] = useState<string | null>(initial[0]?.id ?? null);
   const [refreshing, startTransition] = useTransition();
+
+  const selected = useMemo<Project | null>(() => {
+    const slug = firstPathSegment(pathname);
+    if (!slug) return null;
+    return projects.find((p) => p.name === slug) ?? null;
+  }, [pathname, projects]);
 
   const refresh = useCallback(() => {
     startTransition(async () => {
       const fresh = await listProjectsAction();
       setProjects(fresh);
-      if (!fresh.some((p) => p.id === selectedId)) {
-        setSelectedId(fresh[0]?.id ?? null);
-      }
     });
-  }, [selectedId]);
+  }, []);
 
-  const value = useMemo<ProjectsCtx>(() => {
-    const selected = projects.find((p) => p.id === selectedId) ?? null;
-    return {
+  const value = useMemo<ProjectsCtx>(
+    () => ({
       projects,
-      selectedId,
+      selectedId: selected?.id ?? null,
       selected,
       refreshing,
-      select: setSelectedId,
       refresh,
-    };
-  }, [projects, selectedId, refreshing, refresh]);
+    }),
+    [projects, selected, refreshing, refresh],
+  );
 
   return (
     <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>
   );
+}
+
+function firstPathSegment(pathname: string | null): string | null {
+  if (!pathname) return null;
+  const idx = pathname.indexOf("/", 1);
+  const raw = idx === -1 ? pathname.slice(1) : pathname.slice(1, idx);
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 }

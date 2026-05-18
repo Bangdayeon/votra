@@ -2,6 +2,7 @@
 
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -34,6 +35,8 @@ export type SideNavMenuItemProps = {
   title: string;
   image?: string;
   selected?: boolean;
+  /** 이동할 경로. 제공되면 Link 로 렌더링, 없으면 onClick 버튼 */
+  href?: string;
   onClick?: () => void;
   /** true 면 텍스트 없이 썸네일만 (사이드바 접힌 상태) */
   compact?: boolean;
@@ -48,6 +51,7 @@ export function SideNavMenuItem({
   title,
   image,
   selected,
+  href,
   onClick,
   compact = false,
   onEdit,
@@ -58,6 +62,39 @@ export function SideNavMenuItem({
     const ringCls = selected
       ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
       : "ring-0";
+    const inner = image ? (
+      <Image
+        src={image}
+        alt=""
+        width={28}
+        height={28}
+        className="size-7 rounded-full object-cover"
+        aria-hidden
+      />
+    ) : (
+      <span
+        className="size-7 rounded-full"
+        style={{ backgroundColor: colorFromTitle(title) }}
+        aria-hidden
+      />
+    );
+    const compactClassName = cn(
+      "inline-flex items-center justify-center size-9 rounded-full p-0 transition-shadow hover:bg-accent",
+      ringCls,
+      className,
+    );
+    if (href) {
+      return (
+        <Link
+          href={href}
+          title={title}
+          aria-label={title}
+          className={compactClassName}
+        >
+          {inner}
+        </Link>
+      );
+    }
     return (
       <Button
         type="button"
@@ -72,60 +109,59 @@ export function SideNavMenuItem({
           className,
         )}
       >
-        {image ? (
-          <Image
-            src={image}
-            alt=""
-            width={28}
-            height={28}
-            className="size-7 rounded-full object-cover"
-            aria-hidden
-          />
-        ) : (
-          <span
-            className="size-7 rounded-full"
-            style={{ backgroundColor: colorFromTitle(title) }}
-            aria-hidden
-          />
-        )}
+        {inner}
       </Button>
     );
   }
 
   const hasMenu = onEdit !== undefined || onDelete !== undefined;
 
+  const rowClassName = cn(
+    "inline-flex items-center gap-2 w-full justify-start rounded-full px-1 py-2 text-sm font-normal hover:bg-accent hover:text-accent-foreground",
+    hasMenu && "pr-9",
+    selected &&
+      "bg-primary/15 font-semibold text-primary hover:bg-primary/20 hover:text-primary",
+    className,
+  );
+
+  const rowContent = (
+    <>
+      {image ? (
+        <Image
+          src={image}
+          alt=""
+          width={28}
+          height={28}
+          className="size-7 shrink-0 rounded-full object-cover"
+          aria-hidden
+        />
+      ) : (
+        <span
+          className="size-7 shrink-0 rounded-full"
+          style={{ backgroundColor: colorFromTitle(title) }}
+          aria-hidden
+        />
+      )}
+      <span className="truncate">{title}</span>
+    </>
+  );
+
   return (
     <div className="relative">
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={onClick}
-        className={cn(
-          "w-full justify-start rounded-full px-1 py-2 text-sm font-normal",
-          hasMenu && "pr-9",
-          selected &&
-            "bg-primary/15 font-semibold text-primary hover:bg-primary/20 hover:text-primary",
-          className,
-        )}
-      >
-        {image ? (
-          <Image
-            src={image}
-            alt=""
-            width={28}
-            height={28}
-            className="size-7 shrink-0 rounded-full object-cover"
-            aria-hidden
-          />
-        ) : (
-          <span
-            className="size-7 shrink-0 rounded-full"
-            style={{ backgroundColor: colorFromTitle(title) }}
-            aria-hidden
-          />
-        )}
-        <span className="truncate">{title}</span>
-      </Button>
+      {href ? (
+        <Link href={href} className={rowClassName}>
+          {rowContent}
+        </Link>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onClick}
+          className={rowClassName}
+        >
+          {rowContent}
+        </Button>
+      )}
 
       {hasMenu && (
         <RowMenu
@@ -157,7 +193,7 @@ function RowMenu({
           aria-label={`${title} 메뉴`}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "absolute right-2 top-1/2 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground transition-opacity hover:bg-purple-100 hover:text-foreground focus:opacity-100",
+            "absolute right-2 top-[47%] flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-opacity hover:bg-purple-300 hover:text-foreground focus:opacity-100",
             // 기본은 숨김, 부모 row 호버 시 노출. 메뉴 열려있을 땐 계속 노출.
             "opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100",
           )}

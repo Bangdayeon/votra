@@ -10,6 +10,8 @@ import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiK
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
+const PATH_SEP = "/";
+
 const VALID_KINDS: ClaudeFileKind[] = ["CLAUDE", "AGENTS", "SKILL"];
 const VALID_SCOPES: ClaudeFileScope[] = ["global", "project-root", "subdir"];
 const MAX_CONTENT_BYTES = 256 * 1024;
@@ -46,10 +48,14 @@ export async function POST(req: Request) {
   }
 
   // 세션이 아직 들어오지 않은 cwd 로는 claude file 만 ingest 못 함 (세션 ingest 가 먼저).
-  const project = await prismaProjectRepository.findByCwd({
-    cwd: parsed.source,
-    ownerId: user.id,
-  });
+  //
+  // 매칭 우선순위 (sessions ingest 의 Project.cwd 는 extractCwd 결과 — 첫 이벤트의 cwd —
+  // 라서 CLI 가 보낸 source 와 정확히 일치하지 않을 수 있어요. 같은 user 의 같은
+  // 프로젝트 트리 안이라면 prefix 매칭으로 받아줘요):
+  //   1. exact match
+  //   2. Project.cwd 가 source 의 ancestor (예: source=/Users/bibi/votra, Project.cwd=/Users/bibi)
+  //   3. source 가 Project.cwd 의 ancestor (예: source=/Users/bibi/votra, Project.cwd=/Users/bibi/votra/src)
+  const project = await findProjectByCwdLenient(parsed.source, user.id);
   if (!project) {
     return NextResponse.json(
       {
@@ -147,4 +153,27 @@ function parseFile(raw: unknown): ParsedFile {
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+async function findProjectByCwdLenient(
+  source: string,
+  ownerId: string,
+): Promise<{ id: string; ownerId: string } | null> {
+  const exact = await prismaProjectRepository.findByCwd({
+    cwd: source,
+    ownerId,
+  });
+  if (exact) return exact;
+
+  const all = await prismaProjectRepository.list({ ownerId });
+  const sourceWithSep = source + PATH_SEP;
+  for (const p of all) {
+    if (typeof p.cwd !== "string" || p.cwd.length === 0) continue;
+    if (p.cwd === source) return { id: p.id, ownerId };
+    const pCwdWithSep = p.cwd + PATH_SEP;
+    if (source.startsWith(pCwdWithSep) || p.cwd.startsWith(sourceWithSep)) {
+      return { id: p.id, ownerId };
+    }
+  }
+  return null;
 }

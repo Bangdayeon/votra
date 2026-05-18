@@ -8,6 +8,7 @@ import { Icon } from "@/components/common/Icon";
 import { DeleteProjectConfirmDialog } from "@/components/project/DeleteProjectConfirmDialog";
 import { EditProjectDialog } from "@/components/project/EditProjectDialog";
 import {
+  projectHref,
   useProjects,
   type Project,
 } from "@/components/project/ProjectsContext";
@@ -18,7 +19,7 @@ import { UserMenu } from "@/components/shell/UserMenu";
 
 export function SideNavigation() {
   const { open, toggle } = useSidebar();
-  const { projects, selectedId, select, refresh } = useProjects();
+  const { projects, selectedId, refresh } = useProjects();
   const [editing, setEditing] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(
     null,
@@ -55,7 +56,7 @@ export function SideNavigation() {
                 title={project.name}
                 image={project.image}
                 selected={project.id === selectedId}
-                onClick={() => select(project.id)}
+                href={projectHref(project.name)}
                 compact
               />
             </li>
@@ -107,7 +108,7 @@ export function SideNavigation() {
                   title={project.name}
                   image={project.image}
                   selected={project.id === selectedId}
-                  onClick={() => select(project.id)}
+                  href={projectHref(project.name)}
                   onEdit={() => setEditing(project)}
                   onDelete={() =>
                     setDeleting({ id: project.id, name: project.name })
