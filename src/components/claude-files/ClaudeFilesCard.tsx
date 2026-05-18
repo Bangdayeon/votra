@@ -52,14 +52,11 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
     <Card className="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-base font-semibold">AI 정책 문서</h3>
-        <span className="text-[10px] text-muted-foreground">
-          정적 분석 기반 근사 점수
-        </span>
       </div>
 
-      <CriteriaCaption
-        criteria={state.kind === "ready" ? state.criteria : null}
-      />
+      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+        프로젝트 및 전체 정책 기준으로 평가하고 있어요.
+      </p>
 
       {state.kind === "loading" && (
         <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
@@ -93,20 +90,3 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
   );
 }
 
-function CriteriaCaption({
-  criteria,
-}: {
-  criteria: EvaluationCriteria | null;
-}) {
-  const labels: string[] = [];
-  // criteria 가 아직 없으면 (loading) 기본값 안내만 노출 — 한 줄 유지.
-  if (!criteria || criteria.basic) labels.push("기본 세팅");
-  if (criteria?.project) labels.push("프로젝트 정책");
-  if (criteria?.team) labels.push("팀 정책");
-
-  return (
-    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-      {labels.join(" · ")} 기준으로 평가하고 있어요.
-    </p>
-  );
-}

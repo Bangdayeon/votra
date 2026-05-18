@@ -78,7 +78,7 @@ export async function ingestSessionEvents(
       session: {
         externalId: session.id,
         title: session.title ?? extractTitle(session.events),
-        model: metrics.model ?? "unknown",
+        model: metrics.model,
         startedAt: parseDate(session.startedAt),
         endedAt: parseDate(session.endedAt),
       },

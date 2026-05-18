@@ -1,5 +1,7 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { projectMetricsTag } from "@/app/actions/projectMetricsTag";
 import {
   ingestSessionEvents,
   type IngestSessionPayload,
@@ -49,6 +51,11 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+
+  if (result.value.insertedEvents > 0) {
+    revalidateTag(projectMetricsTag(result.value.projectId));
+  }
+
   return NextResponse.json({
     ok: true,
     projectId: result.value.projectId,

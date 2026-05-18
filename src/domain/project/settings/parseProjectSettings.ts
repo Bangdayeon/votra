@@ -1,12 +1,11 @@
 import {
+  AI_ANALYSIS_INSTRUCTION_MAX,
   ANALYSIS_STYLES,
   ANALYSIS_TARGETS,
-  AUTOMATION_MODES,
   DEFAULT_PROJECT_SETTINGS,
   PROJECT_TYPES,
   type AnalysisStyle,
   type AnalysisTarget,
-  type AutomationMode,
   type ProjectSettings,
   type ProjectType,
 } from "@/domain/project/settings/types";
@@ -45,6 +44,11 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
     if (targetsOther.length >= TARGET_OTHER_LIST_MAX) break;
   }
 
+  const analysisInstruction =
+    typeof ai.analysisInstruction === "string"
+      ? ai.analysisInstruction.slice(0, AI_ANALYSIS_INSTRUCTION_MAX)
+      : DEFAULT_PROJECT_SETTINGS.ai.analysisInstruction;
+
   return {
     projectType,
     projectTypeOther,
@@ -55,9 +59,7 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
       style:
         pickEnum<AnalysisStyle>(ai.style, ANALYSIS_STYLES) ??
         DEFAULT_PROJECT_SETTINGS.ai.style,
-      automation:
-        pickEnum<AutomationMode>(ai.automation, AUTOMATION_MODES) ??
-        DEFAULT_PROJECT_SETTINGS.ai.automation,
+      analysisInstruction,
     },
   };
 }

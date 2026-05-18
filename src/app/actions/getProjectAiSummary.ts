@@ -1,20 +1,28 @@
 "use server";
 
-import { getProjectAiSummary, type ProjectAiSummary } from "@/application/getProjectAiSummary";
-import { getProjectMetrics } from "@/application/getProjectMetrics";
+import { unstable_cache } from "next/cache";
+
+import { projectAiSummaryTag } from "@/app/actions/projectMetricsTag";
+import {
+  getCachedProjectAiSummary,
+  type CachedProjectAiSummary,
+} from "@/application/getCachedProjectAiSummary";
 import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
-import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
-import { prismaSessionRepository } from "@/infrastructure/repositories/prismaSessionRepository";
+import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
 
 export async function getProjectAiSummaryAction(
   projectId: string,
-): Promise<ProjectAiSummary> {
+): Promise<CachedProjectAiSummary> {
   const guard = await assertOwnedProject(projectId);
   if (!guard.ok) throw new Error(guard.error);
 
-  const metrics = await getProjectMetrics(projectId, {
-    sessions: prismaSessionRepository,
-  });
-
-  return getProjectAiSummary(metrics, { llm: geminiLlmClient });
+  const compute = unstable_cache(
+    () =>
+      getCachedProjectAiSummary(projectId, {
+        aiSummaries: prismaProjectAiSummaryRepository,
+      }),
+    ["project-ai-summary", projectId],
+    { tags: [projectAiSummaryTag(projectId)] },
+  );
+  return compute();
 }

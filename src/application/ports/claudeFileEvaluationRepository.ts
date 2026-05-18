@@ -1,7 +1,9 @@
 import type {
+  AiScores,
   ClaudeFileEvaluationStatus,
   ClaudeFileSeverity,
   EvaluationCriteria,
+  GlobalPolicyViolation,
 } from "@/domain/claudeFiles/types";
 
 export type ClaudeFileEvaluationRow = {
@@ -9,7 +11,11 @@ export type ClaudeFileEvaluationRow = {
   status: ClaudeFileEvaluationStatus;
   severity: ClaudeFileSeverity | null;
   errorMessage: string | null;
+  aiReason: string | null;
+  scores: AiScores | null;
   criteria: EvaluationCriteria;
+  globalPolicyHash: string | null;
+  globalPolicyViolation: GlobalPolicyViolation | null;
   evaluatedAt: number | null;
 };
 
@@ -19,7 +25,11 @@ export type ClaudeFileEvaluationUpsert = {
   status: ClaudeFileEvaluationStatus;
   severity: ClaudeFileSeverity | null;
   errorMessage: string | null;
+  aiReason: string | null;
+  scores: AiScores | null;
   criteria: EvaluationCriteria;
+  globalPolicyHash: string | null;
+  globalPolicyViolation: GlobalPolicyViolation | null;
   evaluatedAt: number | null;
 };
 

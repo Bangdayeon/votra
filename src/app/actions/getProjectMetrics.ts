@@ -1,5 +1,8 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
+
+import { projectMetricsTag } from "@/app/actions/projectMetricsTag";
 import {
   getProjectMetrics,
   type ProjectMetrics,
@@ -12,5 +15,11 @@ export async function getProjectMetricsAction(
 ): Promise<ProjectMetrics> {
   const guard = await assertOwnedProject(projectId);
   if (!guard.ok) throw new Error(guard.error);
-  return getProjectMetrics(projectId, { sessions: prismaSessionRepository });
+
+  const compute = unstable_cache(
+    () => getProjectMetrics(projectId, { sessions: prismaSessionRepository }),
+    ["project-metrics", projectId],
+    { tags: [projectMetricsTag(projectId)] },
+  );
+  return compute();
 }

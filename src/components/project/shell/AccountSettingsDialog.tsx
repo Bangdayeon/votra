@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe2, LogOut, RotateCcw, UserCog } from "lucide-react";
+import { Globe2, Loader2, LogOut, RotateCcw, UserCog } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -314,16 +314,28 @@ function PolicyPane() {
         </p>
       </header>
 
-      <AiSpecPolicyFields
-        guideline={guideline}
-        onGuidelineChange={setGuideline}
-        existingFileName={existingFileName}
-        fileChange={fileChange}
-        onFileChange={setFileChange}
-        disabled={loading || pending}
-        guidelinePlaceholder="예) 고객 데이터를 포함한 코드를 외부 LLM 으로 보내지 않아요. 보안 관련 변경은 사람이 검토해요."
-        fileHint="이미 정리한 정책 문서가 있다면 텍스트 파일로 올려 주세요. (최대 512KB)"
-      />
+      <div className="relative">
+        <AiSpecPolicyFields
+          guideline={guideline}
+          onGuidelineChange={setGuideline}
+          existingFileName={existingFileName}
+          fileChange={fileChange}
+          onFileChange={setFileChange}
+          disabled={loading || pending}
+          guidelinePlaceholder="예) 고객 데이터를 포함한 코드를 외부 LLM 으로 보내지 않아요. 보안 관련 변경은 사람이 검토해요."
+          fileHint="이미 정리한 정책 문서가 있다면 텍스트 파일로 올려 주세요. (최대 512KB)"
+        />
+        {loading && (
+          <div
+            role="status"
+            aria-live="polite"
+            aria-label="전체 정책 불러오는 중"
+            className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-foreground/10 backdrop-blur-[1px]"
+          >
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </div>
 
       <div className="mt-auto flex justify-end pt-4">
         <Button

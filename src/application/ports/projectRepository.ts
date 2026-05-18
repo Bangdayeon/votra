@@ -9,7 +9,8 @@ export type IngestSessionInput = {
   /** raw jsonl sessionId — DB session 매핑 키로만 사용. */
   externalId: string;
   title?: string;
-  model: string;
+  /** assistant event 가 아직 없는 부분 payload 면 null. update 시 기존 model 보존. */
+  model: string | null;
   startedAt?: Date;
   endedAt?: Date;
 };
@@ -106,6 +107,13 @@ export type ProjectRepository = {
     aiSpecGuideline: string | null;
     aiSpecFileName: string | null;
   }>;
+  /**
+   * 프로젝트 소유자의 "전체 정책" (User.aiPolicyText + aiPolicyFileContent) 을 합쳐서 반환해요.
+   * 평가 시 전체 정책 위반 검사 입력으로 사용해요. 둘 다 null 이면 null.
+   */
+  findOwnerAiPolicy: (
+    projectId: string,
+  ) => Promise<{ text: string; fileContent: string | null } | null>;
 
   findByCwd: (args: {
     cwd: string;

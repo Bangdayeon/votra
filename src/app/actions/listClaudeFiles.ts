@@ -5,6 +5,7 @@ import {
   type ListClaudeFilesResult,
 } from "@/application/listClaudeFiles";
 import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaClaudeFileEvaluationRepository } from "@/infrastructure/repositories/prismaClaudeFileEvaluationRepository";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 import { prismaPolicyRuleRepository } from "@/infrastructure/repositories/prismaPolicyRuleRepository";
@@ -25,5 +26,6 @@ export async function listClaudeFilesAction(
     evaluations: prismaClaudeFileEvaluationRepository,
     projects: prismaProjectRepository,
     policyRules: prismaPolicyRuleRepository,
+    llm: geminiLlmClient,
   });
 }

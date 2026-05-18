@@ -76,7 +76,7 @@ export function ProjectPageClient() {
           </Button>
         </div>
 
-        <TabsContent value="overview" className="min-h-0 flex-1 pb-10">
+        <TabsContent value="overview" className="min-h-0 flex-1 pb-3">
           <OverviewTab selected={project} />
         </TabsContent>
 

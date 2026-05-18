@@ -12,14 +12,13 @@ import {
 } from "@/domain/aiSpec/types";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import {
+  AI_ANALYSIS_INSTRUCTION_MAX,
   ANALYSIS_STYLES,
   ANALYSIS_TARGETS,
-  AUTOMATION_MODES,
   DEFAULT_PROJECT_SETTINGS,
   PROJECT_TYPES,
   type AnalysisStyle,
   type AnalysisTarget,
-  type AutomationMode,
   type ProjectSettings,
   type ProjectType,
 } from "@/domain/project/settings/types";
@@ -43,11 +42,6 @@ const ANALYSIS_TARGET_LABELS: Record<AnalysisTarget, string> = {
 const ANALYSIS_STYLE_LABELS: Record<AnalysisStyle, string> = {
   DEVELOPER: "개발자가 읽어요",
   NON_DEVELOPER: "비개발자가 읽어요",
-};
-
-const AUTOMATION_LABELS: Record<AutomationMode, string> = {
-  MANUAL: "수동으로 직접 실행",
-  AUTO: "세션 업로드 시 자동 분석",
 };
 
 const PROJECT_TYPE_OTHER_MAX = 80;
@@ -427,22 +421,33 @@ function SettingsForm({
           />
         </Section>
 
-        <Section title="분석 실행 타이밍" description="언제 분석을 실행할까요?">
-          <RadioGroup
-            value={settings.ai.automation}
-            options={AUTOMATION_MODES.map((m) => ({
-              value: m,
-              label: AUTOMATION_LABELS[m],
-            }))}
+        <Section
+          title="프로젝트 분석 AI 상세 지침"
+          description="개요 페이지의 AI 요약/솔루션 을 생성할 때 AI 에게 추가로 줄 지침이에요. 비워두면 기본 프롬프트만 사용해요."
+        >
+          <textarea
+            value={settings.ai.analysisInstruction}
             disabled={loading}
-            onChange={(v) => {
+            maxLength={AI_ANALYSIS_INSTRUCTION_MAX}
+            placeholder="예) 비용 절감 위주로 요약해 주세요. 에러가 가장 많은 세션을 콕 짚어 알려 주세요."
+            rows={5}
+            onChange={(e) => {
+              const next = e.target.value;
               setSettings((prev) => ({
                 ...prev,
-                ai: { ...prev.ai, automation: v },
+                ai: { ...prev.ai, analysisInstruction: next },
               }));
               markDirty();
             }}
+            className={cn(
+              "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+              "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+            )}
           />
+          <p className="text-xs text-muted-foreground">
+            {settings.ai.analysisInstruction.length} / {AI_ANALYSIS_INSTRUCTION_MAX}
+          </p>
         </Section>
 
         <Section

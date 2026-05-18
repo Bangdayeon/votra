@@ -159,6 +159,20 @@ export const prismaProjectRepository: ProjectRepository = {
     };
   },
 
+  findOwnerAiPolicy: async (id) => {
+    const row = await prisma.project.findUnique({
+      where: { id },
+      select: {
+        owner: { select: { aiPolicyText: true, aiPolicyFileContent: true } },
+      },
+    });
+    if (!row?.owner) return null;
+    const text = row.owner.aiPolicyText ?? "";
+    const fileContent = row.owner.aiPolicyFileContent ?? null;
+    if (text.length === 0 && fileContent === null) return null;
+    return { text, fileContent };
+  },
+
   findByCwd: async ({ cwd, ownerId }) => {
     const row = await prisma.project.findFirst({
       where: { cwd, ownerId },
@@ -191,7 +205,7 @@ export const prismaProjectRepository: ProjectRepository = {
         projectId,
         externalId: session.externalId,
         source,
-        model: session.model,
+        model: session.model ?? "unknown",
         title: session.title,
         startedAt: session.startedAt,
         endedAt: session.endedAt,
@@ -199,7 +213,8 @@ export const prismaProjectRepository: ProjectRepository = {
       },
       update: {
         title: session.title ?? undefined,
-        model: session.model,
+        // model 이 null 이면 (부분 payload) 기존 값 보존
+        model: session.model ?? undefined,
         // 시작 시각은 첫 ingest 값을 유지, 종료 시각은 가장 최신으로 갱신
         endedAt: session.endedAt ?? undefined,
       },

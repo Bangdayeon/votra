@@ -19,11 +19,31 @@ export type EvaluationCriteria = {
   team: boolean;
 };
 
+/** LLM 이 채점한 PolicyRule.key → 점수 매핑. */
+export type AiScores = Record<string, number>;
+
+/**
+ * 계정의 "전체 정책" 위반 정보.
+ * 위반이 감지되면 severity 는 무조건 DANGER 가 돼요.
+ * - problem: 한 줄 문제 진술 (예: "보안 관련 변경에 사람 검토 단계가 빠져 있어요.")
+ * - agentCommand: 사용자가 AI agent 에 그대로 붙여 넣어 고치게 할 한국어 지시문.
+ */
+export type GlobalPolicyViolation = {
+  problem: string;
+  agentCommand: string;
+};
+
 export type ClaudeFileEvaluation =
   | {
       status: "DONE";
       severity: ClaudeFileSeverity;
+      /** LLM 이 작성한 한국어 해설 — UI 의 "왜" 설명에 그대로 노출. */
+      reason: string;
+      /** PolicyRule.key 별 점수. */
+      scores: AiScores;
       criteria: EvaluationCriteria;
+      /** 계정 전체 정책 위반 감지 결과. 위반 없으면 null. */
+      globalPolicyViolation: GlobalPolicyViolation | null;
       evaluatedAt: number;
     }
   | {
@@ -33,17 +53,6 @@ export type ClaudeFileEvaluation =
       evaluatedAt: number;
     }
   | { status: "PENDING" | "LOADING"; criteria: EvaluationCriteria };
-
-/** 6 criteria × max points. claude-md-management rubric 기준. */
-export type ClaudeFileScore = {
-  commands: number; // /20
-  architecture: number; // /20
-  patterns: number; // /15
-  conciseness: number; // /15
-  currency: number; // /15
-  actionability: number; // /15
-  total: number; // /100
-};
 
 export type ClaudeFileRecord = {
   /** OS 절대 경로 */
@@ -55,6 +64,5 @@ export type ClaudeFileRecord = {
   contentLength: number;
   /** epoch ms */
   mtime: number;
-  score: ClaudeFileScore;
   evaluation: ClaudeFileEvaluation;
 };

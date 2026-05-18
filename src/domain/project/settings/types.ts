@@ -1,3 +1,5 @@
+import { DEFAULT_ANALYSIS_INSTRUCTION } from "@/domain/project/settings/defaultAnalysisInstruction";
+
 export const PROJECT_TYPES = [
   "WEB_APP",
   "MOBILE_NATIVE",
@@ -18,8 +20,7 @@ export type AnalysisTarget = (typeof ANALYSIS_TARGETS)[number];
 export const ANALYSIS_STYLES = ["DEVELOPER", "NON_DEVELOPER"] as const;
 export type AnalysisStyle = (typeof ANALYSIS_STYLES)[number];
 
-export const AUTOMATION_MODES = ["AUTO", "MANUAL"] as const;
-export type AutomationMode = (typeof AUTOMATION_MODES)[number];
+export const AI_ANALYSIS_INSTRUCTION_MAX = 8000;
 
 export type ProjectSettings = {
   projectType: ProjectType;
@@ -30,7 +31,8 @@ export type ProjectSettings = {
     /** targets 에 "OTHER" 가 포함될 때 사용자가 추가한 자유 항목들. */
     targetsOther: string[];
     style: AnalysisStyle;
-    automation: AutomationMode;
+    /** AI 요약/솔루션 생성 시 추가로 줄 사용자 지침 (자유 텍스트). */
+    analysisInstruction: string;
   };
 };
 
@@ -41,6 +43,6 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
     targets: ["ERROR_REPEAT", "SESSION_SUMMARY"],
     targetsOther: [],
     style: "DEVELOPER",
-    automation: "MANUAL",
+    analysisInstruction: DEFAULT_ANALYSIS_INSTRUCTION,
   },
 };

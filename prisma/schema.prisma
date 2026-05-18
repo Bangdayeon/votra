@@ -118,8 +118,35 @@ model Project {
   sessions             Session[]
   claudeFiles          ClaudeFile[]
   claudeFileEvaluations ClaudeFileEvaluation[]
+  aiSummary            ProjectAiSummary?
 
   @@index([ownerId])
+}
+
+// ────────────────────────────────────────────
+// PROJECT AI SUMMARY (개요 페이지 AI 요약/솔루션 캐시)
+// 사용자가 "업데이트" 버튼을 누를 때만 갱신. 토큰 절약 목적.
+// ────────────────────────────────────────────
+
+model ProjectAiSummary {
+  id String @id @default(cuid())
+
+  /// LLM 이 생성한 요약 본문 (한국어)
+  summary String @db.Text
+
+  /// LLM 이 생성한 주의사항 목록. [{ message, agentCommand }]
+  warnings Json @default("[]")
+  /// LLM 이 생성한 제안 목록. [{ message, agentCommand }]
+  suggestions Json @default("[]")
+
+  /// 마지막 갱신 시각 (사용자에게 표시)
+  refreshedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // ────────────────────────────────────────────
@@ -351,10 +378,23 @@ model ClaudeFileEvaluation {
   /// status=ERROR 일 때 사용자에게 보여줄 사유
   errorMessage String? @db.Text
 
+  /// LLM 이 돌려준 한국어 해설 — "왜 이 평가가 됐는지" 설명. status=DONE 일 때 사용.
+  aiReason String? @db.Text
+
+  /// LLM 이 채점한 PolicyRule.key → 점수 매핑. e.g. { "commands": 18, "architecture": 12, ... }
+  scoresJson Json?
+
   /// 평가 기준 적용 여부 — 사용자가 어떤 기준으로 통과/탈락 판단됐는지 캡션에 사용
   basedOnBasic   Boolean @default(true)
   basedOnProject Boolean @default(false)
   basedOnTeam    Boolean @default(false)
+
+  /// 평가 당시 사용자의 "전체 정책" 내용 해시 (sha256 head). 변경되면 재평가 트리거.
+  globalPolicyHash String?
+  /// 전체 정책 위반 시 LLM 이 적은 한 줄 문제 진술. 위반 없으면 null.
+  globalPolicyProblem String? @db.Text
+  /// 전체 정책 위반 시 LLM 이 적은, 사용자가 AI agent 에 그대로 붙여 넣어 고치게 할 명령어. 위반 없으면 null.
+  globalPolicyAgentCommand String? @db.Text
 
   /// 평가가 끝난 시각 (DONE/ERROR 진입 시각)
   evaluatedAt DateTime?

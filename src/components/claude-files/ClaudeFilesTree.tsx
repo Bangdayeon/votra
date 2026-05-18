@@ -1,13 +1,16 @@
 "use client";
 
 import {
+  AlertOctagon,
   ChevronDown,
   ChevronRight,
+  ClipboardCopy,
   FileText,
   Folder,
   FolderOpen,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { ClaudeFileSeverityBadge } from "@/components/claude-files/ClaudeFileSeverityBadge";
 import type {
@@ -207,26 +210,21 @@ function ScoreBreakdown({
   rules: PolicyRule[];
   indentPx: number;
 }) {
-  const scoreByKey: Record<string, number> = {
-    commands: record.score.commands,
-    architecture: record.score.architecture,
-    patterns: record.score.patterns,
-    conciseness: record.score.conciseness,
-    currency: record.score.currency,
-    actionability: record.score.actionability,
-  };
+  const ev = record.evaluation;
   const mtimeText = new Date(record.mtime).toLocaleString();
-
-  const weak = rules.filter(
-    (r) => (scoreByKey[r.key] ?? 0) / r.maxPoints < 0.5,
-  );
-  const reason = buildReason(record, weak);
+  const reason = readReason(ev);
+  const scoreByKey: Record<string, number> | null =
+    ev.status === "DONE" ? ev.scores : null;
+  const violation =
+    ev.status === "DONE" ? ev.globalPolicyViolation : null;
 
   return (
     <div
       className="mt-1 mb-2 rounded border border-border/50 bg-muted/30 p-2 text-xs"
       style={{ marginLeft: indentPx }}
     >
+      {violation && <GlobalPolicyViolationCallout violation={violation} />}
+
       <div className="mb-1 text-[10px] text-muted-foreground truncate">
         {record.absPath}
       </div>
@@ -235,13 +233,13 @@ function ScoreBreakdown({
 
       <ul className="flex flex-col gap-1">
         {rules.map((r) => {
-          const value = scoreByKey[r.key] ?? 0;
+          const value = scoreByKey?.[r.key];
           return (
             <li key={r.key} className="flex flex-col">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-foreground">{r.label}</span>
                 <span className="font-mono tabular-nums">
-                  {value}
+                  {value ?? "—"}
                   <span className="text-muted-foreground">/{r.maxPoints}</span>
                 </span>
               </div>
@@ -259,20 +257,59 @@ function ScoreBreakdown({
   );
 }
 
-function buildReason(record: ClaudeFileRecord, weak: PolicyRule[]): string {
-  const ev = record.evaluation;
-  if (ev.status === "PENDING" || ev.status === "LOADING") {
-    return "평가가 아직 완료되지 않았어요.";
+function GlobalPolicyViolationCallout({
+  violation,
+}: {
+  violation: { problem: string; agentCommand: string };
+}) {
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(violation.agentCommand);
+      toast.success("명령어를 복사했어요.");
+    } catch {
+      toast.error("복사하지 못했어요.");
+    }
+  };
+
+  return (
+    <div className="mb-2 flex flex-col gap-2 rounded border border-rose-200 bg-rose-50 p-2">
+      <div className="flex items-start gap-2 text-rose-700">
+        <AlertOctagon className="mt-[1px] size-3.5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="text-[10px] font-semibold uppercase tracking-wide">
+            전체 정책 위반
+          </span>
+          <p className="text-[12px] leading-snug">{violation.problem}</p>
+        </div>
+      </div>
+      <div className="flex items-start gap-2 rounded border border-rose-200 bg-white p-2 font-mono text-[11px] leading-snug">
+        <p className="flex-1 whitespace-pre-wrap break-words text-foreground">
+          {violation.agentCommand}
+        </p>
+        <button
+          type="button"
+          onClick={onCopy}
+          aria-label="명령어 복사"
+          title="복사"
+          className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <ClipboardCopy className="size-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function readReason(ev: ClaudeFileRecord["evaluation"]): string {
+  switch (ev.status) {
+    case "PENDING":
+    case "LOADING":
+      return "평가가 아직 완료되지 않았어요.";
+    case "ERROR":
+      return `평가 중 오류가 났어요. ${ev.errorMessage}`;
+    case "DONE":
+      return ev.reason || "평가 결과 설명이 없어요.";
   }
-  if (ev.status === "ERROR") {
-    return `평가 중 오류가 났어요. ${ev.errorMessage}`;
-  }
-  if (weak.length === 0) {
-    return "모든 평가 항목을 충분히 만족하고 있어요.";
-  }
-  const head = weak.slice(0, 2).map((r) => r.label).join(", ");
-  const tail = weak.length > 2 ? ` 외 ${weak.length - 2}개` : "";
-  return `${head}${tail} 항목이 부족해 이 상태로 평가됐어요.`;
 }
 
 function buildGroups(records: ClaudeFileRecord[], cwd?: string): ScopeGroup[] {
