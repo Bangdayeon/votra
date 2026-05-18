@@ -73,7 +73,7 @@ export function OtherMetricsCard({ metrics, className }: Props) {
   const errorTotal = errorSegs.reduce((s, x) => s + x.value, 0);
 
   return (
-    <Card className={`flex min-h-0 flex-col gap-5 overflow-hidden ${className ?? ""}`}>
+    <Card className={`flex min-h-120 flex-col gap-5 overflow-hidden ${className ?? ""}`}>
       <h3 className="text-base font-semibold">기타 데이터</h3>
 
       <section>
@@ -85,7 +85,7 @@ export function OtherMetricsCard({ metrics, className }: Props) {
         />
       </section>
 
-      <section className="flex min-h-0 flex-1 flex-col">
+      <section className="flex min-h-60 flex-1 flex-col">
         <h4 className="mb-2 text-sm font-medium">에러 유형 분포</h4>
 
         {errorTotal === 0 ? (
@@ -105,7 +105,7 @@ export function OtherMetricsCard({ metrics, className }: Props) {
               })}
             </div>
 
-            <ul className="custom-scrollbar mt-3 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+            <ul className="custom-scrollbar mt-3 min-h-0 max-h-80 flex-1 space-y-1.5 overflow-y-auto pr-1">
               {errorSegs.map((seg) => (
                 <li key={seg.label} className="flex items-center gap-2 text-xs">
                   <span

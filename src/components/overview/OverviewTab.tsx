@@ -78,7 +78,7 @@ export function OverviewTab({ selected }: { selected: Project }) {
   }, [selected.id]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-6">
+    <div className="flex pb-6 flex-col gap-6">
       <ProjectHeaderCard selected={selected} />
       <AiSummaryCard
         summary={aiSummary?.summary}
@@ -90,7 +90,7 @@ export function OverviewTab({ selected }: { selected: Project }) {
         onRefresh={onRefreshAi}
       />
 
-      <div className="flex min-h-0 flex-1 gap-6">
+      <div className="flex flex-col lg:flex-row flex-1 gap-6">
         <ClaudeFilesCard selected={selected} />
 
         {metricsLoading && (

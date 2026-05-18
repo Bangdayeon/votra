@@ -21,7 +21,7 @@ const SESSION_PALETTE = [
 ];
 
 const FALLBACK_COLOR = "#9CA3AF";
-const DONUT_TOP_N = 5;
+const OTHERS_RATIO = 0.5;
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -29,11 +29,17 @@ function formatTokens(n: number): string {
   return n.toLocaleString();
 }
 
-/** donut 가독성 위해 topN 초과 시 top + 기타 로 압축. 리스트는 압축 안 함 */
-function compactSegments(segs: DonutSegment[], topN = DONUT_TOP_N): DonutSegment[] {
-  if (segs.length <= topN) return segs;
-  const top = segs.slice(0, topN);
-  const restTotal = segs.slice(topN).reduce((s, x) => s + x.value, 0);
+function computeTopCount(total: number): number {
+  const othersCount = Math.floor(total * OTHERS_RATIO);
+  if (othersCount < 2) return total;
+  return total - othersCount;
+}
+
+/** donut 가독성 위해 하위 30% 를 기타로 압축. 리스트는 압축 안 함 */
+function compactSegments(segs: DonutSegment[], topCount: number): DonutSegment[] {
+  if (topCount >= segs.length) return segs;
+  const top = segs.slice(0, topCount);
+  const restTotal = segs.slice(topCount).reduce((s, x) => s + x.value, 0);
   return [...top, { label: "기타", value: restTotal, color: FALLBACK_COLOR }];
 }
 
@@ -47,16 +53,18 @@ export function SessionTokensCard({ metrics, className }: Props) {
     .filter((s) => s.totalTokens > 0)
     .sort((a, b) => b.totalTokens - a.totalTokens);
 
+  const topCount = computeTopCount(sortedSessions.length);
   const donutSegments = compactSegments(
     sortedSessions.map((s, i) => ({
       label: s.title,
       value: s.totalTokens,
       color: SESSION_PALETTE[i % SESSION_PALETTE.length],
     })),
+    topCount,
   );
 
   return (
-    <Card className={`flex min-h-0 flex-col overflow-hidden ${className ?? ""}`}>
+    <Card className={`flex min-h-120 flex-col overflow-hidden ${className ?? ""}`}>
       <h3 className="text-base font-semibold">세션별 토큰 사용량</h3>
 
       <div className="mt-4 flex shrink-0 justify-center">
@@ -74,10 +82,9 @@ export function SessionTokensCard({ metrics, className }: Props) {
         세션 {sortedSessions.length} 개
       </p>
 
-      <ul className="custom-scrollbar mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+      <ul className="custom-scrollbar mt-2 min-h-0 max-h-80 flex-1 space-y-1.5 overflow-y-auto pr-1">
         {sortedSessions.map((s, i) => {
-          const isInOthers =
-            sortedSessions.length > DONUT_TOP_N && i >= DONUT_TOP_N;
+          const isInOthers = i >= topCount;
           return (
             <SessionListItem
               key={s.id}

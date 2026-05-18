@@ -38,7 +38,7 @@ export function MiniBarList({ items, formatValue, emptyText }: Props) {
         })}
       </div>
 
-      <ul className="mt-3 space-y-1.5">
+      <ul className="mt-3 space-y-1.5 max-h-40 overflow-y-auto pr-1">
         {items.map((it) => (
           <li key={it.label} className="flex items-center gap-2 text-xs">
             <span

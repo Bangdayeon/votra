@@ -1,11 +1,12 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { listClaudeFilesAction } from "@/app/actions/listClaudeFiles";
 import { listPolicyRulesAction } from "@/app/actions/listPolicyRules";
 import { Card } from "@/components/common/Card";
+import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
 import { ClaudeFilesTree } from "@/components/claude-files/ClaudeFilesTree";
 import type { Project } from "@/components/project/ProjectsContext";
 import type {
@@ -26,6 +27,7 @@ type State =
 
 export function ClaudeFilesCard({ selected }: { selected: Project }) {
   const [state, setState] = useState<State>({ kind: "loading" });
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,11 +50,38 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
     };
   }, [selected.id]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const [files, rules] = await Promise.all([
+        listClaudeFilesAction(selected.id),
+        listPolicyRulesAction(),
+      ]);
+      setState({
+        kind: "ready",
+        records: files.records,
+        criteria: files.criteria,
+        rules,
+      });
+    } catch {
+      setState({ kind: "error" });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [selected.id]);
+
+  const lastEvaluatedAt =
+    state.kind === "ready" ? latestEvaluatedAt(state.records) : null;
+
   return (
-    <Card className="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-base font-semibold">AI 정책 문서</h3>
-      </div>
+    <Card className="custom-scrollbar flex min-h-120 flex-1 flex-col overflow-y-auto">
+      <CardRefreshHeader
+        title="AI 정책 문서"
+        refreshedAt={lastEvaluatedAt}
+        loading={state.kind === "loading"}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
 
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
         프로젝트 및 전체 정책 기준으로 평가하고 있어요.
@@ -88,5 +117,16 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
       )}
     </Card>
   );
+}
+
+function latestEvaluatedAt(records: ClaudeFileRecord[]): number | null {
+  let max = 0;
+  for (const r of records) {
+    const ev = r.evaluation;
+    if (ev.status === "DONE" || ev.status === "ERROR") {
+      if (ev.evaluatedAt > max) max = ev.evaluatedAt;
+    }
+  }
+  return max > 0 ? max : null;
 }
 

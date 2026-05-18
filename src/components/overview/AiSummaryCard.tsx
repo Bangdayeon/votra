@@ -1,10 +1,11 @@
 "use client";
 
-import { Copy, Loader2, RefreshCw } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 
 import type { ProjectAiInsightRow } from "@/application/ports/projectAiSummaryRepository";
 import { Card } from "@/components/common/Card";
+import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -29,34 +30,18 @@ export function AiSummaryCard({
   className,
 }: Props) {
   const hasContent = Boolean(summary) || warnings.length > 0 || suggestions.length > 0;
-  const busy = loading || refreshing;
 
   return (
     <Card className={`w-full ${className ?? ""}`}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h3 className="text-base font-semibold">AI 요약 & 솔루션</h3>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={onRefresh}
-          >
-            {refreshing ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <RefreshCw className="size-4" />
-            )}
-            <span className="ml-2">
-              {refreshing ? "분석 중…" : hasContent ? "업데이트" : "분석 시작"}
-            </span>
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          마지막 업데이트: {formatRefreshedAt(refreshedAt)}
-        </p>
-      </div>
+      <CardRefreshHeader
+        title="AI 요약 & 솔루션"
+        refreshedAt={refreshedAt}
+        loading={loading}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        refreshLabel={hasContent ? "업데이트" : "분석 시작"}
+        refreshingLabel="분석 중…"
+      />
 
       <section className="mt-2">
         <h4 className="mb-2 text-sm font-medium">요약</h4>
@@ -147,8 +132,8 @@ function InsightItem({
               variant="ghost"
               onClick={onCopy}
             >
-              <Copy className="size-3.5" />
-              <span className="ml-1.5 text-xs">
+              {copied ? <Check className="size-3.5 text-green-600" /> : <Copy className="size-3.5" />}
+              <span className={`ml-1.5 text-xs ${copied ? "text-green-600" : ""}`}>
                 {copied ? "복사됨" : "복사"}
               </span>
             </Button>
@@ -157,17 +142,4 @@ function InsightItem({
       )}
     </li>
   );
-}
-
-function formatRefreshedAt(iso?: string | null): string {
-  if (!iso) return "없음";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "없음";
-  return d.toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
