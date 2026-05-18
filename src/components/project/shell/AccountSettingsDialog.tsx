@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Globe2,
-  LogOut,
-  RotateCcw,
-  Upload,
-  UserCog,
-  X,
-} from "lucide-react";
+import { Globe2, LogOut, RotateCcw, UserCog } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -16,7 +9,8 @@ import { getUserAiPolicyAction } from "@/app/actions/getUserAiPolicy";
 import { resetAccountAction } from "@/app/actions/resetAccount";
 import { signOutAction } from "@/app/actions/signOut";
 import { updateUserAiPolicyAction } from "@/app/actions/updateUserAiPolicy";
-import { updateUserEmailAction } from "@/app/actions/updateUserEmail";
+import { updateUserNameAction } from "@/app/actions/updateUserName";
+import { AiSpecPolicyFields } from "@/components/aiSpec/AiSpecPolicyFields";
 import { useCurrentUser } from "@/components/project/shell/CurrentUserContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,18 +20,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  buildAiSpecPolicyPatch,
+  type AiSpecFileChange,
+} from "@/domain/aiSpec/types";
 import { cn } from "@/lib/utils";
 
-const TEXT_MAX = 8000;
-const FILE_MAX_BYTES = 512 * 1024;
-
 type MenuKey = "account" | "policy";
-
-type FileSlot =
-  | { kind: "kept"; name: string }
-  | { kind: "replaced"; name: string; content: string }
-  | { kind: "removed" }
-  | { kind: "empty" };
 
 const MENU: { key: MenuKey; label: string; icon: React.ElementType }[] = [
   { key: "account", label: "계정 설정", icon: UserCog },
@@ -97,7 +86,7 @@ export function AccountSettingsDialog({
             })}
           </nav>
 
-          <div className="custom-scrollbar overflow-y-auto p-6">
+          <div className="custom-scrollbar overflow-y-auto px-6 pt-6 pb-8">
             {active === "account" ? (
               <AccountPane onClose={() => onOpenChange(false)} />
             ) : (
@@ -113,22 +102,24 @@ export function AccountSettingsDialog({
 function AccountPane({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const user = useCurrentUser();
-  const [email, setEmail] = useState(user.email);
-  const [emailPending, startEmailUpdate] = useTransition();
+  const [name, setName] = useState(user.name ?? "");
+  const [namePending, startNameUpdate] = useTransition();
   const [signOutPending, startSignOut] = useTransition();
   const [resetPending, startReset] = useTransition();
   const [confirmReset, setConfirmReset] = useState(false);
 
-  const emailDirty = email.trim() !== user.email && email.trim().length > 0;
+  const trimmedName = name.trim();
+  const nameDirty =
+    trimmedName.length > 0 && trimmedName !== (user.name ?? "");
 
-  const onSaveEmail = () => {
-    startEmailUpdate(async () => {
-      const res = await updateUserEmailAction(email.trim());
+  const onSaveName = () => {
+    startNameUpdate(async () => {
+      const res = await updateUserNameAction(trimmedName);
       if (!res.ok) {
         toast.error(res.error);
         return;
       }
-      toast.success("이메일이 변경됐어요.");
+      toast.success("유저네임이 변경됐어요.");
       router.refresh();
     });
   };
@@ -166,16 +157,18 @@ function AccountPane({ onClose }: { onClose: () => void }) {
         <div>
           <h3 className="text-sm font-medium">아이디 변경</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            로그인에 사용할 이메일을 변경할 수 있어요.
+            표시 이름(유저네임)을 변경할 수 있어요. 2–32자, 한글·영문·숫자와
+            <code className="mx-1">._-</code>를 쓸 수 있어요.
           </p>
         </div>
         <div className="flex gap-2">
           <input
-            type="email"
-            value={email}
-            disabled={emailPending}
-            placeholder="you@example.com"
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={name}
+            disabled={namePending}
+            placeholder="유저네임"
+            maxLength={32}
+            onChange={(e) => setName(e.target.value)}
             className={cn(
               "h-9 flex-1 rounded-md border border-[#E4E2DD] bg-white px-3 text-sm",
               "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
@@ -184,10 +177,10 @@ function AccountPane({ onClose }: { onClose: () => void }) {
           />
           <Button
             type="button"
-            onClick={onSaveEmail}
-            disabled={!emailDirty || emailPending}
+            onClick={onSaveName}
+            disabled={!nameDirty || namePending}
           >
-            {emailPending ? "변경 중…" : "변경"}
+            {namePending ? "변경 중…" : "변경"}
           </Button>
         </div>
       </section>
@@ -259,9 +252,12 @@ function AccountPane({ onClose }: { onClose: () => void }) {
 
 function PolicyPane() {
   const [loading, setLoading] = useState(true);
-  const [text, setText] = useState("");
-  const [initialText, setInitialText] = useState("");
-  const [file, setFile] = useState<FileSlot>({ kind: "empty" });
+  const [guideline, setGuideline] = useState("");
+  const [initialGuideline, setInitialGuideline] = useState("");
+  const [existingFileName, setExistingFileName] = useState<string | null>(null);
+  const [fileChange, setFileChange] = useState<AiSpecFileChange>({
+    kind: "none",
+  });
   const [pending, startSave] = useTransition();
 
   useEffect(() => {
@@ -271,13 +267,10 @@ function PolicyPane() {
       .then((res) => {
         if (cancelled) return;
         if (res.ok) {
-          setText(res.policy.text);
-          setInitialText(res.policy.text);
-          setFile(
-            res.policy.fileName
-              ? { kind: "kept", name: res.policy.fileName }
-              : { kind: "empty" },
-          );
+          setGuideline(res.policy.aiSpecGuideline);
+          setInitialGuideline(res.policy.aiSpecGuideline);
+          setExistingFileName(res.policy.aiSpecFileName);
+          setFileChange({ kind: "none" });
         }
       })
       .finally(() => {
@@ -289,51 +282,27 @@ function PolicyPane() {
   }, []);
 
   const hasChanges =
-    text !== initialText ||
-    file.kind === "replaced" ||
-    file.kind === "removed";
-
-  const onPickFile = async (picked: File) => {
-    if (picked.size > FILE_MAX_BYTES) {
-      toast.error("파일 용량이 너무 커요. (최대 512KB)");
-      return;
-    }
-    const content = await picked.text();
-    setFile({ kind: "replaced", name: picked.name, content });
-  };
-
-  const onRemoveFile = () => {
-    setFile((prev) => (prev.kind === "empty" ? prev : { kind: "removed" }));
-  };
+    guideline !== initialGuideline || fileChange.kind !== "none";
 
   const onSave = () => {
     startSave(async () => {
-      const filePayload =
-        file.kind === "replaced"
-          ? { name: file.name, content: file.content }
-          : file.kind === "removed"
-            ? null
-            : undefined;
-      const res = await updateUserAiPolicyAction({
-        text,
-        file: filePayload,
-      });
+      const res = await updateUserAiPolicyAction(
+        buildAiSpecPolicyPatch(guideline, fileChange),
+      );
       if (!res.ok) {
         toast.error(res.error);
         return;
       }
-      if (file.kind === "replaced") {
-        setFile({ kind: "kept", name: file.name });
-      } else if (file.kind === "removed") {
-        setFile({ kind: "empty" });
+      if (fileChange.kind === "upload") {
+        setExistingFileName(fileChange.name);
+      } else if (fileChange.kind === "remove") {
+        setExistingFileName(null);
       }
-      setInitialText(text);
+      setFileChange({ kind: "none" });
+      setInitialGuideline(guideline);
       toast.success("저장됐어요.");
     });
   };
-
-  const fileLabel =
-    file.kind === "kept" || file.kind === "replaced" ? file.name : null;
 
   return (
     <div className="flex h-full flex-col gap-6">
@@ -345,75 +314,16 @@ function PolicyPane() {
         </p>
       </header>
 
-      <section className="flex flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="ai-policy-text">
-          정책 본문
-        </label>
-        <textarea
-          id="ai-policy-text"
-          value={text}
-          disabled={loading || pending}
-          rows={8}
-          maxLength={TEXT_MAX}
-          placeholder="예) 고객 데이터를 포함한 코드를 외부 LLM 으로 보내지 않아요. 보안 관련 변경은 사람이 검토해요."
-          onChange={(e) => setText(e.target.value)}
-          className={cn(
-            "min-h-[10rem] w-full resize-y rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm leading-6",
-            "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-          )}
-        />
-        <div className="flex justify-end text-xs text-muted-foreground">
-          {text.length} / {TEXT_MAX}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <span className="text-sm font-medium">정책 파일</span>
-        <p className="text-xs text-muted-foreground">
-          이미 정리한 정책 문서가 있다면 텍스트 파일로 올려 주세요. (최대 512KB)
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <label
-            className={cn(
-              "inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-[#E4E2DD] bg-white px-3 text-sm hover:bg-[#F2F0EB]",
-              (loading || pending) && "pointer-events-none opacity-50",
-            )}
-          >
-            <Upload className="size-4" />
-            파일 선택
-            <input
-              type="file"
-              accept=".md,.txt,.markdown,text/plain,text/markdown"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void onPickFile(f);
-                e.target.value = "";
-              }}
-            />
-          </label>
-          {fileLabel && (
-            <span className="inline-flex items-center gap-2 rounded-md border border-[#E4E2DD] bg-white px-2 py-1 text-xs">
-              <span className="max-w-[16rem] truncate">{fileLabel}</span>
-              <button
-                type="button"
-                onClick={onRemoveFile}
-                disabled={loading || pending}
-                aria-label="파일 제거"
-                className="text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <X className="size-3.5" />
-              </button>
-            </span>
-          )}
-          {file.kind === "removed" && (
-            <span className="text-xs text-muted-foreground">
-              저장하면 파일이 제거돼요.
-            </span>
-          )}
-        </div>
-      </section>
+      <AiSpecPolicyFields
+        guideline={guideline}
+        onGuidelineChange={setGuideline}
+        existingFileName={existingFileName}
+        fileChange={fileChange}
+        onFileChange={setFileChange}
+        disabled={loading || pending}
+        guidelinePlaceholder="예) 고객 데이터를 포함한 코드를 외부 LLM 으로 보내지 않아요. 보안 관련 변경은 사람이 검토해요."
+        fileHint="이미 정리한 정책 문서가 있다면 텍스트 파일로 올려 주세요. (최대 512KB)"
+      />
 
       <div className="mt-auto flex justify-end pt-4">
         <Button
