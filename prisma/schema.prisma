@@ -120,6 +120,7 @@ model Project {
   claudeFileEvaluations ClaudeFileEvaluation[]
   aiSummary            ProjectAiSummary?
 
+  @@unique([ownerId, cwd])
   @@index([ownerId])
 }
 

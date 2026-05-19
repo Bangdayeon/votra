@@ -43,9 +43,9 @@ export async function ingestSessionEvents(
     return err("source 가 비어 있어요.");
   }
 
-  // CLI 의 source 는 .claude/projects 하위 파일/폴더 경로라서 RawEvent.cwd
-  // (실제 작업 디렉토리) 와 다르게 떨어져요. 프로젝트 매칭 키를 맞추려고
-  // raw event 에서 cwd 를 먼저 뽑고, 없을 때만 source 로 fallback.
+  // CLI 의 source 는 .claude/projects 하위 파일/폴더 경로라 Project.cwd 로 그대로
+  // 쓰면 phantom 프로젝트가 생겨요. RawEvent.cwd (실제 작업 디렉토리) 가 잡힐 때만
+  // 프로젝트를 생성/매칭하고, 추출 실패 시 ingest 를 건너뜁니다.
   const asSessions: Session[] = input.sessions.map((s) => ({
     id: s.id,
     title: s.title ?? "",
@@ -53,7 +53,10 @@ export async function ingestSessionEvents(
     endedAt: s.endedAt,
     events: s.events,
   }));
-  const projectCwd = extractCwd(asSessions) ?? input.source;
+  const projectCwd = extractCwd(asSessions);
+  if (!projectCwd) {
+    return err("세션 이벤트에서 cwd 를 추출하지 못해 ingest 를 건너뛰어요.");
+  }
 
   const project =
     (await deps.projects.findByCwd({

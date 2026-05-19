@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { listClaudeFilesAction } from "@/app/actions/listClaudeFiles";
 import { listPolicyRulesAction } from "@/app/actions/listPolicyRules";
+import { reevaluateErrorClaudeFilesAction } from "@/app/actions/reevaluateErrorClaudeFiles";
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
 import { ClaudeFilesTree } from "@/components/claude-files/ClaudeFilesTree";
@@ -53,6 +54,7 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      await reevaluateErrorClaudeFilesAction(selected.id);
       const [files, rules] = await Promise.all([
         listClaudeFilesAction(selected.id),
         listPolicyRulesAction(),
