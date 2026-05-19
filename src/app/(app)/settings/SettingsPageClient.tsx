@@ -54,10 +54,10 @@ type SaveState =
   | { kind: "saved" }
   | { kind: "error"; message: string };
 
-export function SettingsPageClient() {
+export function SettingsPageClient({ slug: slugProp }: { slug?: string } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const slug = decodeSlug(searchParams.get("project"));
+  const slug = slugProp ?? decodeSlug(searchParams.get("project"));
   const { projects } = useProjects();
 
   const project = useMemo(

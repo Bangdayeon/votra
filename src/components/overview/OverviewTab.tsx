@@ -13,7 +13,6 @@ import { Card } from "@/components/common/Card";
 import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
 import { AiSummaryCard } from "@/components/overview/AiSummaryCard";
 import { OtherMetricsCard } from "@/components/overview/OtherMetricsCard";
-import { ProjectHeaderCard } from "@/components/project/ProjectHeaderCard";
 import type { Project } from "@/components/project/ProjectsContext";
 import { SessionTokensCard } from "@/components/overview/SessionTokensCard";
 
@@ -79,7 +78,6 @@ export function OverviewTab({ selected }: { selected: Project }) {
 
   return (
     <div className="flex pb-6 flex-col gap-6">
-      <ProjectHeaderCard selected={selected} />
       <AiSummaryCard
         summary={aiSummary?.summary}
         warnings={aiSummary?.warnings}
