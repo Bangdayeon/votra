@@ -36,25 +36,17 @@ export function ProjectPageClient() {
     );
   }
 
-  if (tab === "manage") {
-    return (
-      <div className="px-8 py-6">
-        <ClaudeFilesCard selected={project} />
-      </div>
-    );
-  }
-
-  if (tab === "history") {
-    return (
-      <div className="px-8 py-6">
-        <HistoryTab selected={project} />
-      </div>
-    );
-  }
-
   return (
     <div className="px-8 py-6">
-      <OverviewTab selected={project} />
+      <div className={tab === "main" ? undefined : "hidden"}>
+        <OverviewTab selected={project} />
+      </div>
+      <div className={tab === "manage" ? undefined : "hidden"}>
+        <ClaudeFilesCard selected={project} />
+      </div>
+      <div className={tab === "history" ? undefined : "hidden"}>
+        <HistoryTab selected={project} />
+      </div>
     </div>
   );
 }

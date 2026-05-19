@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
+import { InlineMarkdown } from "@/components/common/InlineMarkdown";
 
 type Props = {
   tasks?: string[];
@@ -25,7 +26,7 @@ export function RecommendedNextTaskCard({
   return (
     <Card className={`w-full ${className ?? ""}`}>
       <CardRefreshHeader
-        title="추천 다음 작업"
+        title="💬 추천 다음 작업"
         refreshedAt={refreshedAt}
         loading={loading}
         refreshing={refreshing}
@@ -36,8 +37,6 @@ export function RecommendedNextTaskCard({
 
       <section className="mt-4">
         <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
-          <span>💬</span>
-          <span>추천 다음 작업</span>
         </h4>
         {loading ? (
           <p className="text-sm text-muted-foreground">불러오는 중…</p>

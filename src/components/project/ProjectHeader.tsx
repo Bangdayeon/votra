@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { label: "메인", key: "main" },
-  { label: "관리", key: "manage" },
+  { label: "AI 작업 관리", key: "manage" },
   { label: "히스토리", key: "history" },
 ] as const;
 

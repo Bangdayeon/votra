@@ -6,30 +6,8 @@ import { useState } from "react";
 import type { ProjectAiInsightRow } from "@/application/ports/projectAiSummaryRepository";
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
+import { InlineMarkdown } from "@/components/common/InlineMarkdown";
 import { Button } from "@/components/ui/button";
-
-function InlineMarkdown({ text }: { text: string }) {
-  const parts: React.ReactNode[] = [];
-  const re = /(\*\*(.+?)\*\*|`([^`]+)`)/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let key = 0;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
-    if (m[2] !== undefined) {
-      parts.push(<strong key={key++}>{m[2]}</strong>);
-    } else if (m[3] !== undefined) {
-      parts.push(
-        <code key={key++} className="rounded bg-muted px-1 py-0.5 font-mono text-[0.8em]">
-          {m[3]}
-        </code>,
-      );
-    }
-    last = m.index + m[0].length;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return <>{parts}</>;
-}
 
 type Props = {
   summary?: string;
@@ -56,7 +34,7 @@ export function AiSummaryCard({
   return (
     <Card className={`w-full ${className ?? ""}`}>
       <CardRefreshHeader
-        title="AI 요약 & 솔루션"
+        title="💡 AI 요약 & 솔루션"
         refreshedAt={refreshedAt}
         loading={loading}
         refreshing={refreshing}

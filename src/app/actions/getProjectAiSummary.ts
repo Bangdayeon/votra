@@ -10,13 +10,8 @@ import {
 import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
 import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
 
-export async function getProjectAiSummaryAction(
-  projectId: string,
-): Promise<CachedProjectAiSummary> {
-  const guard = await assertOwnedProject(projectId);
-  if (!guard.ok) throw new Error(guard.error);
-
-  const compute = unstable_cache(
+function makeCachedFetch(projectId: string) {
+  return unstable_cache(
     () =>
       getCachedProjectAiSummary(projectId, {
         aiSummaries: prismaProjectAiSummaryRepository,
@@ -24,5 +19,13 @@ export async function getProjectAiSummaryAction(
     ["project-ai-summary", projectId],
     { tags: [projectAiSummaryTag(projectId)] },
   );
-  return compute();
+}
+
+export async function getProjectAiSummaryAction(
+  projectId: string,
+): Promise<CachedProjectAiSummary> {
+  const guard = await assertOwnedProject(projectId);
+  if (!guard.ok) throw new Error(guard.error);
+
+  return makeCachedFetch(projectId)();
 }
