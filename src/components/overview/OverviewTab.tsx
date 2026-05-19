@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { getProjectAiSummaryAction } from "@/app/actions/getProjectAiSummary";
@@ -13,16 +13,22 @@ import { AiSummaryCard } from "@/components/overview/AiSummaryCard";
 import { RecommendedNextTaskCard } from "@/components/overview/RecommendedNextTaskCard";
 import type { Project } from "@/components/project/ProjectsContext";
 
+function markInitialized(key: string) {
+  localStorage.setItem(key, "1");
+}
+
+function isInitialized(key: string) {
+  return Boolean(localStorage.getItem(key));
+}
+
 export function OverviewTab({ selected }: { selected: Project }) {
   const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiRefreshing, setAiRefreshing] = useState(false);
-  const autoRefreshAttempted = useRef(false);
 
   const [nextTasks, setNextTasks] = useState<CachedProjectNextTasks>(null);
   const [nextTasksLoading, setNextTasksLoading] = useState(false);
   const [nextTasksRefreshing, setNextTasksRefreshing] = useState(false);
-  const autoNextTaskAttempted = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,29 +100,23 @@ export function OverviewTab({ selected }: { selected: Project }) {
     }
   }, [selected.id]);
 
+  // 캐시가 없는 경우(= 프로젝트 첫 추가)에만 자동 분석. localStorage로 추적해
+  // 탭 전환·페이지 새로고침 시 재실행되지 않게 한다.
   useEffect(() => {
-    if (
-      !aiLoading &&
-      aiSummary === null &&
-      !aiRefreshing &&
-      !autoRefreshAttempted.current
-    ) {
-      autoRefreshAttempted.current = true;
+    const key = `votra-ai-init-${selected.id}`;
+    if (!aiLoading && aiSummary === null && !isInitialized(key)) {
+      markInitialized(key);
       void onRefreshAi();
     }
-  }, [aiLoading, aiSummary, aiRefreshing, onRefreshAi]);
+  }, [aiLoading, aiSummary, selected.id, onRefreshAi]);
 
   useEffect(() => {
-    if (
-      !nextTasksLoading &&
-      nextTasks === null &&
-      !nextTasksRefreshing &&
-      !autoNextTaskAttempted.current
-    ) {
-      autoNextTaskAttempted.current = true;
+    const key = `votra-tasks-init-${selected.id}`;
+    if (!nextTasksLoading && nextTasks === null && !isInitialized(key)) {
+      markInitialized(key);
       void onRefreshNextTasks();
     }
-  }, [nextTasksLoading, nextTasks, nextTasksRefreshing, onRefreshNextTasks]);
+  }, [nextTasksLoading, nextTasks, selected.id, onRefreshNextTasks]);
 
   return (
     <div className="flex pb-6 flex-col gap-6">

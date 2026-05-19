@@ -11,10 +11,6 @@ type Props = {
   loading?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
-  /** 평상시 버튼 라벨. 기본값 "업데이트". */
-  refreshLabel?: string;
-  /** refreshing 상태에서의 버튼 라벨. 기본값 "갱신 중…". */
-  refreshingLabel?: string;
 };
 
 export function CardRefreshHeader({
@@ -23,8 +19,6 @@ export function CardRefreshHeader({
   loading,
   refreshing,
   onRefresh,
-  refreshLabel = "업데이트",
-  refreshingLabel = "갱신 중…",
 }: Props) {
   const busy = Boolean(loading || refreshing);
   return (
@@ -43,9 +37,6 @@ export function CardRefreshHeader({
           ) : (
             <RefreshCw className="size-4" />
           )}
-          <span className="ml-2">
-            {refreshing ? refreshingLabel : refreshLabel}
-          </span>
         </Button>
       </div>
       <p className="self-end text-xs text-muted-foreground lg:self-auto">

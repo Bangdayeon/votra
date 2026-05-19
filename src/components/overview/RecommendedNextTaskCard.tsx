@@ -31,8 +31,6 @@ export function RecommendedNextTaskCard({
         loading={loading}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        refreshLabel={hasContent ? "업데이트" : "분석 시작"}
-        refreshingLabel="분석 중…"
       />
 
       <section className="mt-4">
