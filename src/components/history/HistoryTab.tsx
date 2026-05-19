@@ -56,7 +56,7 @@ export function HistoryTab({ selected }: { selected: Project }) {
 
         {!metricsLoading && metrics && (
           <>
-            <SessionTokensCard metrics={metrics} className="flex-1" onSelect={handleSessionSelect} />
+            <SessionTokensCard metrics={metrics} className="flex-1" onSelect={handleSessionSelect} selectedId={selectedSessionId} />
             <OtherMetricsCard metrics={metrics} className="flex-1" />
           </>
         )}

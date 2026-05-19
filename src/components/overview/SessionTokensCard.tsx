@@ -47,9 +47,10 @@ type Props = {
   metrics: ProjectMetrics;
   className?: string;
   onSelect?: (id: string) => void;
+  selectedId?: string | null;
 };
 
-export function SessionTokensCard({ metrics, className, onSelect }: Props) {
+export function SessionTokensCard({ metrics, className, onSelect, selectedId }: Props) {
   const sortedSessions = [...metrics.sessions]
     .filter((s) => s.totalTokens > 0)
     .sort((a, b) => b.totalTokens - a.totalTokens);
@@ -96,6 +97,7 @@ export function SessionTokensCard({ metrics, className, onSelect }: Props) {
                   : SESSION_PALETTE[i % SESSION_PALETTE.length]
               }
               onSelect={onSelect}
+              selected={s.id === selectedId}
             />
           );
         })}
@@ -108,10 +110,12 @@ function SessionListItem({
   session,
   color,
   onSelect,
+  selected,
 }: {
   session: SessionTokenRow;
   color: string;
   onSelect?: (id: string) => void;
+  selected?: boolean;
 }) {
   const titleRef = useRef<HTMLSpanElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -128,7 +132,9 @@ function SessionListItem({
 
   const row = (
     <li
-      className="flex items-center gap-2 text-xs transition-colors hover:bg-muted/60 rounded-md px-1 -mx-1 py-0.5"
+      className={`flex items-center gap-2 text-xs transition-colors rounded-md px-1 -mx-1 py-0.5 ${
+        selected ? "bg-muted font-medium" : "hover:bg-muted/60"
+      }`}
       style={{ cursor: onSelect ? "pointer" : "default" }}
       onClick={() => onSelect?.(session.id)}
     >
