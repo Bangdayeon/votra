@@ -138,9 +138,9 @@ export function BranchTab({
               ),
             }}
           />
-          <div className="flex min-h-0 flex-1 flex-col pt-2">
+          <div className="flex min-h-[320px] flex-1 flex-col pt-2">
             {detailLoading ? (
-              <div className="flex h-16 items-center justify-center">
+              <div className="flex h-full min-h-[320px] items-center justify-center">
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
               </div>
             ) : branches && branches.length > 0 ? (
