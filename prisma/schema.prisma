@@ -107,6 +107,9 @@ model Project {
   /// 업로드 파일의 텍스트 본문. 텍스트 파일을 가정하고 그대로 보관 (~512KB cap).
   aiSpecFileContent String? @db.Text
 
+  /// AI 지시 문서 흐름 진단에 사용할 기본 프롬프트. 비워두면 시스템 기본 프롬프트 사용.
+  agentContextFlowPrompt String? @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -120,6 +123,7 @@ model Project {
   claudeFileEvaluations ClaudeFileEvaluation[]
   aiSummary            ProjectAiSummary?
   aiNextTask           ProjectAiNextTask?
+  agentContextFlowDiagnosis ProjectAgentContextFlowDiagnosis?
 
   @@unique([ownerId, cwd])
   @@index([ownerId])
@@ -433,6 +437,27 @@ model ClaudeFileEvaluation {
 
   @@unique([projectId, absPath])
   @@index([projectId])
+}
+
+// ────────────────────────────────────────────
+// PROJECT AGENT CONTEXT FLOW DIAGNOSIS (AI 지시 문서 흐름 진단 캐시)
+// 사용자가 "업데이트" 버튼을 누를 때만 갱신.
+// ────────────────────────────────────────────
+
+model ProjectAgentContextFlowDiagnosis {
+  id String @id @default(cuid())
+
+  /// LLM 이 생성한 진단 결과 (마크다운 형식)
+  result String @db.Text
+
+  /// 마지막 갱신 시각
+  refreshedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // ────────────────────────────────────────────

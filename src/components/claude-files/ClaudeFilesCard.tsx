@@ -78,7 +78,7 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
   return (
     <Card className="custom-scrollbar flex min-h-120 flex-1 flex-col overflow-y-auto">
       <CardRefreshHeader
-        title="AI 정책 문서"
+        title="AI 지시 문서"
         refreshedAt={lastEvaluatedAt}
         loading={state.kind === "loading"}
         refreshing={refreshing}

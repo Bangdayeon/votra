@@ -10,17 +10,17 @@ import { useProjects } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { label: "메인", key: "main", icon: LayoutGrid },
+  { label: "개요", key: "overview", icon: LayoutGrid },
   { label: "AI 작업 관리", key: "manage", icon: Bot },
   { label: "히스토리", key: "history", icon: Clock },
 ] as const;
 
-type Tab = "main" | "manage" | "history";
+type Tab = "overview" | "manage" | "history";
 
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "history") return "history";
-  return "main";
+  return "overview";
 }
 
 const PALETTE = [
@@ -42,7 +42,7 @@ function colorFromTitle(title: string): string {
 }
 
 function tabHref(projectName: string, key: Tab): string {
-  if (key === "main") return `/${projectName}`;
+  if (key === "overview") return `/${projectName}`;
   return `/${projectName}?tab=${key}`;
 }
 

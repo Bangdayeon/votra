@@ -8,6 +8,7 @@ export type ProjectSettingsBundle = {
   settings: ProjectSettings;
   aiSpecGuideline: string;
   aiSpecFileName: string | null;
+  agentContextFlowPrompt: string | null;
 };
 
 export async function getProjectSettings(
@@ -27,5 +28,6 @@ export async function getProjectSettings(
     settings: parseProjectSettings(row.settings),
     aiSpecGuideline,
     aiSpecFileName: row.aiSpecFileName,
+    agentContextFlowPrompt: row.agentContextFlowPrompt,
   };
 }

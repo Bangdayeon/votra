@@ -151,6 +151,11 @@ function BranchTooltipBody({
           </ul>
         </div>
       )}
+      {branch.startedAt && (
+        <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
+          {formatStartedAt(branch.startedAt)}
+        </p>
+      )}
     </div>
   );
 }
@@ -176,6 +181,19 @@ function formatDuration(sec: number): string {
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   return `${h}h ${m % 60}m`;
+}
+
+function formatStartedAt(date: Date | null): string {
+  if (!date) return "";
+  const d = new Date(date);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const h = d.getHours();
+  const min = String(d.getMinutes()).padStart(2, "0");
+  const ampm = h < 12 ? "오전" : "오후";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${yyyy}.${mm}.${dd}. ${ampm} ${h12}:${min}`;
 }
 
 function formatTokens(n: number): string {

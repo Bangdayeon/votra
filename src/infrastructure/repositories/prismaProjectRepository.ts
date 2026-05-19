@@ -136,6 +136,9 @@ export const prismaProjectRepository: ProjectRepository = {
         data.aiSpecFileContent = input.aiSpecFile.content;
       }
     }
+    if (input.agentContextFlowPrompt !== undefined) {
+      data.agentContextFlowPrompt = input.agentContextFlowPrompt ?? null;
+    }
     await prisma.project.update({ where: { id: input.id }, data });
   },
 
@@ -150,12 +153,14 @@ export const prismaProjectRepository: ProjectRepository = {
         settings: true,
         aiSpecGuideline: true,
         aiSpecFileName: true,
+        agentContextFlowPrompt: true,
       },
     });
     return {
       settings: row?.settings ?? null,
       aiSpecGuideline: row?.aiSpecGuideline ?? null,
       aiSpecFileName: row?.aiSpecFileName ?? null,
+      agentContextFlowPrompt: row?.agentContextFlowPrompt ?? null,
     };
   },
 

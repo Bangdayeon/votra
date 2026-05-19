@@ -22,6 +22,7 @@ export type BranchNode = {
   durationSec: number;
   totalTokens: number;
   editCount: number;
+  startedAt: Date | null;
   /** FILE_EDIT 이벤트에서 추출한 unique 파일 경로 (등장 순). tooltip 표시용. */
   editedFiles: string[];
   errors: BranchErrorRow[];
@@ -47,6 +48,7 @@ export async function getProjectBranchNodes(
       durationSec: metrics.durationSec,
       totalTokens: row.totalTokens,
       editCount: row.editCount,
+      startedAt: row.startedAt,
       editedFiles: row.editedFiles,
       errors: groupErrors(row.errorTypes),
     };

@@ -754,7 +754,7 @@ export function SessionDetailGraph({
                     {formatDateTime(selectedBranch.occurredAt)}
                   </span>
                 </div>
-                <p className="whitespace-pre-wrap break-words leading-relaxed">
+                <p className="max-h-[230px] overflow-y-auto whitespace-pre-wrap break-words leading-relaxed">
                   {formatUserCommand(selectedBranch.title)}
                 </p>
               </div>

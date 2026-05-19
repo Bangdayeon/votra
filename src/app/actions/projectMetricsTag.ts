@@ -9,3 +9,7 @@ export function projectAiSummaryTag(projectId: string): string {
 export function projectAiNextTaskTag(projectId: string): string {
   return `project-ai-next-task:${projectId}`;
 }
+
+export function agentContextFlowDiagnosisTag(projectId: string): string {
+  return `agent-context-flow-diagnosis:${projectId}`;
+}

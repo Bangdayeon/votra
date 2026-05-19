@@ -95,6 +95,8 @@ export type ProjectUpdateInput = {
   aiSpecGuideline?: string | null;
   /** undefined: 변경 없음. null: 파일 제거. 객체: 새 파일로 교체. */
   aiSpecFile?: { name: string; content: string } | null;
+  /** undefined: 변경 없음. null/빈문자열: 제거. 문자열: 교체. */
+  agentContextFlowPrompt?: string | null;
 };
 
 export type ProjectRepository = {
@@ -106,6 +108,7 @@ export type ProjectRepository = {
     settings: unknown;
     aiSpecGuideline: string | null;
     aiSpecFileName: string | null;
+    agentContextFlowPrompt: string | null;
   }>;
   /**
    * 프로젝트 소유자의 "전체 정책" (User.aiPolicyText + aiPolicyFileContent) 을 합쳐서 반환해요.

@@ -9,6 +9,8 @@ export type UpdateProjectSettingsInput = {
   aiSpecGuideline?: string;
   /** undefined: 변경 없음. null: 파일 제거. 객체: 새 파일로 교체. */
   aiSpecFile?: AiSpecFileInput | null;
+  /** undefined: 변경 없음. null/빈문자열: 제거. 문자열: 교체. */
+  agentContextFlowPrompt?: string | null;
 };
 
 export async function updateProjectSettings(
@@ -24,5 +26,6 @@ export async function updateProjectSettings(
     aiSpecGuideline:
       input.aiSpecGuideline === undefined ? undefined : input.aiSpecGuideline,
     aiSpecFile: input.aiSpecFile,
+    agentContextFlowPrompt: input.agentContextFlowPrompt,
   });
 }

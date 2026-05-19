@@ -12,6 +12,7 @@ import {
 } from "@/domain/aiSpec/types";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import {
+  AGENT_CONTEXT_FLOW_PROMPT_MAX,
   AI_ANALYSIS_INSTRUCTION_MAX,
   AI_NEXT_TASK_PROMPT_MAX,
   ANALYSIS_STYLES,
@@ -137,6 +138,7 @@ function SettingsForm({
     DEFAULT_PROJECT_SETTINGS,
   );
   const [guideline, setGuideline] = useState("");
+  const [agentContextFlowPrompt, setAgentContextFlowPrompt] = useState("");
   const [otherTargetDraft, setOtherTargetDraft] = useState("");
   const [existingFileName, setExistingFileName] = useState<string | null>(null);
   const [fileChange, setFileChange] = useState<AiSpecFileChange>({
@@ -163,6 +165,11 @@ function SettingsForm({
             typeof data.aiSpecFileName === "string"
               ? data.aiSpecFileName
               : null,
+          );
+          setAgentContextFlowPrompt(
+            typeof data.agentContextFlowPrompt === "string"
+              ? data.agentContextFlowPrompt
+              : "",
           );
           setFileChange({ kind: "none" });
         }
@@ -239,6 +246,7 @@ function SettingsForm({
         body: JSON.stringify({
           settings,
           ...buildAiSpecPolicyPatch(guideline, fileChange),
+          agentContextFlowPrompt: agentContextFlowPrompt || null,
         }),
       });
       const data: unknown = await res.json();
@@ -253,6 +261,11 @@ function SettingsForm({
       setExistingFileName(
         typeof data.aiSpecFileName === "string" ? data.aiSpecFileName : null,
       );
+      setAgentContextFlowPrompt(
+        typeof data.agentContextFlowPrompt === "string"
+          ? data.agentContextFlowPrompt
+          : "",
+      );
       setFileChange({ kind: "none" });
       setSaveState({ kind: "saved" });
     } catch (err) {
@@ -261,7 +274,7 @@ function SettingsForm({
         message: err instanceof Error ? err.message : "저장에 실패했어요.",
       });
     }
-  }, [projectId, settings, guideline, fileChange]);
+  }, [projectId, settings, guideline, fileChange, agentContextFlowPrompt]);
 
   const otherTargetSelected = settings.ai.targets.includes("OTHER");
 
@@ -499,6 +512,31 @@ function SettingsForm({
             disabled={loading}
             guidelinePlaceholder="예) 보안 관련 지침이 명시돼야 해요. 폴더 구조와 의존 방향이 적혀 있어야 통과로 봐주세요."
           />
+        </Section>
+
+        <Section
+          title="AI 지시 문서 흐름 진단 프롬프트"
+          description="팀·프로젝트 정책과 비교해 지시 문서 간 의존성·정책 준수 여부를 진단할 때 사용할 기본 프롬프트예요. 비워두면 시스템 기본 프롬프트가 사용돼요."
+        >
+          <textarea
+            value={agentContextFlowPrompt}
+            disabled={loading}
+            maxLength={AGENT_CONTEXT_FLOW_PROMPT_MAX}
+            placeholder="비워두면 시스템 기본 프롬프트가 사용돼요."
+            rows={8}
+            onChange={(e) => {
+              setAgentContextFlowPrompt(e.target.value);
+              markDirty();
+            }}
+            className={cn(
+              "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 font-mono text-xs",
+              "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+            )}
+          />
+          <p className="text-xs text-muted-foreground">
+            {agentContextFlowPrompt.length} / {AGENT_CONTEXT_FLOW_PROMPT_MAX}
+          </p>
         </Section>
 
         <div className="flex items-center gap-3">

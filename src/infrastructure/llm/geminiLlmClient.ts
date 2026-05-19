@@ -19,9 +19,11 @@ type GeminiResponse = {
 };
 
 export const geminiLlmClient: LlmClient = {
-  async complete({ system, prompt, maxTokens }) {
+  async complete({ system, prompt, maxTokens, responseFormat }) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error(GEMINI_ERROR_MESSAGES.UNAUTHORIZED);
+
+    const useJson = responseFormat !== "text";
 
     const res = await fetch(`${ENDPOINT}?key=${apiKey}`, {
       method: "POST",
@@ -31,10 +33,14 @@ export const geminiLlmClient: LlmClient = {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
           maxOutputTokens: maxTokens ?? DEFAULT_MAX_TOKENS,
-          responseMimeType: "application/json",
-          // gemini-2.5-flash 는 기본적으로 thinking 토큰을 출력 한도에서 먹어요.
-          // 끄지 않으면 실제 JSON 이 중간에 잘려요.
-          thinkingConfig: { thinkingBudget: 0 },
+          ...(useJson
+            ? {
+                responseMimeType: "application/json",
+                // gemini-2.5-flash 는 기본적으로 thinking 토큰을 출력 한도에서 먹어요.
+                // 끄지 않으면 실제 JSON 이 중간에 잘려요.
+                thinkingConfig: { thinkingBudget: 0 },
+              }
+            : {}),
         },
       }),
     });

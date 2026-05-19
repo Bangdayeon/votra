@@ -6,6 +6,7 @@ import {
   type AiSpecFileInput,
 } from "@/application/updateProjectSettings";
 import { AI_SPEC_GUIDELINE_MAX } from "@/domain/aiSpec/types";
+import { AGENT_CONTEXT_FLOW_PROMPT_MAX } from "@/domain/project/settings/types";
 import { parseAiSpecFilePayload } from "@/domain/aiSpec/parseAiSpecFilePayload";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
@@ -32,6 +33,7 @@ export async function GET(_req: Request, ctx: RouteContext) {
     settings: bundle.settings,
     aiSpecGuideline: bundle.aiSpecGuideline,
     aiSpecFileName: bundle.aiSpecFileName,
+    agentContextFlowPrompt: bundle.agentContextFlowPrompt,
   });
 }
 
@@ -65,7 +67,8 @@ export async function PATCH(req: Request, ctx: RouteContext) {
   const hasSettings = body.settings !== undefined;
   const hasGuideline = body.aiSpecGuideline !== undefined;
   const hasFile = body.aiSpecFile !== undefined;
-  if (!hasSettings && !hasGuideline && !hasFile) {
+  const hasFlowPrompt = body.agentContextFlowPrompt !== undefined;
+  if (!hasSettings && !hasGuideline && !hasFile && !hasFlowPrompt) {
     return NextResponse.json(
       { ok: false, error: "변경할 항목이 없어요." },
       { status: 400 },
@@ -101,12 +104,40 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     file = parsed.value;
   }
 
+  let agentContextFlowPrompt: string | null | undefined;
+  if (hasFlowPrompt) {
+    if (
+      body.agentContextFlowPrompt !== null &&
+      typeof body.agentContextFlowPrompt !== "string"
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "agentContextFlowPrompt 은 문자열이어야 해요." },
+        { status: 400 },
+      );
+    }
+    if (
+      typeof body.agentContextFlowPrompt === "string" &&
+      body.agentContextFlowPrompt.length > AGENT_CONTEXT_FLOW_PROMPT_MAX
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "프롬프트가 너무 길어요." },
+        { status: 400 },
+      );
+    }
+    agentContextFlowPrompt =
+      body.agentContextFlowPrompt === null ||
+      body.agentContextFlowPrompt === ""
+        ? null
+        : (body.agentContextFlowPrompt as string);
+  }
+
   await updateProjectSettings(
     {
       id: projectId,
       settings: hasSettings ? parseProjectSettings(body.settings) : undefined,
       aiSpecGuideline: guideline,
       aiSpecFile: file,
+      agentContextFlowPrompt,
     },
     { projects: prismaProjectRepository },
   );
@@ -120,6 +151,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     settings: bundle.settings,
     aiSpecGuideline: bundle.aiSpecGuideline,
     aiSpecFileName: bundle.aiSpecFileName,
+    agentContextFlowPrompt: bundle.agentContextFlowPrompt,
   });
 }
 

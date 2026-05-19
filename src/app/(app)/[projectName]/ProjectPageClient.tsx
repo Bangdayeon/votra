@@ -3,6 +3,7 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 
+import { AgentContextFlowCard } from "@/components/claude-files/AgentContextFlowCard";
 import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
 import { HistoryTab } from "@/components/history/HistoryTab";
 import { OverviewTab } from "@/components/overview/OverviewTab";
@@ -42,7 +43,10 @@ export function ProjectPageClient() {
         <OverviewTab selected={project} />
       </div>
       <div className={tab === "manage" ? undefined : "hidden"}>
-        <ClaudeFilesCard selected={project} />
+        <div className="flex flex-col gap-4 md:flex-row md:items-start">
+          <ClaudeFilesCard selected={project} />
+          <AgentContextFlowCard selected={project} />
+        </div>
       </div>
       <div className={tab === "history" ? undefined : "hidden"}>
         <HistoryTab selected={project} />
