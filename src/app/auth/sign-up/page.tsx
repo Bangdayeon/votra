@@ -13,5 +13,11 @@ export default async function SignUpPage({
   const safeNext = safeNextPath(next);
   const user = await getCurrentUser();
   if (user) redirect(safeNext);
-  return <SignUpForm next={safeNext === "/" ? undefined : safeNext} />;
+  return (
+    <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-background p-8 shadow-sm">
+        <SignUpForm next={safeNext === "/" ? undefined : safeNext} />
+      </div>
+    </div>
+  );
 }
