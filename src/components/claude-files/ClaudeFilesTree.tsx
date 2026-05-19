@@ -83,7 +83,7 @@ function ScopeBlock({
   selectedPath: string | null;
   onSelect: (p: string) => void;
 }) {
-  const [open, setOpen] = useState(group.scope !== "subdir");
+  const [open, setOpen] = useState(true);
   const Chevron = open ? ChevronDown : ChevronRight;
 
   return (

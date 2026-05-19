@@ -12,6 +12,7 @@ import type { CachedProjectNextTasks } from "@/application/getCachedProjectNextT
 import { AiSummaryCard } from "@/components/overview/AiSummaryCard";
 import { RecommendedNextTaskCard } from "@/components/overview/RecommendedNextTaskCard";
 import type { Project } from "@/components/project/ProjectsContext";
+import { useRefreshWithToast } from "@/hooks/useRefreshWithToast";
 
 function markInitialized(key: string) {
   localStorage.setItem(key, "1");
@@ -24,11 +25,12 @@ function isInitialized(key: string) {
 export function OverviewTab({ selected }: { selected: Project }) {
   const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiRefreshing, setAiRefreshing] = useState(false);
+  const { refreshing: aiRefreshing, run: runAiRefresh } = useRefreshWithToast();
 
   const [nextTasks, setNextTasks] = useState<CachedProjectNextTasks>(null);
   const [nextTasksLoading, setNextTasksLoading] = useState(false);
-  const [nextTasksRefreshing, setNextTasksRefreshing] = useState(false);
+  const { refreshing: nextTasksRefreshing, run: runNextTasksRefresh } =
+    useRefreshWithToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -72,33 +74,25 @@ export function OverviewTab({ selected }: { selected: Project }) {
     };
   }, [selected.id]);
 
-  const onRefreshAi = useCallback(async () => {
-    setAiRefreshing(true);
-    try {
-      const next = await refreshProjectAiSummaryAction(selected.id);
-      setAiSummary(next);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "AI 분석에 실패했어요.",
-      );
-    } finally {
-      setAiRefreshing(false);
-    }
-  }, [selected.id]);
+  const onRefreshAi = useCallback(
+    () =>
+      runAiRefresh(() => refreshProjectAiSummaryAction(selected.id), {
+        onSuccess: setAiSummary,
+        successMessage: "AI 요약이 업데이트됐어요.",
+        defaultErrorMessage: "AI 분석에 실패했어요.",
+      }),
+    [selected.id, runAiRefresh],
+  );
 
-  const onRefreshNextTasks = useCallback(async () => {
-    setNextTasksRefreshing(true);
-    try {
-      const next = await refreshProjectNextTasksAction(selected.id);
-      setNextTasks(next);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "추천 작업 분석에 실패했어요.",
-      );
-    } finally {
-      setNextTasksRefreshing(false);
-    }
-  }, [selected.id]);
+  const onRefreshNextTasks = useCallback(
+    () =>
+      runNextTasksRefresh(() => refreshProjectNextTasksAction(selected.id), {
+        onSuccess: setNextTasks,
+        successMessage: "추천 작업이 업데이트됐어요.",
+        defaultErrorMessage: "추천 작업 분석에 실패했어요.",
+      }),
+    [selected.id, runNextTasksRefresh],
+  );
 
   // 캐시가 없는 경우(= 프로젝트 첫 추가)에만 자동 분석. localStorage로 추적해
   // 탭 전환·페이지 새로고침 시 재실행되지 않게 한다.

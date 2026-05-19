@@ -15,6 +15,7 @@ import type {
   EvaluationCriteria,
 } from "@/domain/claudeFiles/types";
 import type { PolicyRule } from "@/domain/policy/types";
+import { useRefreshWithToast } from "@/hooks/useRefreshWithToast";
 
 type State =
   | { kind: "loading" }
@@ -28,7 +29,7 @@ type State =
 
 export function ClaudeFilesCard({ selected }: { selected: Project }) {
   const [state, setState] = useState<State>({ kind: "loading" });
-  const [refreshing, setRefreshing] = useState(false);
+  const { refreshing, run: runRefresh } = useRefreshWithToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -51,26 +52,31 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
     };
   }, [selected.id]);
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await reevaluateErrorClaudeFilesAction(selected.id);
-      const [files, rules] = await Promise.all([
-        listClaudeFilesAction(selected.id),
-        listPolicyRulesAction(),
-      ]);
-      setState({
-        kind: "ready",
-        records: files.records,
-        criteria: files.criteria,
-        rules,
-      });
-    } catch {
-      setState({ kind: "error" });
-    } finally {
-      setRefreshing(false);
-    }
-  }, [selected.id]);
+  const onRefresh = useCallback(
+    () =>
+      runRefresh(
+        async () => {
+          await reevaluateErrorClaudeFilesAction(selected.id);
+          const [files, rules] = await Promise.all([
+            listClaudeFilesAction(selected.id),
+            listPolicyRulesAction(),
+          ]);
+          return { files, rules };
+        },
+        {
+          onSuccess: ({ files, rules }) =>
+            setState({
+              kind: "ready",
+              records: files.records,
+              criteria: files.criteria,
+              rules,
+            }),
+          successMessage: "AI 지시 문서 평가가 완료됐어요.",
+          defaultErrorMessage: "파일 평가에 실패했어요.",
+        },
+      ),
+    [selected.id, runRefresh],
+  );
 
   const lastEvaluatedAt =
     state.kind === "ready" ? latestEvaluatedAt(state.records) : null;

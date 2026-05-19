@@ -38,7 +38,7 @@ export function RecommendedNextTaskCard({
           <p className="text-sm text-muted-foreground">불러오는 중…</p>
         ) : tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            아직 분석된 내용이 없어요. 업데이트 버튼을 눌러 시작해 주세요.
+            아직 분석된 내용이 없어요. 새로고침 버튼을 눌러 시작해 주세요.
           </p>
         ) : (
           <ul className="flex list-disc flex-col gap-3 pl-4">

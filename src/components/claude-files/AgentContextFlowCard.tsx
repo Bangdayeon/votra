@@ -9,6 +9,7 @@ import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
 import { InlineMarkdown } from "@/components/common/InlineMarkdown";
 import type { Project } from "@/components/project/ProjectsContext";
+import { useRefreshWithToast } from "@/hooks/useRefreshWithToast";
 
 type State =
   | { kind: "loading" }
@@ -17,7 +18,7 @@ type State =
 
 export function AgentContextFlowCard({ selected }: { selected: Project }) {
   const [state, setState] = useState<State>({ kind: "loading" });
-  const [refreshing, setRefreshing] = useState(false);
+  const { refreshing, run: runRefresh } = useRefreshWithToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -34,17 +35,15 @@ export function AgentContextFlowCard({ selected }: { selected: Project }) {
     };
   }, [selected.id]);
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const result = await refreshAgentContextFlowDiagnosisAction(selected.id);
-      setState({ kind: "ready", data: result });
-    } catch {
-      setState({ kind: "error" });
-    } finally {
-      setRefreshing(false);
-    }
-  }, [selected.id]);
+  const onRefresh = useCallback(
+    () =>
+      runRefresh(() => refreshAgentContextFlowDiagnosisAction(selected.id), {
+        onSuccess: (result) => setState({ kind: "ready", data: result }),
+        successMessage: "진단이 완료됐어요.",
+        defaultErrorMessage: "진단 중 오류가 발생했어요.",
+      }),
+    [selected.id, runRefresh],
+  );
 
   const refreshedAt =
     state.kind === "ready" && state.data ? state.data.refreshedAt : null;
@@ -76,7 +75,7 @@ export function AgentContextFlowCard({ selected }: { selected: Project }) {
 
         {state.kind === "ready" && !state.data && (
           <p className="text-sm text-muted-foreground">
-            아직 진단된 내용이 없어요. 업데이트 버튼을 눌러 시작해 주세요.
+            아직 진단된 내용이 없어요. 새로고침 버튼을 눌러 시작해 주세요.
           </p>
         )}
 
