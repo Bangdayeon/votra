@@ -19,19 +19,23 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function BranchTab({ selected }: { selected: Project }) {
+export function BranchTab({
+  selected,
+  selectedSessionId: externalSelectedId,
+}: {
+  selected: Project;
+  selectedSessionId?: string | null;
+}) {
   const [nodes, setNodes] = useState<BranchNode[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    null,
-  );
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [branches, setBranches] = useState<PromptBranch[] | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setSelectedSessionId(null);
+    setActiveSessionId(null);
     setBranches(null);
     getProjectBranchNodesAction(selected.id)
       .then((n) => {
@@ -48,11 +52,17 @@ export function BranchTab({ selected }: { selected: Project }) {
     };
   }, [selected.id]);
 
+  // 외부에서 세션 ID가 지정되면 활성 세션 업데이트
   useEffect(() => {
-    if (!selectedSessionId) return;
+    if (!externalSelectedId) return;
+    setActiveSessionId(externalSelectedId);
+  }, [externalSelectedId]);
+
+  useEffect(() => {
+    if (!activeSessionId) return;
     let cancelled = false;
     setDetailLoading(true);
-    getSessionPromptBranchesAction(selectedSessionId)
+    getSessionPromptBranchesAction(activeSessionId)
       .then((b) => {
         if (!cancelled) setBranches(b);
       })
@@ -65,10 +75,10 @@ export function BranchTab({ selected }: { selected: Project }) {
     return () => {
       cancelled = true;
     };
-  }, [selectedSessionId]);
+  }, [activeSessionId]);
 
   const handleSelect = useCallback((id: string) => {
-    setSelectedSessionId(id);
+    setActiveSessionId(id);
   }, []);
 
   return (
@@ -104,12 +114,13 @@ export function BranchTab({ selected }: { selected: Project }) {
             nodes={nodes}
             cwd={selected.cwd}
             onSelect={handleSelect}
+            selectedSessionId={externalSelectedId}
           />
         ) : (
           <p className="text-sm text-muted-foreground">아직 세션이 없어요.</p>
         )}
       </div>
-      {selectedSessionId && (
+      {activeSessionId && (
         <div className="flex min-h-0 flex-1 flex-col pt-3">
           <SectionTitle
             text="상세 작업 내역"

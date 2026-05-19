@@ -46,9 +46,10 @@ function compactSegments(segs: DonutSegment[], topCount: number): DonutSegment[]
 type Props = {
   metrics: ProjectMetrics;
   className?: string;
+  onSelect?: (id: string) => void;
 };
 
-export function SessionTokensCard({ metrics, className }: Props) {
+export function SessionTokensCard({ metrics, className, onSelect }: Props) {
   const sortedSessions = [...metrics.sessions]
     .filter((s) => s.totalTokens > 0)
     .sort((a, b) => b.totalTokens - a.totalTokens);
@@ -94,6 +95,7 @@ export function SessionTokensCard({ metrics, className }: Props) {
                   ? FALLBACK_COLOR
                   : SESSION_PALETTE[i % SESSION_PALETTE.length]
               }
+              onSelect={onSelect}
             />
           );
         })}
@@ -105,9 +107,11 @@ export function SessionTokensCard({ metrics, className }: Props) {
 function SessionListItem({
   session,
   color,
+  onSelect,
 }: {
   session: SessionTokenRow;
   color: string;
+  onSelect?: (id: string) => void;
 }) {
   const titleRef = useRef<HTMLSpanElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -123,7 +127,11 @@ function SessionListItem({
   }, [session.title]);
 
   const row = (
-    <li className="flex cursor-default items-center gap-2 text-xs">
+    <li
+      className="flex items-center gap-2 text-xs transition-colors hover:bg-muted/60 rounded-md px-1 -mx-1 py-0.5"
+      style={{ cursor: onSelect ? "pointer" : "default" }}
+      onClick={() => onSelect?.(session.id)}
+    >
       <span
         className="inline-block size-2 shrink-0 rounded-full"
         style={{ backgroundColor: color }}

@@ -254,10 +254,12 @@ export function BranchGraph({
   nodes: branchNodes,
   cwd,
   onSelect,
+  selectedSessionId,
 }: {
   nodes: BranchNode[];
   cwd?: string;
   onSelect?: (id: string) => void;
+  selectedSessionId?: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
@@ -271,6 +273,15 @@ export function BranchGraph({
     setSelectedId(next);
     if (next) onSelect?.(next);
   }, [branchNodes, onSelect]);
+
+  // 외부에서 세션 ID 를 지정하면 해당 노드를 선택
+  useEffect(() => {
+    if (!selectedSessionId) return;
+    const exists = branchNodes.some((n) => n.id === selectedSessionId);
+    if (!exists) return;
+    setSelectedId(selectedSessionId);
+    onSelect?.(selectedSessionId);
+  }, [selectedSessionId, branchNodes, onSelect]);
 
   useEffect(() => {
     const el = containerRef.current;

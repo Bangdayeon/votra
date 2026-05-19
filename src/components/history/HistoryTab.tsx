@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getProjectMetricsAction } from "@/app/actions/getProjectMetrics";
 import type { ProjectMetrics } from "@/application/getProjectMetrics";
@@ -14,6 +14,13 @@ import type { Project } from "@/components/project/ProjectsContext";
 export function HistoryTab({ selected }: { selected: Project }) {
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const branchTabRef = useRef<HTMLDivElement>(null);
+
+  const handleSessionSelect = useCallback((id: string) => {
+    setSelectedSessionId(id);
+    branchTabRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +56,7 @@ export function HistoryTab({ selected }: { selected: Project }) {
 
         {!metricsLoading && metrics && (
           <>
-            <SessionTokensCard metrics={metrics} className="flex-1" />
+            <SessionTokensCard metrics={metrics} className="flex-1" onSelect={handleSessionSelect} />
             <OtherMetricsCard metrics={metrics} className="flex-1" />
           </>
         )}
@@ -70,7 +77,9 @@ export function HistoryTab({ selected }: { selected: Project }) {
         )}
       </div>
 
-      <BranchTab selected={selected} />
+      <div ref={branchTabRef}>
+        <BranchTab selected={selected} selectedSessionId={selectedSessionId} />
+      </div>
     </div>
   );
 }
