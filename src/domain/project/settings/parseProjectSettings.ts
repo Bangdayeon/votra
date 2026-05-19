@@ -1,5 +1,6 @@
 import {
   AI_ANALYSIS_INSTRUCTION_MAX,
+  AI_NEXT_TASK_PROMPT_MAX,
   ANALYSIS_STYLES,
   ANALYSIS_TARGETS,
   DEFAULT_PROJECT_SETTINGS,
@@ -49,6 +50,11 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
       ? ai.analysisInstruction.slice(0, AI_ANALYSIS_INSTRUCTION_MAX)
       : DEFAULT_PROJECT_SETTINGS.ai.analysisInstruction;
 
+  const nextTaskPrompt =
+    typeof ai.nextTaskPrompt === "string"
+      ? ai.nextTaskPrompt.slice(0, AI_NEXT_TASK_PROMPT_MAX)
+      : "";
+
   return {
     projectType,
     projectTypeOther,
@@ -60,6 +66,7 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
         pickEnum<AnalysisStyle>(ai.style, ANALYSIS_STYLES) ??
         DEFAULT_PROJECT_SETTINGS.ai.style,
       analysisInstruction,
+      nextTaskPrompt,
     },
   };
 }

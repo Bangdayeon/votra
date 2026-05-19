@@ -1,45 +1,28 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { getProjectAiSummaryAction } from "@/app/actions/getProjectAiSummary";
-import { getProjectMetricsAction } from "@/app/actions/getProjectMetrics";
+import { getProjectNextTasksAction } from "@/app/actions/getProjectNextTasks";
 import { refreshProjectAiSummaryAction } from "@/app/actions/refreshProjectAiSummary";
+import { refreshProjectNextTasksAction } from "@/app/actions/refreshProjectNextTasks";
 import type { CachedProjectAiSummary } from "@/application/getCachedProjectAiSummary";
-import type { ProjectMetrics } from "@/application/getProjectMetrics";
-import { Card } from "@/components/common/Card";
-import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
+import type { CachedProjectNextTasks } from "@/application/getCachedProjectNextTasks";
 import { AiSummaryCard } from "@/components/overview/AiSummaryCard";
-import { OtherMetricsCard } from "@/components/overview/OtherMetricsCard";
+import { RecommendedNextTaskCard } from "@/components/overview/RecommendedNextTaskCard";
 import type { Project } from "@/components/project/ProjectsContext";
-import { SessionTokensCard } from "@/components/overview/SessionTokensCard";
 
 export function OverviewTab({ selected }: { selected: Project }) {
-  const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);
-  const [metricsLoading, setMetricsLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiRefreshing, setAiRefreshing] = useState(false);
+  const autoRefreshAttempted = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    setMetricsLoading(true);
-    getProjectMetricsAction(selected.id)
-      .then((m) => {
-        if (!cancelled) setMetrics(m);
-      })
-      .catch(() => {
-        if (!cancelled) setMetrics(null);
-      })
-      .finally(() => {
-        if (!cancelled) setMetricsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selected.id]);
+  const [nextTasks, setNextTasks] = useState<CachedProjectNextTasks>(null);
+  const [nextTasksLoading, setNextTasksLoading] = useState(false);
+  const [nextTasksRefreshing, setNextTasksRefreshing] = useState(false);
+  const autoNextTaskAttempted = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +45,27 @@ export function OverviewTab({ selected }: { selected: Project }) {
     };
   }, [selected.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setNextTasksLoading(true);
+    getProjectNextTasksAction(selected.id)
+      .then((t) => {
+        if (!cancelled) setNextTasks(t);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        toast.error(
+          err instanceof Error ? err.message : "추천 작업을 불러오지 못했어요.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setNextTasksLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected.id]);
+
   const onRefreshAi = useCallback(async () => {
     setAiRefreshing(true);
     try {
@@ -76,54 +80,61 @@ export function OverviewTab({ selected }: { selected: Project }) {
     }
   }, [selected.id]);
 
+  const onRefreshNextTasks = useCallback(async () => {
+    setNextTasksRefreshing(true);
+    try {
+      const next = await refreshProjectNextTasksAction(selected.id);
+      setNextTasks(next);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "추천 작업 분석에 실패했어요.",
+      );
+    } finally {
+      setNextTasksRefreshing(false);
+    }
+  }, [selected.id]);
+
+  useEffect(() => {
+    if (
+      !aiLoading &&
+      aiSummary === null &&
+      !aiRefreshing &&
+      !autoRefreshAttempted.current
+    ) {
+      autoRefreshAttempted.current = true;
+      void onRefreshAi();
+    }
+  }, [aiLoading, aiSummary, aiRefreshing, onRefreshAi]);
+
+  useEffect(() => {
+    if (
+      !nextTasksLoading &&
+      nextTasks === null &&
+      !nextTasksRefreshing &&
+      !autoNextTaskAttempted.current
+    ) {
+      autoNextTaskAttempted.current = true;
+      void onRefreshNextTasks();
+    }
+  }, [nextTasksLoading, nextTasks, nextTasksRefreshing, onRefreshNextTasks]);
+
   return (
     <div className="flex pb-6 flex-col gap-6">
       <AiSummaryCard
         summary={aiSummary?.summary}
-        warnings={aiSummary?.warnings}
         suggestions={aiSummary?.suggestions}
         refreshedAt={aiSummary?.refreshedAt}
         loading={aiLoading}
         refreshing={aiRefreshing}
         onRefresh={onRefreshAi}
       />
-
-      <div className="flex flex-col lg:flex-row flex-1 gap-6">
-        <ClaudeFilesCard selected={selected} />
-
-        {metricsLoading && (
-          <>
-            <Card className="flex flex-1 items-center justify-center">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            </Card>
-            <Card className="flex flex-1 items-center justify-center">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            </Card>
-          </>
-        )}
-
-        {!metricsLoading && metrics && (
-          <>
-            <SessionTokensCard metrics={metrics} className="flex-1" />
-            <OtherMetricsCard metrics={metrics} className="flex-1" />
-          </>
-        )}
-
-        {!metricsLoading && !metrics && (
-          <>
-            <Card className="flex-1">
-              <p className="text-sm text-muted-foreground">
-                데이터를 불러오지 못했어요.
-              </p>
-            </Card>
-            <Card className="flex-1">
-              <p className="text-sm text-muted-foreground">
-                데이터를 불러오지 못했어요.
-              </p>
-            </Card>
-          </>
-        )}
-      </div>
+      <RecommendedNextTaskCard
+        tasks={nextTasks?.tasks}
+        refreshedAt={nextTasks?.refreshedAt}
+        loading={nextTasksLoading}
+        refreshing={nextTasksRefreshing}
+        onRefresh={onRefreshNextTasks}
+      />
     </div>
   );
 }

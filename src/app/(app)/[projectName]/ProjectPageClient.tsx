@@ -3,7 +3,8 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 
-import { BranchTab } from "@/components/branch/BranchTab";
+import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
+import { HistoryTab } from "@/components/history/HistoryTab";
 import { OverviewTab } from "@/components/overview/OverviewTab";
 import { useProjects } from "@/components/project/ProjectsContext";
 
@@ -38,15 +39,15 @@ export function ProjectPageClient() {
   if (tab === "manage") {
     return (
       <div className="px-8 py-6">
-        <BranchTab selected={project} />
+        <ClaudeFilesCard selected={project} />
       </div>
     );
   }
 
   if (tab === "history") {
     return (
-      <div className="flex h-full items-center justify-center px-8 py-6 text-sm text-muted-foreground">
-        히스토리 기능을 준비 중이에요.
+      <div className="px-8 py-6">
+        <HistoryTab selected={project} />
       </div>
     );
   }

@@ -13,6 +13,7 @@ import {
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import {
   AI_ANALYSIS_INSTRUCTION_MAX,
+  AI_NEXT_TASK_PROMPT_MAX,
   ANALYSIS_STYLES,
   ANALYSIS_TARGETS,
   DEFAULT_PROJECT_SETTINGS,
@@ -447,6 +448,35 @@ function SettingsForm({
           />
           <p className="text-xs text-muted-foreground">
             {settings.ai.analysisInstruction.length} / {AI_ANALYSIS_INSTRUCTION_MAX}
+          </p>
+        </Section>
+
+        <Section
+          title="다음 작업 추천 지침"
+          description="개요 페이지의 '추천 다음 작업'을 생성할 때 AI에게 줄 추가 힌트예요. 비워두면 세션 데이터만 기반으로 제안해요."
+        >
+          <textarea
+            value={settings.ai.nextTaskPrompt}
+            disabled={loading}
+            maxLength={AI_NEXT_TASK_PROMPT_MAX}
+            placeholder="예) 현재 마감이 촉박한 기능 위주로 제안해 주세요."
+            rows={3}
+            onChange={(e) => {
+              const next = e.target.value;
+              setSettings((prev) => ({
+                ...prev,
+                ai: { ...prev.ai, nextTaskPrompt: next },
+              }));
+              markDirty();
+            }}
+            className={cn(
+              "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+              "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+            )}
+          />
+          <p className="text-xs text-muted-foreground">
+            {settings.ai.nextTaskPrompt.length} / {AI_NEXT_TASK_PROMPT_MAX}
           </p>
         </Section>
 

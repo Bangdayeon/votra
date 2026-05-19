@@ -21,6 +21,7 @@ export const ANALYSIS_STYLES = ["DEVELOPER", "NON_DEVELOPER"] as const;
 export type AnalysisStyle = (typeof ANALYSIS_STYLES)[number];
 
 export const AI_ANALYSIS_INSTRUCTION_MAX = 8000;
+export const AI_NEXT_TASK_PROMPT_MAX = 1000;
 
 export type ProjectSettings = {
   projectType: ProjectType;
@@ -33,6 +34,8 @@ export type ProjectSettings = {
     style: AnalysisStyle;
     /** AI 요약/솔루션 생성 시 추가로 줄 사용자 지침 (자유 텍스트). */
     analysisInstruction: string;
+    /** 다음 작업 추천 생성 시 AI 에게 줄 추가 프롬프트. */
+    nextTaskPrompt: string;
   };
 };
 
@@ -44,5 +47,6 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
     targetsOther: [],
     style: "DEVELOPER",
     analysisInstruction: DEFAULT_ANALYSIS_INSTRUCTION,
+    nextTaskPrompt: "",
   },
 };

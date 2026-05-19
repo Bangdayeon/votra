@@ -30,7 +30,7 @@ export function CardRefreshHeader({
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
       <div className="flex w-full items-center justify-between gap-3 mb-1 lg:w-auto lg:justify-start">
-        <h3 className="text-base font-semibold">{title}</h3>
+        <h3 className="text-xl font-semibold">{title}</h3>
         <Button
           type="button"
           size="sm"

@@ -119,6 +119,7 @@ model Project {
   claudeFiles          ClaudeFile[]
   claudeFileEvaluations ClaudeFileEvaluation[]
   aiSummary            ProjectAiSummary?
+  aiNextTask           ProjectAiNextTask?
 
   @@unique([ownerId, cwd])
   @@index([ownerId])
@@ -141,6 +142,27 @@ model ProjectAiSummary {
   suggestions Json @default("[]")
 
   /// 마지막 갱신 시각 (사용자에게 표시)
+  refreshedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ────────────────────────────────────────────
+// PROJECT AI NEXT TASK (AI 추천 다음 작업)
+// 사용자가 "업데이트" 버튼을 누를 때만 갱신. 토큰 절약 목적.
+// ────────────────────────────────────────────
+
+model ProjectAiNextTask {
+  id String @id @default(cuid())
+
+  /// LLM 이 생성한 다음 작업 목록 (1~3개 문자열 배열)
+  tasks Json @default("[]")
+
+  /// 마지막 갱신 시각
   refreshedAt DateTime @default(now())
 
   createdAt DateTime @default(now())
