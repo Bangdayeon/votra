@@ -41,9 +41,9 @@ export function RecommendedNextTaskCard({
             아직 분석된 내용이 없어요. 업데이트 버튼을 눌러 시작해 주세요.
           </p>
         ) : (
-          <ul className="flex list-disc flex-col gap-1.5 pl-4">
+          <ul className="flex list-disc flex-col gap-3 pl-4">
             {tasks.map((task, i) => (
-              <li key={i} className="text-sm text-foreground">
+              <li key={i} className="text-sm leading-relaxed text-foreground">
                 <InlineMarkdown text={task} />
               </li>
             ))}

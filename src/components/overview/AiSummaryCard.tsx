@@ -49,9 +49,9 @@ export function AiSummaryCard({
         {loading ? (
           <p className="text-sm text-muted-foreground">불러오는 중…</p>
         ) : summaryLines.length > 0 ? (
-          <ul className="flex list-disc flex-col gap-1.5 pl-4">
+          <ul className="flex list-disc flex-col gap-3 pl-4">
             {summaryLines.map((line, i) => (
-              <li key={i} className="text-sm text-foreground">
+              <li key={i} className="text-sm leading-relaxed text-foreground">
                 <InlineMarkdown text={line} />
               </li>
             ))}
@@ -102,7 +102,7 @@ function SuggestionItem({ insight }: { insight: ProjectAiInsightRow }) {
     <li className="flex flex-col gap-2">
       {insight.message && (
         <ul className="list-disc pl-4">
-          <li className="text-sm text-foreground">
+          <li className="text-sm leading-relaxed text-foreground">
             <InlineMarkdown text={insight.message} />
           </li>
         </ul>
