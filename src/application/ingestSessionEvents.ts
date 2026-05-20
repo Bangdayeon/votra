@@ -4,6 +4,7 @@ import { extractTimeline } from "@/domain/session/extractTimeline";
 import { extractTitle } from "@/domain/session/extractTitle";
 import type { RawEvent, Session } from "@/domain/session/types";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
+import type { AgentKind } from "@/domain/agent/types";
 import { err, ok, type Result } from "@/shared/lib/result";
 
 export type IngestSessionPayload = {
@@ -21,6 +22,8 @@ export type IngestSessionEventsInput = {
   sessions: IngestSessionPayload[];
   /** 인증 통과한 사용자 — Project 자동 생성 시 ownerId 로 사용. */
   userId: string;
+  /** 세션을 생성한 에이전트. 기본값 "CLAUDE". */
+  agent?: AgentKind;
 };
 
 export type IngestSessionResult = {
@@ -67,7 +70,7 @@ export async function ingestSessionEvents(
       cwd: projectCwd,
       title: deriveProjectTitle(projectCwd),
       ownerId: input.userId,
-      agent: "CLAUDE",
+      agent: input.agent ?? "CLAUDE",
     }));
 
   let insertedEvents = 0;
@@ -77,7 +80,7 @@ export async function ingestSessionEvents(
     const metrics = aggregateSessionMetrics(session.events);
     const prismaId = await deps.projects.upsertIngestSession({
       projectId: project.id,
-      agent: "CLAUDE",
+      agent: input.agent ?? "CLAUDE",
       session: {
         externalId: session.id,
         title: session.title ?? extractTitle(session.events),

@@ -6,9 +6,12 @@ import {
   ingestSessionEvents,
   type IngestSessionPayload,
 } from "@/application/ingestSessionEvents";
+import type { AgentKind } from "@/domain/agent/types";
 import type { RawEvent } from "@/domain/session/types";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
+
+const VALID_AGENTS = new Set<AgentKind>(["CLAUDE", "CODEX", "CURSOR"]);
 
 export async function POST(req: Request) {
   let raw: unknown;
@@ -42,7 +45,7 @@ export async function POST(req: Request) {
   }
 
   const result = await ingestSessionEvents(
-    { source: parsed.source, sessions: parsed.sessions, userId: user.id },
+    { source: parsed.source, sessions: parsed.sessions, userId: user.id, agent: parsed.agent },
     { projects: prismaProjectRepository },
   );
   if (!result.ok) {
@@ -65,7 +68,7 @@ export async function POST(req: Request) {
 }
 
 type ParsedBody =
-  | { ok: true; source: string; sessions: IngestSessionPayload[] }
+  | { ok: true; source: string; sessions: IngestSessionPayload[]; agent?: AgentKind }
   | { ok: false; error: string };
 
 function parseIngestBody(raw: unknown): ParsedBody {
@@ -86,7 +89,14 @@ function parseIngestBody(raw: unknown): ParsedBody {
     }
     sessions.push(parsed.value);
   }
-  return { ok: true, source, sessions };
+  let agent: AgentKind | undefined;
+  if (raw.agent !== undefined) {
+    if (typeof raw.agent !== "string" || !VALID_AGENTS.has(raw.agent as AgentKind)) {
+      return { ok: false, error: `agent 값이 유효하지 않아요. (CLAUDE, CODEX, CURSOR 중 하나)` };
+    }
+    agent = raw.agent as AgentKind;
+  }
+  return { ok: true, source, sessions, agent };
 }
 
 type ParsedSession =
