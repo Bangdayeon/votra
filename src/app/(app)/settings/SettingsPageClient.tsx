@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AiSpecPolicyFields } from "@/components/aiSpec/AiSpecPolicyFields";
 import { useProjects } from "@/components/project/ProjectsContext";
@@ -10,45 +10,15 @@ import {
   buildAiSpecPolicyPatch,
   type AiSpecFileChange,
 } from "@/domain/aiSpec/types";
-import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
+import { DEFAULT_AI_SPEC_GUIDELINE } from "@/domain/aiSpec/defaultAiSpecGuideline";
 import {
   AGENT_CONTEXT_FLOW_PROMPT_MAX,
   AI_ANALYSIS_INSTRUCTION_MAX,
   AI_NEXT_TASK_PROMPT_MAX,
-  ANALYSIS_STYLES,
-  ANALYSIS_TARGETS,
-  DEFAULT_PROJECT_SETTINGS,
-  PROJECT_TYPES,
-  type AnalysisStyle,
-  type AnalysisTarget,
-  type ProjectSettings,
-  type ProjectType,
 } from "@/domain/project/settings/types";
 import { cn } from "@/lib/utils";
 
-const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
-  WEB_APP: "웹앱",
-  MOBILE_NATIVE: "모바일 네이티브 앱",
-  BACKEND: "백엔드",
-  OTHER: "기타",
-};
-
-const ANALYSIS_TARGET_LABELS: Record<AnalysisTarget, string> = {
-  ERROR_REPEAT: "에러 반복 감지",
-  SAME_FILE_REPEAT: "동일 파일 반복 수정 감지",
-  SESSION_SUMMARY: "세션 요약 생성",
-  SECURITY_FILE_CHANGE: "보안 관련 파일 변경 감지",
-  OTHER: "기타",
-};
-
-const ANALYSIS_STYLE_LABELS: Record<AnalysisStyle, string> = {
-  DEVELOPER: "개발자가 읽어요",
-  NON_DEVELOPER: "비개발자가 읽어요",
-};
-
-const PROJECT_TYPE_OTHER_MAX = 80;
-const TARGET_OTHER_ITEM_MAX = 80;
-const TARGET_OTHER_LIST_MAX = 20;
+type SettingsTab = "all" | "overview" | "ai-management";
 
 type SaveState =
   | { kind: "idle" }
@@ -62,10 +32,7 @@ export function SettingsPageClient({ slug: slugProp }: { slug?: string } = {}) {
   const slug = slugProp ?? decodeSlug(searchParams.get("project"));
   const { projects } = useProjects();
 
-  const project = useMemo(
-    () => projects.find((p) => p.name === slug) ?? null,
-    [projects, slug],
-  );
+  const project = projects.find((p) => p.name === slug) ?? null;
 
   if (!slug) {
     return <ProjectPicker />;
@@ -128,18 +95,24 @@ function ProjectPicker() {
 
 function SettingsForm({
   projectId,
-  projectName,
+  projectName: _projectName,
 }: {
   projectId: string;
   projectName: string;
 }) {
-  const router = useRouter();
-  const [settings, setSettings] = useState<ProjectSettings>(
-    DEFAULT_PROJECT_SETTINGS,
-  );
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const activeTab: SettingsTab =
+    rawTab === "overview"
+      ? "overview"
+      : rawTab === "ai-management"
+        ? "ai-management"
+        : "all";
+
+  const [analysisInstruction, setAnalysisInstruction] = useState("");
+  const [nextTaskPrompt, setNextTaskPrompt] = useState("");
   const [guideline, setGuideline] = useState("");
   const [agentContextFlowPrompt, setAgentContextFlowPrompt] = useState("");
-  const [otherTargetDraft, setOtherTargetDraft] = useState("");
   const [existingFileName, setExistingFileName] = useState<string | null>(null);
   const [fileChange, setFileChange] = useState<AiSpecFileChange>({
     kind: "none",
@@ -155,16 +128,25 @@ function SettingsForm({
         const data: unknown = await res.json();
         if (cancelled) return;
         if (isRecord(data) && data.ok === true) {
-          setSettings(parseProjectSettings(data.settings));
-          setGuideline(
-            typeof data.aiSpecGuideline === "string"
-              ? data.aiSpecGuideline
+          const rawAi =
+            isRecord(data.settings) && isRecord(data.settings.ai)
+              ? data.settings.ai
+              : {};
+          setAnalysisInstruction(
+            typeof rawAi.analysisInstruction === "string"
+              ? rawAi.analysisInstruction
               : "",
           );
+          setNextTaskPrompt(
+            typeof rawAi.nextTaskPrompt === "string" ? rawAi.nextTaskPrompt : "",
+          );
+          setGuideline(
+            typeof data.aiSpecGuideline === "string" && data.aiSpecGuideline.length > 0
+              ? data.aiSpecGuideline
+              : DEFAULT_AI_SPEC_GUIDELINE,
+          );
           setExistingFileName(
-            typeof data.aiSpecFileName === "string"
-              ? data.aiSpecFileName
-              : null,
+            typeof data.aiSpecFileName === "string" ? data.aiSpecFileName : null,
           );
           setAgentContextFlowPrompt(
             typeof data.agentContextFlowPrompt === "string"
@@ -174,9 +156,7 @@ function SettingsForm({
           setFileChange({ kind: "none" });
         }
       })
-      .catch(() => {
-        // 기본값 유지
-      })
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -185,57 +165,7 @@ function SettingsForm({
     };
   }, [projectId]);
 
-  const markDirty = useCallback(() => {
-    setSaveState({ kind: "idle" });
-  }, []);
-
-  const toggleTarget = useCallback(
-    (target: AnalysisTarget) => {
-      setSettings((prev) => {
-        const has = prev.ai.targets.includes(target);
-        const next = has
-          ? prev.ai.targets.filter((t) => t !== target)
-          : [...prev.ai.targets, target];
-        const targetsOther =
-          target === "OTHER" && has ? [] : prev.ai.targetsOther;
-        return { ...prev, ai: { ...prev.ai, targets: next, targetsOther } };
-      });
-      markDirty();
-    },
-    [markDirty],
-  );
-
-  const addOtherTarget = useCallback(() => {
-    const trimmed = otherTargetDraft.trim().slice(0, TARGET_OTHER_ITEM_MAX);
-    if (!trimmed) return;
-    setSettings((prev) => {
-      if (prev.ai.targetsOther.includes(trimmed)) return prev;
-      if (prev.ai.targetsOther.length >= TARGET_OTHER_LIST_MAX) return prev;
-      return {
-        ...prev,
-        ai: {
-          ...prev.ai,
-          targetsOther: [...prev.ai.targetsOther, trimmed],
-        },
-      };
-    });
-    setOtherTargetDraft("");
-    markDirty();
-  }, [otherTargetDraft, markDirty]);
-
-  const removeOtherTarget = useCallback(
-    (item: string) => {
-      setSettings((prev) => ({
-        ...prev,
-        ai: {
-          ...prev.ai,
-          targetsOther: prev.ai.targetsOther.filter((t) => t !== item),
-        },
-      }));
-      markDirty();
-    },
-    [markDirty],
-  );
+  const markDirty = useCallback(() => setSaveState({ kind: "idle" }), []);
 
   const onSave = useCallback(async () => {
     setSaveState({ kind: "saving" });
@@ -244,7 +174,12 @@ function SettingsForm({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          settings,
+          settings: {
+            ai: {
+              analysisInstruction: analysisInstruction || null,
+              nextTaskPrompt: nextTaskPrompt || null,
+            },
+          },
           ...buildAiSpecPolicyPatch(guideline, fileChange),
           agentContextFlowPrompt: agentContextFlowPrompt || null,
         }),
@@ -274,275 +209,155 @@ function SettingsForm({
         message: err instanceof Error ? err.message : "저장에 실패했어요.",
       });
     }
-  }, [projectId, settings, guideline, fileChange, agentContextFlowPrompt]);
-
-  const otherTargetSelected = settings.ai.targets.includes("OTHER");
+  }, [
+    projectId,
+    analysisInstruction,
+    nextTaskPrompt,
+    guideline,
+    fileChange,
+    agentContextFlowPrompt,
+  ]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col px-8 pb-6">
-
-      <div className="mt-8 flex max-w-2xl flex-col gap-8">
-        <Section
-          title="프로젝트 유형"
-          description="이 프로젝트가 어떤 종류인지 알려주세요."
-        >
-          <RadioGroup
-            value={settings.projectType}
-            options={PROJECT_TYPES.map((t) => ({
-              value: t,
-              label: PROJECT_TYPE_LABELS[t],
-            }))}
-            disabled={loading}
-            onChange={(v) => {
-              setSettings((prev) => ({
-                ...prev,
-                projectType: v,
-                projectTypeOther: v === "OTHER" ? prev.projectTypeOther : "",
-              }));
-              markDirty();
-            }}
-          />
-          {settings.projectType === "OTHER" && (
-            <input
-              type="text"
-              value={settings.projectTypeOther}
-              disabled={loading}
-              maxLength={PROJECT_TYPE_OTHER_MAX}
-              placeholder="예) CLI 도구, 데이터 파이프라인…"
-              onChange={(e) => {
-                const next = e.target.value;
-                setSettings((prev) => ({ ...prev, projectTypeOther: next }));
-                markDirty();
-              }}
-              className={cn(
-                "h-9 w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-1 text-sm",
-                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-              )}
-            />
-          )}
-        </Section>
-
-        <Section
-          title="AI 주요 분석 대상"
-          description="어떤 이벤트를 중요하게 봐야 하나요? 여러 개 선택할 수 있어요."
-        >
-          <div className="flex flex-col gap-2">
-            {ANALYSIS_TARGETS.map((t) => (
-              <CheckboxRow
-                key={t}
-                label={ANALYSIS_TARGET_LABELS[t]}
-                checked={settings.ai.targets.includes(t)}
-                disabled={loading}
-                onChange={() => toggleTarget(t)}
+    <div className="flex h-full min-h-0 flex-col px-8 mb-6">
+      <div className="mt-8 mx-auto w-full max-w-2xl flex flex-col gap-8">
+        {activeTab === "overview" && (
+          <>
+            <Section
+              title="프로젝트 상태 요약 & 솔루션 생성 지침"
+              description="프로젝트 상태 요약 및 솔루션을 생성할 때 고려해야 할 사항을 작성해주세요."
+            >
+              <SessionDataInfo
+                label="분석에 사용되는 세션 데이터"
+                fields={[
+                  "세션별 작업 의도 (최근 10개 세션)",
+                  "세션별 수정 파일 목록",
+                  "세션별 에러 목록",
+                  "반복 수정 파일",
+                  "보안 관련 파일 변경 신호",
+                ]}
               />
-            ))}
-          </div>
-          {otherTargetSelected && (
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={otherTargetDraft}
-                  disabled={loading}
-                  maxLength={TARGET_OTHER_ITEM_MAX}
-                  placeholder="기타 분석 대상을 입력해 주세요"
-                  onChange={(e) => setOtherTargetDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addOtherTarget();
-                    }
-                  }}
-                  className={cn(
-                    "h-9 flex-1 rounded-md border border-[#E4E2DD] bg-white px-3 py-1 text-sm",
-                    "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-                    "disabled:cursor-not-allowed disabled:opacity-50",
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addOtherTarget}
-                  disabled={
-                    loading ||
-                    otherTargetDraft.trim().length === 0 ||
-                    settings.ai.targetsOther.length >= TARGET_OTHER_LIST_MAX
-                  }
-                >
-                  추가
-                </Button>
-              </div>
-              {settings.ai.targetsOther.length > 0 && (
-                <ul className="flex flex-wrap gap-2">
-                  {settings.ai.targetsOther.map((item) => (
-                    <li
-                      key={item}
-                      className="flex items-center gap-2 rounded-md border border-[#E4E2DD] bg-white px-2 py-1 text-xs"
-                    >
-                      <span>{item}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeOtherTarget(item)}
-                        disabled={loading}
-                        aria-label={`${item} 제거`}
-                        className="text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        ×
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <textarea
+                value={analysisInstruction}
+                disabled={loading}
+                maxLength={AI_ANALYSIS_INSTRUCTION_MAX}
+                placeholder="예) 비용 절감 위주로 요약해 주세요. 에러가 가장 많은 세션을 콕 짚어 알려 주세요."
+                rows={5}
+                onChange={(e) => {
+                  setAnalysisInstruction(e.target.value);
+                  markDirty();
+                }}
+                className={cn(
+                  "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+                  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              />
               <p className="text-xs text-muted-foreground">
-                {settings.ai.targetsOther.length} / {TARGET_OTHER_LIST_MAX}
+                {analysisInstruction.length} / {AI_ANALYSIS_INSTRUCTION_MAX}
               </p>
-            </div>
-          )}
-        </Section>
+            </Section>
 
-        <Section
-          title="리포트 스타일"
-          description="분석 리포트를 누가 읽을지 알려주세요."
-        >
-          <RadioGroup
-            value={settings.ai.style}
-            options={ANALYSIS_STYLES.map((s) => ({
-              value: s,
-              label: ANALYSIS_STYLE_LABELS[s],
-            }))}
-            disabled={loading}
-            onChange={(v) => {
-              setSettings((prev) => ({
-                ...prev,
-                ai: { ...prev.ai, style: v },
-              }));
-              markDirty();
-            }}
-          />
-        </Section>
+            <Section
+              title="추천 다음 작업 생성 지침"
+              description="추천 다음 작업 리스트를 생성할 때 고려해야 할 사항을 작성해주세요."
+            >
+              <SessionDataInfo
+                label="분석에 사용되는 세션 데이터"
+                fields={[
+                  "세션별 작업 의도 (최근 5개 세션)",
+                  "세션별 수정 파일 목록",
+                  "진행 중인 작업 흐름",
+                ]}
+              />
+              <textarea
+                value={nextTaskPrompt}
+                disabled={loading}
+                maxLength={AI_NEXT_TASK_PROMPT_MAX}
+                placeholder="예) 현재 마감이 촉박한 기능 위주로 제안해 주세요."
+                rows={3}
+                onChange={(e) => {
+                  setNextTaskPrompt(e.target.value);
+                  markDirty();
+                }}
+                className={cn(
+                  "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+                  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                {nextTaskPrompt.length} / {AI_NEXT_TASK_PROMPT_MAX}
+              </p>
+            </Section>
 
-        <Section
-          title="프로젝트 분석 AI 상세 지침"
-          description="개요 페이지의 AI 요약/솔루션 을 생성할 때 AI 에게 추가로 줄 지침이에요. 비워두면 기본 프롬프트만 사용해요."
-        >
-          <textarea
-            value={settings.ai.analysisInstruction}
-            disabled={loading}
-            maxLength={AI_ANALYSIS_INSTRUCTION_MAX}
-            placeholder="예) 비용 절감 위주로 요약해 주세요. 에러가 가장 많은 세션을 콕 짚어 알려 주세요."
-            rows={5}
-            onChange={(e) => {
-              const next = e.target.value;
-              setSettings((prev) => ({
-                ...prev,
-                ai: { ...prev.ai, analysisInstruction: next },
-              }));
-              markDirty();
-            }}
-            className={cn(
-              "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
-              "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-            )}
-          />
-          <p className="text-xs text-muted-foreground">
-            {settings.ai.analysisInstruction.length} / {AI_ANALYSIS_INSTRUCTION_MAX}
-          </p>
-        </Section>
+            <SaveBar
+              saving={saveState.kind === "saving"}
+              saved={saveState.kind === "saved"}
+              error={saveState.kind === "error" ? saveState.message : null}
+              disabled={loading}
+              onSave={onSave}
+            />
+          </>
+        )}
 
-        <Section
-          title="다음 작업 추천 지침"
-          description="개요 페이지의 '추천 다음 작업'을 생성할 때 AI에게 줄 추가 힌트예요. 비워두면 세션 데이터만 기반으로 제안해요."
-        >
-          <textarea
-            value={settings.ai.nextTaskPrompt}
-            disabled={loading}
-            maxLength={AI_NEXT_TASK_PROMPT_MAX}
-            placeholder="예) 현재 마감이 촉박한 기능 위주로 제안해 주세요."
-            rows={3}
-            onChange={(e) => {
-              const next = e.target.value;
-              setSettings((prev) => ({
-                ...prev,
-                ai: { ...prev.ai, nextTaskPrompt: next },
-              }));
-              markDirty();
-            }}
-            className={cn(
-              "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
-              "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-            )}
-          />
-          <p className="text-xs text-muted-foreground">
-            {settings.ai.nextTaskPrompt.length} / {AI_NEXT_TASK_PROMPT_MAX}
-          </p>
-        </Section>
+        {activeTab === "ai-management" && (
+          <>
+            <Section
+              title="AI 스펙 문서 지침"
+              description="AI 에이전트용 문서(CLAUDE.md, AGENTS.md 등)를 평가할 때 고려해야 할 사항을 작성해주세요."
+            >
+              <AiSpecPolicyFields
+                guideline={guideline}
+                onGuidelineChange={(next) => {
+                  setGuideline(next);
+                  markDirty();
+                }}
+                existingFileName={existingFileName}
+                fileChange={fileChange}
+                onFileChange={(next) => {
+                  setFileChange(next);
+                  markDirty();
+                }}
+                disabled={loading}
+                guidelinePlaceholder="예) 보안 관련 지침이 명시돼야 해요. 폴더 구조와 의존 방향이 적혀 있어야 통과로 봐주세요."
+              />
+            </Section>
 
-        <Section
-          title="AI 스펙 문서 지침"
-          description="md 파일(CLAUDE.md, AGENTS.md 등)을 평가할 때 AI 에게 줄 지침이에요."
-        >
-          <AiSpecPolicyFields
-            guideline={guideline}
-            onGuidelineChange={(next) => {
-              setGuideline(next);
-              markDirty();
-            }}
-            existingFileName={existingFileName}
-            fileChange={fileChange}
-            onFileChange={(next) => {
-              setFileChange(next);
-              markDirty();
-            }}
-            disabled={loading}
-            guidelinePlaceholder="예) 보안 관련 지침이 명시돼야 해요. 폴더 구조와 의존 방향이 적혀 있어야 통과로 봐주세요."
-          />
-        </Section>
+            <Section
+              title="AI 지시 문서 흐름 진단 프롬프트"
+              description="팀·프로젝트 정책과 비교해 지시 문서 플로우를 진단할 때 고려해야 할 사항을 작성해주세요."
+            >
+              <textarea
+                value={agentContextFlowPrompt}
+                disabled={loading}
+                maxLength={AGENT_CONTEXT_FLOW_PROMPT_MAX}
+                placeholder="비워두면 시스템 기본 프롬프트가 사용돼요."
+                rows={8}
+                onChange={(e) => {
+                  setAgentContextFlowPrompt(e.target.value);
+                  markDirty();
+                }}
+                className={cn(
+                  "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 font-mono text-xs",
+                  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                {agentContextFlowPrompt.length} / {AGENT_CONTEXT_FLOW_PROMPT_MAX}
+              </p>
+            </Section>
 
-        <Section
-          title="AI 지시 문서 흐름 진단 프롬프트"
-          description="팀·프로젝트 정책과 비교해 지시 문서 간 의존성·정책 준수 여부를 진단할 때 사용할 기본 프롬프트예요. 비워두면 시스템 기본 프롬프트가 사용돼요."
-        >
-          <textarea
-            value={agentContextFlowPrompt}
-            disabled={loading}
-            maxLength={AGENT_CONTEXT_FLOW_PROMPT_MAX}
-            placeholder="비워두면 시스템 기본 프롬프트가 사용돼요."
-            rows={8}
-            onChange={(e) => {
-              setAgentContextFlowPrompt(e.target.value);
-              markDirty();
-            }}
-            className={cn(
-              "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 font-mono text-xs",
-              "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-            )}
-          />
-          <p className="text-xs text-muted-foreground">
-            {agentContextFlowPrompt.length} / {AGENT_CONTEXT_FLOW_PROMPT_MAX}
-          </p>
-        </Section>
-
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            onClick={onSave}
-            disabled={loading || saveState.kind === "saving"}
-          >
-            {saveState.kind === "saving" ? "저장 중…" : "저장"}
-          </Button>
-          {saveState.kind === "saved" && (
-            <span className="text-sm text-emerald-600">저장됐어요.</span>
-          )}
-          {saveState.kind === "error" && (
-            <span className="text-sm text-destructive">
-              {saveState.message}
-            </span>
-          )}
-        </div>
+            <SaveBar
+              saving={saveState.kind === "saving"}
+              saved={saveState.kind === "saved"}
+              error={saveState.kind === "error" ? saveState.message : null}
+              disabled={loading}
+              onSave={onSave}
+            />
+          </>
+        )}
       </div>
     </div>
   );
@@ -570,70 +385,58 @@ function Section({
   );
 }
 
-function RadioGroup<T extends string>({
-  value,
-  options,
-  disabled,
-  onChange,
+function SessionDataInfo({
+  label,
+  fields,
 }: {
-  value: T;
-  options: { value: T; label: string }[];
-  disabled?: boolean;
-  onChange: (next: T) => void;
+  label: string;
+  fields: string[];
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => {
-        const selected = opt.value === value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            disabled={disabled}
-            onClick={() => onChange(opt.value)}
-            className={cn(
-              "rounded-md border px-3 py-2 text-sm transition-colors",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-              selected
-                ? "border-foreground bg-foreground text-background"
-                : "border-[#E4E2DD] bg-white hover:bg-[#F2F0EB]",
-            )}
+    <div className="rounded-md border border-[#E4E2DD] bg-[#F8F7F4] px-3 py-2.5">
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+        {label}
+      </p>
+      <ul className="flex flex-col gap-0.5">
+        {fields.map((field) => (
+          <li
+            key={field}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground"
           >
-            {opt.label}
-          </button>
-        );
-      })}
+            <span className="size-1 shrink-0 rounded-full bg-muted-foreground/40" />
+            {field}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
-function CheckboxRow({
-  label,
-  checked,
+function SaveBar({
+  saving,
+  saved,
+  error,
   disabled,
-  onChange,
+  onSave,
 }: {
-  label: string;
-  checked: boolean;
-  disabled?: boolean;
-  onChange: () => void;
+  saving: boolean;
+  saved: boolean;
+  error: string | null;
+  disabled: boolean;
+  onSave: () => void;
 }) {
   return (
-    <label
-      className={cn(
-        "flex cursor-pointer items-center gap-3 rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm transition-colors hover:bg-[#F2F0EB]",
-        disabled && "cursor-not-allowed opacity-50",
-      )}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={onChange}
-        className="size-4 accent-foreground"
-      />
-      <span>{label}</span>
-    </label>
+    <div className="flex items-center gap-3 mb-6">
+      <Button
+        type="button"
+        onClick={onSave}
+        disabled={disabled || saving}
+      >
+        {saving ? "저장 중…" : "저장"}
+      </Button>
+      {saved && <span className="text-sm text-emerald-600">저장됐어요.</span>}
+      {error && <span className="text-sm text-destructive">{error}</span>}
+    </div>
   );
 }
 

@@ -2,13 +2,31 @@ import type { ParsedDoc } from "@/domain/doc/types";
 import type { ParsedSession } from "@/domain/session/types";
 
 export type DocEvalView = {
-  docs: { filePath: string; sections: { heading: string; body: string }[] }[];
-  recentIntentHints: string[];
+  docs: {
+    filePath: string;
+    lastModified: Date;
+    sections: { heading: string; body: string }[];
+  }[];
+  recentSessionPatterns: {
+    intentHint: string;
+    filesModified: string[];
+    errors: { type: string; context: string }[];
+  }[];
+};
+
+export type DocEvalResult = {
+  docs: {
+    filePath: string;
+    status: "problem" | "warning" | "good";
+    policyViolations: string[];
+    feedback: string;
+    suggestions: string[];
+  }[];
 };
 
 /**
  * AI 지시 문서 평가 기능용 뷰.
- * 문서 섹션 구조와 최근 5개 세션의 intentHint를 반환한다.
+ * 문서 섹션 구조와 최근 5개 세션의 패턴(intentHint, filesModified, errors)을 반환한다.
  */
 export function buildDocEvalView(
   docs: ParsedDoc[],
@@ -18,13 +36,18 @@ export function buildDocEvalView(
     (a, b) => b.startedAt.getTime() - a.startedAt.getTime(),
   );
 
-  const recentIntentHints = sorted
-    .slice(0, 5)
-    .map((s) => s.intentHint)
-    .filter((h) => h.length > 0);
+  const recentSessionPatterns = sorted.slice(0, 5).map((s) => ({
+    intentHint: s.intentHint,
+    filesModified: s.filesModified,
+    errors: s.errors,
+  }));
 
   return {
-    docs: docs.map((d) => ({ filePath: d.filePath, sections: d.sections })),
-    recentIntentHints,
+    docs: docs.map((d) => ({
+      filePath: d.filePath,
+      lastModified: d.lastModified,
+      sections: d.sections,
+    })),
+    recentSessionPatterns,
   };
 }

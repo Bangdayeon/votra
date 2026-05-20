@@ -2,13 +2,18 @@ import type { ParsedDoc } from "@/domain/doc/types";
 import type { ParsedSession } from "@/domain/session/types";
 
 export type DocFlowView = {
-  docs: { filePath: string; content: string }[];
-  sessionTimeline: { startedAt: Date; filesModified: string[] }[];
+  docs: { filePath: string; lastModified: Date; content: string }[];
+  sessionTimeline: {
+    startedAt: Date;
+    intentHint: string;
+    filesModified: string[];
+  }[];
 };
 
 /**
  * AI 지시 문서 흐름 진단 기능용 뷰.
- * 문서 전체 내용과 세션별 날짜·수정파일 타임라인을 반환한다.
+ * 문서 전체 내용과 세션별 날짜·intentHint·수정파일 타임라인을 반환한다.
+ * 세션은 오래된 순 정렬 후 최근 20개로 제한한다.
  */
 export function buildDocFlowView(
   docs: ParsedDoc[],
@@ -16,10 +21,19 @@ export function buildDocFlowView(
 ): DocFlowView {
   const sessionTimeline = [...sessions]
     .sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime())
-    .map((s) => ({ startedAt: s.startedAt, filesModified: s.filesModified }));
+    .slice(-20)
+    .map((s) => ({
+      startedAt: s.startedAt,
+      intentHint: s.intentHint,
+      filesModified: s.filesModified,
+    }));
 
   return {
-    docs: docs.map((d) => ({ filePath: d.filePath, content: d.content })),
+    docs: docs.map((d) => ({
+      filePath: d.filePath,
+      lastModified: d.lastModified,
+      content: d.content,
+    })),
     sessionTimeline,
   };
 }

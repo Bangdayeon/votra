@@ -15,37 +15,12 @@ export type ProjectAiSummary = {
   suggestions: ProjectAiInsight[];
 };
 
-const PROJECT_TYPE_LABELS: Record<string, string> = {
-  WEB_APP: "웹앱",
-  MOBILE_NATIVE: "모바일 네이티브 앱",
-  BACKEND: "백엔드",
-  OTHER: "기타",
-};
-
-const ANALYSIS_TARGET_LABELS: Record<string, string> = {
-  ERROR_REPEAT: "에러 반복 감지",
-  SAME_FILE_REPEAT: "동일 파일 반복 수정 감지",
-  SESSION_SUMMARY: "세션 요약 생성",
-  SECURITY_FILE_CHANGE: "보안 관련 파일 변경 감지",
-  OTHER: "기타",
-};
-
-const STYLE_LABELS: Record<string, string> = {
-  DEVELOPER: "개발자",
-  NON_DEVELOPER: "비개발자",
-};
-
 export async function getProjectAiSummary(
   sessions: ParsedSession[],
   settings: ProjectSettings,
   deps: { llm: LlmClient },
 ): Promise<ProjectAiSummary> {
-  const template =
-    settings.ai.analysisInstruction.trim().length > 0
-      ? settings.ai.analysisInstruction
-      : DEFAULT_ANALYSIS_INSTRUCTION;
-
-  const prompt = applyTemplate(template, settings, sessions);
+  const prompt = buildPrompt(settings, sessions);
 
   const text = await deps.llm.complete({
     system: "출력은 반드시 지정된 JSON 형식만 반환하세요. 다른 텍스트 금지.",
@@ -56,44 +31,17 @@ export async function getProjectAiSummary(
   return parseAiSummary(text);
 }
 
-function applyTemplate(
-  template: string,
-  settings: ProjectSettings,
-  sessions: ParsedSession[],
-): string {
-  const projectType = formatProjectType(settings);
-  const analysisTargets = formatTargets(settings);
-  const reportStyle = STYLE_LABELS[settings.ai.style] ?? settings.ai.style;
+function buildPrompt(settings: ProjectSettings, sessions: ParsedSession[]): string {
+  const customInstructions = settings.ai.analysisInstruction.trim();
   const sessionData = JSON.stringify(buildStatusView(sessions), null, 2);
+  const customPart = customInstructions
+    ? `\n[추가 지침]\n${customInstructions}\n`
+    : "\n";
 
-  return template
-    .replace(/\{projectType\}/g, projectType)
-    .replace(/\{analysisTargets\}/g, analysisTargets)
-    .replace(/\{reportStyle\}/g, reportStyle)
-    .replace(/\{customInstructions\}/g, "")
-    .replace(/\{sessionData\}/g, sessionData)
-    .replace(/^- 추가 지침:\s*\n/gm, "");
+  return DEFAULT_ANALYSIS_INSTRUCTION
+    .replace(/\{customInstructions\}/g, customPart)
+    .replace(/\{sessionData\}/g, sessionData);
 }
-
-function formatProjectType(settings: ProjectSettings): string {
-  if (settings.projectType === "OTHER") {
-    const other = settings.projectTypeOther.trim();
-    return other ? `기타 (${other})` : "기타";
-  }
-  return PROJECT_TYPE_LABELS[settings.projectType] ?? settings.projectType;
-}
-
-function formatTargets(settings: ProjectSettings): string {
-  const labels = settings.ai.targets
-    .filter((t) => t !== "OTHER")
-    .map((t) => ANALYSIS_TARGET_LABELS[t] ?? t);
-  const others = settings.ai.targets.includes("OTHER")
-    ? settings.ai.targetsOther.map((o) => o.trim()).filter(Boolean)
-    : [];
-  const all = [...labels, ...others];
-  return all.length === 0 ? "(지정 없음)" : all.join(", ");
-}
-
 
 function parseAiSummary(text: string): ProjectAiSummary {
   const cleaned = stripCodeFence(text).trim();
