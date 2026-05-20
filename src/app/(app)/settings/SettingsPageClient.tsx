@@ -279,20 +279,7 @@ function SettingsForm({
   const otherTargetSelected = settings.ai.targets.includes("OTHER");
 
   return (
-    <div className="flex h-full min-h-0 flex-col px-8 py-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-medium">설정</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{projectName}</p>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => router.push(`/${encodeURIComponent(projectName)}`)}
-        >
-          뒤로
-        </Button>
-      </div>
+    <div className="flex h-full min-h-0 flex-col px-8 pb-6">
 
       <div className="mt-8 flex max-w-2xl flex-col gap-8">
         <Section

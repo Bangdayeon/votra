@@ -6,6 +6,7 @@ import type {
   SessionMetricRow,
   SessionRepository,
   SessionScoringRow,
+  SessionWithEvents,
 } from "@/application/ports/sessionRepository";
 import { prisma } from "@/infrastructure/db/prisma";
 
@@ -116,6 +117,47 @@ export const prismaSessionRepository: SessionRepository = {
         content: e.content,
         timestamp: e.timestamp,
         metadata: toMetadataObject(e.metadata),
+      }),
+    );
+  },
+
+  findRecentSessionsWithEvents: async (projectId, limit) => {
+    const sessions = await prisma.session.findMany({
+      where: { projectId },
+      orderBy: { startedAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        startedAt: true,
+        events: {
+          orderBy: { timestamp: "asc" },
+          select: {
+            id: true,
+            type: true,
+            role: true,
+            content: true,
+            timestamp: true,
+            metadata: true,
+          },
+        },
+      },
+    });
+    return sessions.map(
+      (s): SessionWithEvents => ({
+        id: s.id,
+        title: s.title,
+        startedAt: s.startedAt,
+        events: s.events.map(
+          (e): SessionEventRow => ({
+            id: e.id,
+            type: e.type,
+            role: e.role,
+            content: e.content,
+            timestamp: e.timestamp,
+            metadata: toMetadataObject(e.metadata),
+          }),
+        ),
       }),
     );
   },

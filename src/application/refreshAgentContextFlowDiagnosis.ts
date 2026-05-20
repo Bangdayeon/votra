@@ -1,10 +1,10 @@
-import { getProjectMetrics } from "@/application/getProjectMetrics";
 import type { ClaudeFileRepository } from "@/application/ports/claudeFileRepository";
 import type { LlmClient } from "@/application/ports/llmClient";
 import type { AgentContextFlowDiagnosisRepository } from "@/application/ports/projectAgentContextFlowDiagnosisRepository";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
 import type { SessionRepository } from "@/application/ports/sessionRepository";
 import { runAgentContextFlowDiagnosis } from "@/application/runAgentContextFlowDiagnosis";
+import { buildParsedSession } from "@/domain/session/buildParsedSession";
 
 export type RefreshedAgentContextFlowDiagnosis = {
   result: string;
@@ -21,15 +21,15 @@ export async function refreshAgentContextFlowDiagnosis(
     llm: LlmClient;
   },
 ): Promise<RefreshedAgentContextFlowDiagnosis> {
-  const [metrics, settingsRow, contextFiles, scoringRows, ownerPolicy] =
+  const [sessionRows, settingsRow, contextFiles, ownerPolicy] =
     await Promise.all([
-      getProjectMetrics(projectId, { sessions: deps.sessions }),
+      deps.sessions.findRecentSessionsWithEvents(projectId, 20),
       deps.projects.findSettings(projectId),
       deps.claudeFiles.findByProject(projectId),
-      deps.sessions.findScoringRowsByProject(projectId),
       deps.projects.findOwnerAiPolicy(projectId),
     ]);
 
+  const parsedSessions = sessionRows.map(buildParsedSession);
   const teamPolicy = ownerPolicy
     ? [ownerPolicy.text, ownerPolicy.fileContent].filter(Boolean).join("\n\n")
     : "";
@@ -39,8 +39,7 @@ export async function refreshAgentContextFlowDiagnosis(
       teamPolicy,
       projectPolicy: settingsRow.aiSpecGuideline ?? "",
       contextFiles,
-      sessionStats: metrics,
-      scoringRows,
+      parsedSessions,
       promptTemplate: settingsRow.agentContextFlowPrompt,
     },
     { llm: deps.llm },

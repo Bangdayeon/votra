@@ -1,15 +1,15 @@
 import type { ClaudeFileRow } from "@/application/ports/claudeFileRepository";
 import type { LlmClient } from "@/application/ports/llmClient";
-import type { SessionScoringRow } from "@/application/ports/sessionRepository";
-import type { ProjectMetrics } from "@/application/getProjectMetrics";
+import { buildDocFlowView } from "@/application/views/buildDocFlowView";
 import { DEFAULT_AGENT_CONTEXT_FLOW_PROMPT } from "@/domain/project/settings/defaultAgentContextFlowPrompt";
+import { parseDoc } from "@/domain/doc/parseDoc";
+import type { ParsedSession } from "@/domain/session/types";
 
 type RunInput = {
   teamPolicy: string;
   projectPolicy: string;
   contextFiles: ClaudeFileRow[];
-  sessionStats: ProjectMetrics;
-  scoringRows: SessionScoringRow[];
+  parsedSessions: ParsedSession[];
   promptTemplate: string | null;
 };
 
@@ -32,15 +32,17 @@ export async function runAgentContextFlowDiagnosis(
 }
 
 function fillTemplate(template: string, input: RunInput): string {
+  const docs = input.contextFiles.map((f) =>
+    parseDoc({ filePath: f.displayPath, content: f.content, lastModified: new Date() }),
+  );
+  const flowView = buildDocFlowView(docs, input.parsedSessions);
+
   return template
     .replace("{{team_policy}}", formatPolicy(input.teamPolicy))
     .replace("{{project_policy}}", formatPolicy(input.projectPolicy))
     .replace("{{context_files}}", formatContextFiles(input.contextFiles))
-    .replace("{{session_stats}}", formatSessionStats(input.sessionStats))
-    .replace(
-      "{{conversation_patterns}}",
-      formatConversationPatterns(input.scoringRows),
-    );
+    .replace("{{session_stats}}", formatSessionStats(input.parsedSessions))
+    .replace("{{conversation_patterns}}", JSON.stringify(flowView, null, 2));
 }
 
 function formatPolicy(text: string): string {
@@ -54,45 +56,19 @@ function formatContextFiles(files: ClaudeFileRow[]): string {
     .join("\n\n---\n\n");
 }
 
-function formatSessionStats(metrics: ProjectMetrics): string {
+function formatSessionStats(sessions: ParsedSession[]): string {
   return JSON.stringify(
     {
-      totalSessions: metrics.totals.sessionCount,
-      totalTokens: metrics.totals.totalTokens,
-      errorTypes: metrics.byErrorType,
-      topSessions: [...metrics.sessions]
-        .sort((a, b) => b.totalTokens - a.totalTokens)
+      totalSessions: sessions.length,
+      recentSessions: [...sessions]
+        .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
         .slice(0, 5)
         .map((s) => ({
           title: s.title,
-          model: s.model,
-          totalTokens: s.totalTokens,
+          errorCount: s.errors.length,
+          filesModified: s.filesModified,
+          intentHint: s.intentHint,
         })),
-    },
-    null,
-    2,
-  );
-}
-
-function formatConversationPatterns(rows: SessionScoringRow[]): string {
-  const fileFreq = new Map<string, number>();
-  let totalRetries = 0;
-
-  for (const row of rows) {
-    totalRetries += row.retryCount;
-    for (const file of row.editedFiles) {
-      fileFreq.set(file, (fileFreq.get(file) ?? 0) + 1);
-    }
-  }
-
-  return JSON.stringify(
-    {
-      totalRetries,
-      sessionsWithHighRetry: rows.filter((r) => r.retryCount > 2).length,
-      frequentlyEditedFiles: [...fileFreq.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([file, count]) => ({ file, editCount: count })),
     },
     null,
     2,

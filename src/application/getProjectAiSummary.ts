@@ -1,7 +1,8 @@
-import type { ProjectMetrics } from "@/application/getProjectMetrics";
 import type { LlmClient } from "@/application/ports/llmClient";
+import { buildStatusView } from "@/application/views/buildStatusView";
 import { DEFAULT_ANALYSIS_INSTRUCTION } from "@/domain/project/settings/defaultAnalysisInstruction";
 import type { ProjectSettings } from "@/domain/project/settings/types";
+import type { ParsedSession } from "@/domain/session/types";
 
 export type ProjectAiInsight = {
   message: string;
@@ -35,7 +36,7 @@ const STYLE_LABELS: Record<string, string> = {
 };
 
 export async function getProjectAiSummary(
-  metrics: ProjectMetrics,
+  sessions: ParsedSession[],
   settings: ProjectSettings,
   deps: { llm: LlmClient },
 ): Promise<ProjectAiSummary> {
@@ -44,7 +45,7 @@ export async function getProjectAiSummary(
       ? settings.ai.analysisInstruction
       : DEFAULT_ANALYSIS_INSTRUCTION;
 
-  const prompt = applyTemplate(template, settings, metrics);
+  const prompt = applyTemplate(template, settings, sessions);
 
   const text = await deps.llm.complete({
     system: "출력은 반드시 지정된 JSON 형식만 반환하세요. 다른 텍스트 금지.",
@@ -58,20 +59,20 @@ export async function getProjectAiSummary(
 function applyTemplate(
   template: string,
   settings: ProjectSettings,
-  metrics: ProjectMetrics,
+  sessions: ParsedSession[],
 ): string {
   const projectType = formatProjectType(settings);
   const analysisTargets = formatTargets(settings);
   const reportStyle = STYLE_LABELS[settings.ai.style] ?? settings.ai.style;
-  const sessionData = formatSessionData(metrics);
+  const sessionData = JSON.stringify(buildStatusView(sessions), null, 2);
 
   return template
     .replace(/\{projectType\}/g, projectType)
     .replace(/\{analysisTargets\}/g, analysisTargets)
     .replace(/\{reportStyle\}/g, reportStyle)
-    .replace(/\{customInstructions\}/g, "") // 별도 필드가 없을 때는 공백
+    .replace(/\{customInstructions\}/g, "")
     .replace(/\{sessionData\}/g, sessionData)
-    .replace(/^- 추가 지침:\s*\n/gm, ""); // customInstructions 가 비면 그 줄 제거
+    .replace(/^- 추가 지침:\s*\n/gm, "");
 }
 
 function formatProjectType(settings: ProjectSettings): string {
@@ -93,22 +94,6 @@ function formatTargets(settings: ProjectSettings): string {
   return all.length === 0 ? "(지정 없음)" : all.join(", ");
 }
 
-function formatSessionData(metrics: ProjectMetrics): string {
-  const payload = {
-    totals: metrics.totals,
-    topSessions: [...metrics.sessions]
-      .sort((a, b) => b.totalTokens - a.totalTokens)
-      .slice(0, 5)
-      .map((s) => ({
-        title: s.title,
-        model: s.model,
-        totalTokens: s.totalTokens,
-      })),
-    byModel: metrics.byModel,
-    byErrorType: metrics.byErrorType,
-  };
-  return JSON.stringify(payload, null, 2);
-}
 
 function parseAiSummary(text: string): ProjectAiSummary {
   const cleaned = stripCodeFence(text).trim();

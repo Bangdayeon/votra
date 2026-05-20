@@ -1,5 +1,4 @@
 import { getProjectAiSummary } from "@/application/getProjectAiSummary";
-import { getProjectMetrics } from "@/application/getProjectMetrics";
 import type { LlmClient } from "@/application/ports/llmClient";
 import type {
   ProjectAiInsightRow,
@@ -7,6 +6,7 @@ import type {
 } from "@/application/ports/projectAiSummaryRepository";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
 import type { SessionRepository } from "@/application/ports/sessionRepository";
+import { buildParsedSession } from "@/domain/session/buildParsedSession";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 
 export type RefreshedProjectAiSummary = {
@@ -25,13 +25,14 @@ export async function refreshProjectAiSummary(
     llm: LlmClient;
   },
 ): Promise<RefreshedProjectAiSummary> {
-  const [metrics, settingsRow] = await Promise.all([
-    getProjectMetrics(projectId, { sessions: deps.sessions }),
+  const [sessionRows, settingsRow] = await Promise.all([
+    deps.sessions.findRecentSessionsWithEvents(projectId, 10),
     deps.projects.findSettings(projectId),
   ]);
   const settings = parseProjectSettings(settingsRow.settings);
+  const parsedSessions = sessionRows.map(buildParsedSession);
 
-  const generated = await getProjectAiSummary(metrics, settings, {
+  const generated = await getProjectAiSummary(parsedSessions, settings, {
     llm: deps.llm,
   });
 

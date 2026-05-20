@@ -1,36 +1,22 @@
-import type { ProjectMetrics } from "@/application/getProjectMetrics";
 import type { LlmClient } from "@/application/ports/llmClient";
+import { buildNextTaskView } from "@/application/views/buildNextTaskView";
 import type { ProjectSettings } from "@/domain/project/settings/types";
+import type { ParsedSession } from "@/domain/session/types";
 
 export async function getProjectNextTasks(
-  metrics: ProjectMetrics,
+  sessions: ParsedSession[],
   settings: ProjectSettings,
   deps: { llm: LlmClient },
 ): Promise<string[]> {
-  const recentSessions = [...metrics.sessions]
-    .sort((a, b) => {
-      if (!a.startedAt && !b.startedAt) return 0;
-      if (!a.startedAt) return 1;
-      if (!b.startedAt) return -1;
-      return b.startedAt.localeCompare(a.startedAt);
-    })
-    .slice(0, 10)
-    .map((s) => ({ title: s.title, model: s.model, totalTokens: s.totalTokens, startedAt: s.startedAt }));
-
+  const view = buildNextTaskView(sessions);
   const customPrompt = settings.ai.nextTaskPrompt.trim();
 
   const prompt = `
 당신은 AI 코딩 에이전트 활동 분석 전문가예요.
 아래는 프로젝트의 최근 세션 데이터입니다.
 
-## 최근 세션 목록
-${JSON.stringify(recentSessions, null, 2)}
-
-## 에러 현황
-${JSON.stringify(metrics.byErrorType, null, 2)}
-
-## 프로젝트 합계
-${JSON.stringify(metrics.totals, null, 2)}
+## 세션 데이터
+${JSON.stringify(view, null, 2)}
 ${customPrompt ? `\n## 추가 지침\n${customPrompt}` : ""}
 
 위 데이터를 바탕으로 현재 작업 흐름을 파악하고, 가장 효율적인 다음 액션을 **1~3개** 제안해 주세요.

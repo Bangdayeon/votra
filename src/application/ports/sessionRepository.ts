@@ -52,6 +52,13 @@ export type SessionEventRow = {
   metadata: Record<string, unknown> | null;
 };
 
+export type SessionWithEvents = {
+  id: string;
+  title: string | null;
+  startedAt: Date | null;
+  events: SessionEventRow[];
+};
+
 export type SessionRepository = {
   findManyByProject: (projectId: string) => Promise<SessionMetricRow[]>;
   findErrorTypesByProject: (projectId: string) => Promise<ErrorTypeCount[]>;
@@ -59,4 +66,8 @@ export type SessionRepository = {
     projectId: string,
   ) => Promise<SessionScoringRow[]>;
   findEventsBySession: (sessionId: string) => Promise<SessionEventRow[]>;
+  findRecentSessionsWithEvents: (
+    projectId: string,
+    limit: number,
+  ) => Promise<SessionWithEvents[]>;
 };

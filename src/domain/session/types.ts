@@ -52,3 +52,15 @@ export type Session = {
   endedAt?: string;
   events: RawEvent[];
 };
+
+export type ParsedSession = {
+  sessionId: string;
+  title: string;
+  startedAt: Date;
+  filesModified: string[];
+  filesRead: string[];
+  errors: { type: string; context: string }[];
+  toolCallCounts: Record<string, number>;
+  intentHint: string;
+  isComplete: boolean;
+};
