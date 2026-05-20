@@ -21,7 +21,7 @@ export async function getProjectNextTasksAction(
       getCachedProjectNextTasks(projectId, {
         nextTasks: prismaProjectAiNextTaskRepository,
       }),
-    ["project-ai-next-task", projectId],
+    ["project-ai-next-task-v2", projectId],
     { tags: [projectAiNextTaskTag(projectId)] },
   );
   return compute();

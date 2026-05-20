@@ -16,9 +16,9 @@ type Props = {
 };
 
 const PRIORITY_LABEL: Record<NextTask["priority"], string> = {
-  high: "높음",
-  medium: "보통",
-  low: "낮음",
+  high: "P1",
+  medium: "P2",
+  low: "P3",
 };
 
 const PRIORITY_CLASS: Record<NextTask["priority"], string> = {
@@ -66,20 +66,20 @@ export function RecommendedNextTaskCard({
 
 function NextTaskItem({ task }: { task: NextTask }) {
   return (
-    <li className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-2">
-        <span
-          className={cn(
-            "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-            PRIORITY_CLASS[task.priority],
-          )}
-        >
-          {PRIORITY_LABEL[task.priority]}
-        </span>
-        <span className="text-sm font-medium text-foreground">{task.title}</span>
-      </div>
-      <p className="text-xs text-muted-foreground leading-snug">{task.reason}</p>
-      <AgentCommandBox command={task.agentCommand} />
+    <li className="flex flex-col items-start gap-1.5">
+      <span
+        className={cn(
+          "rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide",
+          PRIORITY_CLASS[task.priority],
+        )}
+      >
+        {PRIORITY_LABEL[task.priority]}
+      </span>
+      <span className="text-sm font-medium text-foreground">{task.title}</span>
+      {task.reason && (
+        <p className="text-xs text-muted-foreground leading-snug">{task.reason}</p>
+      )}
+      {task.agentCommand && <AgentCommandBox command={task.agentCommand} className="w-full" />}
     </li>
   );
 }

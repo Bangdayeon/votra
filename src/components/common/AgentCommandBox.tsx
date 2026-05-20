@@ -3,7 +3,9 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
-export function AgentCommandBox({ command }: { command: string }) {
+import { cn } from "@/lib/utils";
+
+export function AgentCommandBox({ command, className }: { command: string; className?: string }) {
   const [copied, setCopied] = useState(false);
 
   const onCopy = async () => {
@@ -17,8 +19,8 @@ export function AgentCommandBox({ command }: { command: string }) {
   };
 
   return (
-    <div className="group relative pb-7">
-      <div className="rounded-md border border-[#E4E2DD] bg-[#FAFAF8] p-3 pr-6">
+    <div className={cn("group relative pr-8", className)}>
+      <div className="rounded-md border border-[#E4E2DD] bg-[#FAFAF8] p-3">
         <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground">
           {command}
         </pre>
@@ -28,7 +30,7 @@ export function AgentCommandBox({ command }: { command: string }) {
         onClick={onCopy}
         aria-label="명령어 복사"
         title="복사"
-        className="absolute bottom-1 right-0 cursor-pointer rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="absolute right-0 top-1 cursor-pointer rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:bg-muted hover:text-foreground"
       >
         {copied ? (
           <Check className="size-3.5 text-green-600" />
