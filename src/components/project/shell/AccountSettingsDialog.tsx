@@ -1,6 +1,18 @@
 "use client";
 
-import { Globe2, Loader2, LogOut, RotateCcw, UserCog } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  Bot,
+  Clock,
+  Globe2,
+  LayoutGrid,
+  Loader2,
+  LogOut,
+  RotateCcw,
+  Terminal,
+  UserCog,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -26,11 +38,12 @@ import {
 } from "@/domain/aiSpec/types";
 import { cn } from "@/lib/utils";
 
-type MenuKey = "account" | "policy";
+type MenuKey = "account" | "policy" | "guide";
 
 const MENU: { key: MenuKey; label: string; icon: React.ElementType }[] = [
   { key: "account", label: "계정 설정", icon: UserCog },
   { key: "policy", label: "전체 정책", icon: Globe2 },
+  { key: "guide", label: "안내", icon: BookOpen },
 ];
 
 export function AccountSettingsDialog({
@@ -89,8 +102,10 @@ export function AccountSettingsDialog({
           <div className="custom-scrollbar overflow-y-auto px-6 pt-6 pb-8">
             {active === "account" ? (
               <AccountPane onClose={() => onOpenChange(false)} />
-            ) : (
+            ) : active === "policy" ? (
               <PolicyPane />
+            ) : (
+              <GuidePane />
             )}
           </div>
         </div>
@@ -350,6 +365,243 @@ function PolicyPane() {
           {pending ? "저장 중…" : "저장"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+const SERVICE_FEATURES: {
+  name: string;
+  icon: React.ElementType;
+  screenshot: string;
+  desc: string;
+  features: { title: string; lines: string[] }[];
+}[] = [
+  {
+    name: "개요",
+    icon: LayoutGrid,
+    screenshot: "/assets/images/guide/tab-overview.png",
+    desc: "AI 에이전트 세션을 자동 분석해 프로젝트 현황을 요약하고, 지금 해야 할 작업을 추천해줘요.",
+    features: [
+      {
+        title: "💡 AI 요약 & 솔루션",
+        lines: [
+          "업로드된 AI 에이전트 세션을 분석해 프로젝트 진행 상황·이슈·개선 방향을 한눈에 보여줘요.",
+          "새로고침하면 최신 세션 기준으로 다시 분석해요.",
+        ],
+      },
+      {
+        title: "💬 추천 다음 작업",
+        lines: [
+          "AI가 세션 흐름을 보고 높음·보통·낮음 우선순위로 할 일을 정리해줘요.",
+          "각 작업마다 에이전트에게 바로 넘길 수 있는 명령어도 함께 제안해요.",
+        ],
+      },
+    ],
+  },
+  {
+    name: "AI 작업 관리",
+    icon: Bot,
+    screenshot: "/assets/images/guide/tab-manage.png",
+    desc: "프로젝트에 업로드된 AI 지시 문서를 정책 기준으로 평가하고, 컨텍스트 흐름을 진단해요.",
+    features: [
+      {
+        title: "AI 지시 문서",
+        lines: [
+          "CLAUDE.md·AGENTS.md·SKILL.md를 파일 트리로 보여줘요.",
+          "파일마다 정책 적합도를 평가하고, 개별 재평가도 할 수 있어요.",
+        ],
+      },
+      {
+        title: "🩺 AI 지시 문서 흐름 진단",
+        lines: [
+          "전체 정책과 프로젝트 정책이 AI 에이전트에 올바르게 전달되는지 진단해요.",
+          "문제가 있으면 개선 방법도 함께 알려줘요.",
+        ],
+      },
+    ],
+  },
+  {
+    name: "히스토리",
+    icon: Clock,
+    screenshot: "/assets/images/guide/tab-history.png",
+    desc: "세션별 토큰 사용량·에러 분포·모델 사용 현황을 차트로 보여주고, 작업 흐름을 타임라인으로 탐색해요.",
+    features: [
+      {
+        title: "세션별 토큰 사용량",
+        lines: [
+          "도넛 차트로 세션별 토큰 소비량을 한눈에 비교해요.",
+          "세션을 클릭하면 상세 작업 흐름으로 이동해요.",
+        ],
+      },
+      {
+        title: "기타 데이터",
+        lines: [
+          "모델 사용량(Opus·Sonnet·Haiku)과 에러 유형 분포를 바 차트로 확인해요.",
+        ],
+      },
+      {
+        title: "세션 흐름 그래프",
+        lines: [
+          "세션을 노드로 시각화해요. 색상이 품질 점수를 나타내요(초록=정상, 노랑=복잡, 빨강=에러).",
+          "노드를 클릭하면 사용자 명령어·AI 작업·채팅 내역을 타임라인으로 볼 수 있어요.",
+        ],
+      },
+    ],
+  },
+];
+
+const CLI_STEPS = [
+  { step: "1", title: "CLI 설치", code: "npm install -g @votra/cli" },
+  { step: "2", title: "로그인", code: "votra signin" },
+  { step: "3", title: "세션 실시간 업로드", code: "votra upload --project --watch" },
+] as const;
+
+const CLI_COMMANDS = [
+  {
+    cmd: "votra signin",
+    desc: "브라우저 OAuth로 로그인",
+    usage: "votra signin [url] [--port <n>] [--no-open]",
+  },
+  {
+    cmd: "votra whoami",
+    desc: "현재 로그인 계정 확인",
+    usage: "votra whoami",
+  },
+  {
+    cmd: "votra signout",
+    desc: "로그아웃 및 인증 정보 삭제",
+    usage: "votra signout",
+  },
+  {
+    cmd: "votra upload",
+    desc: "--watch로 세션 실시간 동기화",
+    usage: "votra upload [file] [-w] [-p [path]] [--no-claude-files]",
+  },
+  {
+    cmd: "votra inspect",
+    desc: "이벤트·토큰·타입 분포 분석",
+    usage: "votra inspect [file] [-t <type>] [-l <n>] [--raw]",
+  },
+  {
+    cmd: "votra replay",
+    desc: "세션을 정적 HTML 리플레이로 생성",
+    usage: "votra replay [file] [-o <path>] [-w] [-p [path]] [-s [port]]",
+  },
+  {
+    cmd: "votra claude-files",
+    desc: "CLAUDE.md·AGENTS.md·SKILL.md 업로드",
+    usage: "votra claude-files [-p <path>]",
+  },
+] as const;
+
+function GuidePane() {
+  return (
+    <div className="flex flex-col gap-12">
+      <header>
+        <h2 className="text-lg font-semibold">안내</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          votra는 AI 에이전트 세션을 팀과 함께 분석하고 관리하는 도구예요.
+        </p>
+      </header>
+
+      {/* 서비스 사용 방법 */}
+      <section className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold">서비스 사용 방법</h3>
+        <div className="flex flex-col gap-10">
+          {SERVICE_FEATURES.map((tab) => {
+            const TabIcon = tab.icon;
+            return (
+              <div key={tab.name} className="flex flex-col gap-4">
+                {/* 탭 제목 + 한 줄 설명 */}
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <TabIcon className="size-4" />
+                    <span className="text-sm font-semibold">{tab.name}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{tab.desc}</p>
+                </div>
+
+                {/* 스크린샷만 박스에 */}
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <img
+                    src={tab.screenshot}
+                    alt={`${tab.name} 화면`}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* 세부 기능 목록 — 박스 없음 */}
+                <div className="flex flex-col gap-4">
+                  {tab.features.map((feat) => (
+                    <div key={feat.title}>
+                      <p className="text-xs font-semibold">{feat.title}</p>
+                      <div className="mt-1 flex flex-col gap-0.5">
+                        {feat.lines.map((line, i) => (
+                          <p key={i} className="text-[11px] leading-relaxed text-muted-foreground">
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* CLI 연동 방법 */}
+      <section className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold">CLI 연동 방법</h3>
+        <p className="text-xs text-muted-foreground">
+          votra CLI를 설치하면 AI 에이전트 세션이 자동으로 웹 대시보드에 올라가요.
+        </p>
+        <ol className="flex flex-col gap-2">
+          {CLI_STEPS.map(({ step, title, code }) => (
+            <li key={step} className="flex items-center gap-3">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
+                {step}
+              </span>
+              <span className="w-28 shrink-0 text-xs font-medium">{title}</span>
+              <code className="flex-1 rounded bg-[#F0EDE8] px-2 py-1 font-mono text-xs text-foreground">
+                {code}
+              </code>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* CLI 명령어 모음 */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <Terminal className="size-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold">CLI 명령어 모음</h3>
+        </div>
+        <div className="overflow-hidden rounded-lg border border-border">
+          {CLI_COMMANDS.map(({ cmd, desc, usage }, i) => (
+            <div
+              key={cmd}
+              className={cn(
+                "flex flex-col gap-1 px-4 py-3",
+                i !== 0 && "border-t border-border",
+              )}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <code className="font-mono text-xs font-semibold text-foreground">
+                  {cmd}
+                </code>
+                <span className="text-right text-xs text-muted-foreground">
+                  {desc}
+                </span>
+              </div>
+              <code className="font-mono text-[11px] text-muted-foreground/70">
+                {usage}
+              </code>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
