@@ -15,13 +15,6 @@ datasource db {
 // ENUMS
 // ────────────────────────────────────────────
 
-enum AgentSource {
-  CLAUDE
-  CURSOR
-  CODEX
-  // 추후 확장
-}
-
 enum ProjectRole {
   OWNER
   VIEWER
@@ -201,8 +194,8 @@ model ProjectMember {
 // ────────────────────────────────────────────
 
 model ProjectAgent {
-  id     String      @id @default(cuid())
-  source AgentSource
+  id     String @id @default(cuid())
+  source String
   // agent별 부가 정보 (model명, version 등)
   // e.g. { "model": "claude-opus-4-5", "version": "..." }
   meta   Json?
@@ -221,7 +214,7 @@ model ProjectAgent {
 model Session {
   id        String      @id @default(cuid())
   title     String?
-  source    AgentSource
+  source    String
   model     String // e.g. "claude-opus-4-5", "claude-sonnet-4-5"
   startedAt DateTime?
   endedAt   DateTime?

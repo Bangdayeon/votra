@@ -11,8 +11,6 @@ import type { RawEvent } from "@/domain/session/types";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
-const VALID_AGENTS = new Set<AgentKind>(["CLAUDE", "CODEX", "CURSOR"]);
-
 export async function POST(req: Request) {
   let raw: unknown;
   try {
@@ -91,10 +89,10 @@ function parseIngestBody(raw: unknown): ParsedBody {
   }
   let agent: AgentKind | undefined;
   if (raw.agent !== undefined) {
-    if (typeof raw.agent !== "string" || !VALID_AGENTS.has(raw.agent as AgentKind)) {
-      return { ok: false, error: `agent 값이 유효하지 않아요. (CLAUDE, CODEX, CURSOR 중 하나)` };
+    if (typeof raw.agent !== "string" || raw.agent.length === 0) {
+      return { ok: false, error: "agent 값이 비어있거나 문자열이 아니에요." };
     }
-    agent = raw.agent as AgentKind;
+    agent = raw.agent;
   }
   return { ok: true, source, sessions, agent };
 }

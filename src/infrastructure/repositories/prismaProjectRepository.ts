@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma, type AgentSource } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import type {
   IngestEventInput,
@@ -47,7 +47,7 @@ export const prismaProjectRepository: ProjectRepository = {
   },
 
   create: async (data) => {
-    const source = data.agent as AgentSource;
+    const source = data.agent;
     const project = await prisma.project.create({
       data: {
         title: data.title,
@@ -193,7 +193,7 @@ export const prismaProjectRepository: ProjectRepository = {
         title,
         ownerId,
         cwd,
-        agents: { create: [{ source: agent as AgentSource }] },
+        agents: { create: [{ source: agent }] },
       },
       select: { id: true, ownerId: true },
     });
@@ -201,7 +201,7 @@ export const prismaProjectRepository: ProjectRepository = {
   },
 
   upsertIngestSession: async ({ projectId, agent, session }) => {
-    const source = agent as AgentSource;
+    const source = agent;
     const row = await prisma.session.upsert({
       where: {
         projectId_externalId: { projectId, externalId: session.externalId },

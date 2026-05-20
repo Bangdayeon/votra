@@ -1,9 +1,7 @@
 import type { Session } from "@/domain/session/types";
 
-/**
- * DB 의 AgentSource enum 과 동일 값. 새 agent 추가 시 schema enum + 여기 + 어댑터 등록.
- */
-export type AgentKind = "CLAUDE" | "CURSOR" | "CODEX";
+/** 알려진 agent 식별자. 새 agent 추가 시 여기와 어댑터 등록만 하면 됨. */
+export type AgentKind = string;
 
 /**
  * 업로드된 폴더 한 파일을 추상화한 형태.
