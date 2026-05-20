@@ -32,6 +32,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
+      toastOptions={{ style: { width: "auto", maxWidth: "420px" } }}
       {...props}
     />
   )

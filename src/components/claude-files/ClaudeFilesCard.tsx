@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { listClaudeFilesAction } from "@/app/actions/listClaudeFiles";
 import { listPolicyRulesAction } from "@/app/actions/listPolicyRules";
+import { reevaluateClaudeFileAction } from "@/app/actions/reevaluateClaudeFile";
 import { reevaluateErrorClaudeFilesAction } from "@/app/actions/reevaluateErrorClaudeFiles";
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
@@ -108,6 +109,15 @@ export function ClaudeFilesCard({ selected }: { selected: Project }) {
             records={state.records}
             cwd={selected.cwd}
             rules={state.rules}
+            onReeval={async (absPath) => {
+              await reevaluateClaudeFileAction(selected.id, absPath);
+              const files = await listClaudeFilesAction(selected.id);
+              setState((prev) =>
+                prev.kind === "ready"
+                  ? { ...prev, records: files.records, criteria: files.criteria }
+                  : prev,
+              );
+            }}
           />
         </div>
       )}

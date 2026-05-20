@@ -2,7 +2,10 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 
-import type { ProjectAiNextTaskRepository } from "@/application/ports/projectAiNextTaskRepository";
+import type {
+  NextTask,
+  ProjectAiNextTaskRepository,
+} from "@/application/ports/projectAiNextTaskRepository";
 import { prisma } from "@/infrastructure/db/prisma";
 
 export const prismaProjectAiNextTaskRepository: ProjectAiNextTaskRepository = {
@@ -32,7 +35,20 @@ export const prismaProjectAiNextTaskRepository: ProjectAiNextTaskRepository = {
   },
 };
 
-function parseTasks(raw: unknown): string[] {
+function parseTasks(raw: unknown): NextTask[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter((t): t is string => typeof t === "string" && t.trim().length > 0);
+  return raw.filter(isNextTask);
+}
+
+function isNextTask(v: unknown): v is NextTask {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return false;
+  const r = v as Record<string, unknown>;
+  // backward compat: old string[] storage
+  if (typeof r === "string") return false;
+  return (
+    typeof r.title === "string" &&
+    typeof r.reason === "string" &&
+    (r.priority === "high" || r.priority === "medium" || r.priority === "low") &&
+    typeof r.agentCommand === "string"
+  );
 }

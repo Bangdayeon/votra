@@ -1,0 +1,101 @@
+import { createHash } from "node:crypto";
+
+import { ensureProjectGuideline } from "@/application/ensureProjectGuideline";
+import { evaluateClaudeFile } from "@/application/evaluateClaudeFile";
+import type {
+  ClaudeFileEvaluationRepository,
+  ClaudeFileEvaluationUpsert,
+} from "@/application/ports/claudeFileEvaluationRepository";
+import type { ClaudeFileRepository } from "@/application/ports/claudeFileRepository";
+import type { LlmClient } from "@/application/ports/llmClient";
+import type { PolicyRuleRepository } from "@/application/ports/policyRuleRepository";
+import type { ProjectRepository } from "@/application/ports/projectRepository";
+import type { EvaluationCriteria } from "@/domain/claudeFiles/types";
+import { buildDefaultGuideline } from "@/domain/policy/buildDefaultGuideline";
+
+type GlobalPolicy = { text: string; fileContent: string | null } | null;
+
+export async function reevaluateClaudeFile(
+  projectId: string,
+  absPath: string,
+  deps: {
+    claudeFiles: ClaudeFileRepository;
+    evaluations: ClaudeFileEvaluationRepository;
+    projects: ProjectRepository;
+    policyRules: PolicyRuleRepository;
+    llm: LlmClient;
+  },
+): Promise<void> {
+  const [files, projectSettings, rules, globalPolicy] = await Promise.all([
+    deps.claudeFiles.findByProject(projectId),
+    deps.projects.findSettings(projectId),
+    deps.policyRules.list(),
+    deps.projects.findOwnerAiPolicy(projectId),
+  ]);
+
+  const file = files.find((f) => f.absPath === absPath);
+  if (!file) return;
+
+  const guideline = await ensureProjectGuideline(
+    projectId,
+    projectSettings.aiSpecGuideline,
+    deps,
+  );
+  const defaultGuideline = buildDefaultGuideline(rules);
+  const criteria: EvaluationCriteria = {
+    basic: true,
+    project: guideline.trim() !== defaultGuideline.trim(),
+    team: globalPolicy !== null,
+  };
+  const globalPolicyHash = hashPolicy(globalPolicy);
+  const now = Date.now();
+
+  let upsert: ClaudeFileEvaluationUpsert;
+  try {
+    const result = await evaluateClaudeFile(
+      {
+        file: { displayPath: file.displayPath, content: file.content },
+        guideline,
+        rules,
+        globalPolicy,
+      },
+      { llm: deps.llm },
+    );
+    upsert = {
+      projectId,
+      absPath,
+      status: "DONE",
+      severity: result.severity,
+      errorMessage: null,
+      aiReason: result.reason,
+      scores: result.scores,
+      criteria,
+      globalPolicyHash,
+      globalPolicyViolation: result.globalPolicyViolation,
+      evaluatedAt: now,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "평가에 실패했어요.";
+    upsert = {
+      projectId,
+      absPath,
+      status: "ERROR",
+      severity: null,
+      errorMessage: message,
+      aiReason: null,
+      scores: null,
+      criteria,
+      globalPolicyHash,
+      globalPolicyViolation: null,
+      evaluatedAt: now,
+    };
+  }
+
+  await deps.evaluations.upsertMany([upsert]);
+}
+
+function hashPolicy(policy: GlobalPolicy): string | null {
+  if (!policy) return null;
+  const input = `${policy.text}${policy.fileContent ?? ""}`;
+  return createHash("sha256").update(input).digest("hex").slice(0, 32);
+}

@@ -1,7 +1,10 @@
-import type { ProjectAiNextTaskRepository } from "@/application/ports/projectAiNextTaskRepository";
+import type {
+  NextTask,
+  ProjectAiNextTaskRepository,
+} from "@/application/ports/projectAiNextTaskRepository";
 
 export type CachedProjectNextTasks = {
-  tasks: string[];
+  tasks: NextTask[];
   refreshedAt: string;
 } | null;
 

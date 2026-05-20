@@ -1,13 +1,16 @@
 import { getProjectNextTasks } from "@/application/getProjectNextTasks";
 import type { LlmClient } from "@/application/ports/llmClient";
-import type { ProjectAiNextTaskRepository } from "@/application/ports/projectAiNextTaskRepository";
+import type {
+  NextTask,
+  ProjectAiNextTaskRepository,
+} from "@/application/ports/projectAiNextTaskRepository";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
 import type { SessionRepository } from "@/application/ports/sessionRepository";
 import { buildParsedSession } from "@/domain/session/buildParsedSession";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 
 export type RefreshedProjectNextTasks = {
-  tasks: string[];
+  tasks: NextTask[];
   refreshedAt: string;
 };
 

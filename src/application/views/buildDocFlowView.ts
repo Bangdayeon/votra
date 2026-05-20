@@ -10,9 +10,11 @@ export type DocFlowView = {
   }[];
 };
 
+const DOC_CONTENT_MAX = 3_000;
+
 /**
  * AI 지시 문서 흐름 진단 기능용 뷰.
- * 문서 전체 내용과 세션별 날짜·intentHint·수정파일 타임라인을 반환한다.
+ * 문서 내용은 3,000자로 잘라 토큰 과다 사용을 방지한다.
  * 세션은 오래된 순 정렬 후 최근 20개로 제한한다.
  */
 export function buildDocFlowView(
@@ -32,7 +34,10 @@ export function buildDocFlowView(
     docs: docs.map((d) => ({
       filePath: d.filePath,
       lastModified: d.lastModified,
-      content: d.content,
+      content:
+        d.content.length > DOC_CONTENT_MAX
+          ? d.content.slice(0, DOC_CONTENT_MAX) + "\n…(truncated)"
+          : d.content,
     })),
     sessionTimeline,
   };

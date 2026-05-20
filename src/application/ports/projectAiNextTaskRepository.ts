@@ -1,11 +1,18 @@
+export type NextTask = {
+  title: string;
+  reason: string;
+  priority: "high" | "medium" | "low";
+  agentCommand: string;
+};
+
 export type ProjectAiNextTaskRecord = {
-  tasks: string[];
+  tasks: NextTask[];
   refreshedAt: Date;
 };
 
 export type ProjectAiNextTaskUpsertInput = {
   projectId: string;
-  tasks: string[];
+  tasks: NextTask[];
 };
 
 export type ProjectAiNextTaskRepository = {

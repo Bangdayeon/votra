@@ -5,6 +5,8 @@ import { DEFAULT_AGENT_CONTEXT_FLOW_PROMPT } from "@/domain/project/settings/def
 import { parseDoc } from "@/domain/doc/parseDoc";
 import type { ParsedSession } from "@/domain/session/types";
 
+const DOC_CONTENT_MAX = 3_000;
+
 type RunInput = {
   teamPolicy: string;
   projectPolicy: string;
@@ -40,7 +42,7 @@ function fillTemplate(template: string, input: RunInput): string {
   return template
     .replace("{{team_policy}}", formatPolicy(input.teamPolicy))
     .replace("{{project_policy}}", formatPolicy(input.projectPolicy))
-    .replace("{{context_files}}", formatContextFiles(input.contextFiles))
+    .replace("{{context_files}}", formatContextFiles(input.contextFiles, input.parsedSessions))
     .replace("{{session_stats}}", formatSessionStats(input.parsedSessions))
     .replace("{{conversation_patterns}}", JSON.stringify(flowView, null, 2));
 }
@@ -49,10 +51,34 @@ function formatPolicy(text: string): string {
   return text.trim() || "(정책 없음)";
 }
 
-function formatContextFiles(files: ClaudeFileRow[]): string {
+function formatContextFiles(files: ClaudeFileRow[], sessions: ParsedSession[]): string {
   if (files.length === 0) return "(파일 없음)";
-  return files
-    .map((f) => `### ${f.displayPath} (${f.kind}, ${f.scope})\n${f.content}`)
+
+  // 최근 10개 세션에서 수정된 파일 경로 수집
+  const recentFilePaths = new Set(
+    [...sessions]
+      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
+      .slice(0, 10)
+      .flatMap((s) => s.filesModified),
+  );
+
+  // global·project-root는 항상 포함, subdir는 최근 세션에서 다룬 파일만 포함
+  const relevant = files.filter(
+    (f) =>
+      f.scope === "global" ||
+      f.scope === "project-root" ||
+      recentFilePaths.has(f.displayPath),
+  );
+  const toFormat = relevant.length > 0 ? relevant : files;
+
+  return toFormat
+    .map((f) => {
+      const content =
+        f.content.length > DOC_CONTENT_MAX
+          ? f.content.slice(0, DOC_CONTENT_MAX) + "\n…(truncated)"
+          : f.content;
+      return `### ${f.displayPath} (${f.kind}, ${f.scope})\n${content}`;
+    })
     .join("\n\n---\n\n");
 }
 

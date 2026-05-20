@@ -8,6 +8,8 @@ import {
   FileText,
   Folder,
   FolderOpen,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -31,9 +33,7 @@ const SCOPE_LABEL: Record<ClaudeFileScope, string> = {
 };
 
 type TreeNode = {
-  /** path segment name 또는 파일명 */
   name: string;
-  /** 파일 노드면 record, 폴더면 undefined */
   record?: ClaudeFileRecord;
   children: TreeNode[];
 };
@@ -49,10 +49,12 @@ export function ClaudeFilesTree({
   records,
   cwd,
   rules,
+  onReeval,
 }: {
   records: ClaudeFileRecord[];
   cwd?: string;
   rules: PolicyRule[];
+  onReeval?: (absPath: string) => Promise<void>;
 }) {
   const groups = useMemo(() => buildGroups(records, cwd), [records, cwd]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -66,6 +68,7 @@ export function ClaudeFilesTree({
           rules={rules}
           selectedPath={selectedPath}
           onSelect={(p) => setSelectedPath((cur) => (cur === p ? null : p))}
+          onReeval={onReeval}
         />
       ))}
     </ul>
@@ -77,11 +80,13 @@ function ScopeBlock({
   rules,
   selectedPath,
   onSelect,
+  onReeval,
 }: {
   group: ScopeGroup;
   rules: PolicyRule[];
   selectedPath: string | null;
   onSelect: (p: string) => void;
+  onReeval?: (absPath: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(true);
   const Chevron = open ? ChevronDown : ChevronRight;
@@ -122,6 +127,7 @@ function ScopeBlock({
                 rules={rules}
                 selectedPath={selectedPath}
                 onSelect={onSelect}
+                onReeval={onReeval}
               />
             ))
           )}
@@ -137,15 +143,18 @@ function TreeItem({
   rules,
   selectedPath,
   onSelect,
+  onReeval,
 }: {
   node: TreeNode;
   depth: number;
   rules: PolicyRule[];
   selectedPath: string | null;
   onSelect: (p: string) => void;
+  onReeval?: (absPath: string) => Promise<void>;
 }) {
   const hasChildren = node.children.length > 0;
   const [open, setOpen] = useState(true);
+  const [reevalLoading, setReevalLoading] = useState(false);
   const isFile = !!node.record;
   const isSelected = isFile && selectedPath === node.record!.absPath;
 
@@ -153,28 +162,74 @@ function TreeItem({
   const Icon = isFile ? FileText : open && hasChildren ? FolderOpen : Folder;
   const iconColor = isFile ? "text-muted-foreground" : "text-sky-500";
 
+  const handleReeval = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!node.record || reevalLoading || !onReeval) return;
+    setReevalLoading(true);
+    try {
+      await onReeval(node.record.absPath);
+      toast.success("재평가가 완료됐어요.");
+    } catch {
+      toast.error("재평가에 실패했어요.");
+    } finally {
+      setReevalLoading(false);
+    }
+  };
+
   return (
     <li>
-      <button
-        type="button"
-        onClick={() => {
-          if (isFile) onSelect(node.record!.absPath);
-          else if (hasChildren) setOpen((v) => !v);
-        }}
-        className={cn(ROW, isSelected && "bg-accent")}
-        style={{ paddingLeft: depth * INDENT_PX + 4 }}
-      >
-        {hasChildren && !isFile ? (
-          <Chevron className="size-3 shrink-0 text-muted-foreground" />
-        ) : (
-          <span className="w-3 shrink-0" />
-        )}
-        <Icon className={cn("size-4 shrink-0", iconColor)} />
-        <span className="truncate text-foreground">{node.name}</span>
-        {isFile && (
-          <ClaudeFileSeverityBadge evaluation={node.record!.evaluation} />
-        )}
-      </button>
+      {isFile ? (
+        <div
+          className={cn(
+            "flex w-full items-center rounded pr-1 text-sm hover:bg-accent",
+            isSelected && "bg-accent",
+          )}
+          style={{ paddingLeft: depth * INDENT_PX + 4 }}
+        >
+          <button
+            type="button"
+            onClick={() => onSelect(node.record!.absPath)}
+            className="flex min-w-0 flex-1 items-center gap-1 py-0.5"
+          >
+            <span className="w-3 shrink-0" />
+            <Icon className={cn("size-4 shrink-0", iconColor)} />
+            <span className="truncate text-foreground">{node.name}</span>
+            <ClaudeFileSeverityBadge evaluation={node.record!.evaluation} />
+          </button>
+          {onReeval && (
+            <button
+              type="button"
+              onClick={handleReeval}
+              disabled={reevalLoading}
+              title="재평가"
+              className="ml-1 shrink-0 cursor-pointer rounded border border-[#E4E2DD] px-1.5 py-1 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed"
+            >
+              {reevalLoading ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <RefreshCw className="size-3" />
+              )}
+            </button>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            if (hasChildren) setOpen((v) => !v);
+          }}
+          className={cn(ROW)}
+          style={{ paddingLeft: depth * INDENT_PX + 4 }}
+        >
+          {hasChildren ? (
+            <Chevron className="size-3 shrink-0 text-muted-foreground" />
+          ) : (
+            <span className="w-3 shrink-0" />
+          )}
+          <Icon className={cn("size-4 shrink-0", iconColor)} />
+          <span className="truncate text-foreground">{node.name}</span>
+        </button>
+      )}
 
       {isFile && isSelected && (
         <ScoreBreakdown
@@ -194,6 +249,7 @@ function TreeItem({
               rules={rules}
               selectedPath={selectedPath}
               onSelect={onSelect}
+              onReeval={onReeval}
             />
           ))}
         </ul>
@@ -386,7 +442,7 @@ function sortTree(node: TreeNode): void {
   node.children.sort((a, b) => {
     const aLeaf = !!a.record;
     const bLeaf = !!b.record;
-    if (aLeaf !== bLeaf) return aLeaf ? 1 : -1; // 폴더 먼저
+    if (aLeaf !== bLeaf) return aLeaf ? 1 : -1;
     return a.name.localeCompare(b.name);
   });
   for (const c of node.children) sortTree(c);
