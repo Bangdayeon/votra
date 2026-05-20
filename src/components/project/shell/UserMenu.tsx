@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import { CircleUserRound, LogOut, MoreHorizontal, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { signOutAction } from "@/app/actions/signOut";
 import { updateProfileAppearanceAction } from "@/app/actions/updateProfileAppearance";
-import { AccountSettingsDialog } from "@/components/project/shell/AccountSettingsDialog";
 import { useCurrentUser } from "@/components/project/shell/CurrentUserContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -208,8 +208,8 @@ function AccountMenu({
 }
 
 export function UserMenu({ compact = false }: { compact?: boolean }) {
+  const router = useRouter();
   const user = useCurrentUser();
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const displayName = user.name ?? user.email.split("@")[0];
   const fallbackChar = displayName.charAt(0) || "?";
@@ -232,87 +232,75 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
 
   if (compact) {
     return (
-      <>
-        <Popover>
-          <PopoverTrigger asChild>{avatarTrigger}</PopoverTrigger>
-          <PopoverContent side="right" align="end" className="w-64">
-            <AppearancePicker
-              currentColor={user.profileColor}
-              currentImage={user.profileImage}
-            />
-            <div className="mt-4 flex flex-col gap-1 border-t border-border pt-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setSettingsOpen(true)}
-                className="w-full justify-start gap-2"
-              >
-                <Settings className="size-4" />
-                설정
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={async () => {
-                  await signOutAction();
-                }}
-                className="w-full justify-start gap-2 text-destructive hover:text-destructive"
-              >
-                <LogOut className="size-4" />
-                로그아웃
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-        <AccountSettingsDialog
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-        />
-      </>
+      <Popover>
+        <PopoverTrigger asChild>{avatarTrigger}</PopoverTrigger>
+        <PopoverContent side="right" align="end" className="w-64">
+          <AppearancePicker
+            currentColor={user.profileColor}
+            currentImage={user.profileImage}
+          />
+          <div className="mt-4 flex flex-col gap-1 border-t border-border pt-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/account")}
+              className="w-full justify-start gap-2"
+            >
+              <Settings className="size-4" />
+              설정
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await signOutAction();
+              }}
+              className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+            >
+              <LogOut className="size-4" />
+              로그아웃
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
     );
   }
 
   return (
-    <>
-      <div className="flex items-center gap-2">
-        <Popover>
-          <PopoverTrigger asChild>{avatarTrigger}</PopoverTrigger>
-          <PopoverContent side="top" align="start" className="w-64">
-            <AppearancePicker
-              currentColor={user.profileColor}
-              currentImage={user.profileImage}
-            />
-          </PopoverContent>
-        </Popover>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-medium">{displayName}</span>
-          <span className="truncate text-xs text-muted-foreground">
-            {user.email}
-          </span>
-        </div>
-        <AccountMenu
-          align="end"
-          side="top"
-          onOpenSettings={() => setSettingsOpen(true)}
-          trigger={
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              title="계정 메뉴"
-              aria-label="계정 메뉴 열기"
-            >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          }
-        />
+    <div className="flex items-center gap-2">
+      <Popover>
+        <PopoverTrigger asChild>{avatarTrigger}</PopoverTrigger>
+        <PopoverContent side="top" align="start" className="w-64">
+          <AppearancePicker
+            currentColor={user.profileColor}
+            currentImage={user.profileImage}
+          />
+        </PopoverContent>
+      </Popover>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-sm font-medium">{displayName}</span>
+        <span className="truncate text-xs text-muted-foreground">
+          {user.email}
+        </span>
       </div>
-      <AccountSettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
+      <AccountMenu
+        align="end"
+        side="top"
+        onOpenSettings={() => router.push("/account")}
+        trigger={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            title="계정 메뉴"
+            aria-label="계정 메뉴 열기"
+          >
+            <MoreHorizontal className="size-4" />
+          </Button>
+        }
       />
-    </>
+    </div>
   );
 }

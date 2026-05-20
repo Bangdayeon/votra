@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  BarChart3,
   BookOpen,
   Bot,
   Clock,
@@ -13,7 +12,7 @@ import {
   Terminal,
   UserCog,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -25,13 +24,6 @@ import { updateUserNameAction } from "@/app/actions/updateUserName";
 import { AiSpecPolicyFields } from "@/components/aiSpec/AiSpecPolicyFields";
 import { useCurrentUser } from "@/components/project/shell/CurrentUserContext";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   buildAiSpecPolicyPatch,
   type AiSpecFileChange,
@@ -46,75 +38,61 @@ const MENU: { key: MenuKey; label: string; icon: React.ElementType }[] = [
   { key: "guide", label: "안내", icon: BookOpen },
 ];
 
-export function AccountSettingsDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (next: boolean) => void;
-}) {
-  const [active, setActive] = useState<MenuKey>("account");
+export function AccountSettingsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const active: MenuKey =
+    rawTab === "policy" ? "policy" : rawTab === "guide" ? "guide" : "account";
 
-  useEffect(() => {
-    if (open) setActive("account");
-  }, [open]);
+  const setActive = (key: MenuKey) => {
+    router.replace(`/account?tab=${key}`);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="overflow-hidden p-0 sm:max-w-3xl"
-        style={{ width: "min(900px, calc(100vw - 2rem))" }}
-      >
-        <DialogHeader className="sr-only">
-          <DialogTitle>설정</DialogTitle>
-          <DialogDescription>
-            계정 설정과 전체 정책을 관리해요.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="flex h-full min-h-0">
+      <nav className="flex w-[220px] shrink-0 flex-col gap-1 border-r border-border bg-[#F7F6F3] p-3">
+        <h2 className="px-2 pb-2 text-sm font-medium text-muted-foreground">
+          설정
+        </h2>
+        {MENU.map((m) => {
+          const Icon = m.icon;
+          const selected = m.key === active;
+          return (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => setActive(m.key)}
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors",
+                selected
+                  ? "bg-foreground text-background"
+                  : "text-foreground hover:bg-[#EBE9E4]",
+              )}
+            >
+              <Icon className="size-4" />
+              {m.label}
+            </button>
+          );
+        })}
+      </nav>
 
-        <div className="grid h-[560px] grid-cols-[200px_1fr]">
-          <nav className="flex flex-col gap-1 border-r border-border bg-[#F7F6F3] p-3">
-            <h2 className="px-2 pb-2 text-xs font-medium text-muted-foreground">
-              설정
-            </h2>
-            {MENU.map((m) => {
-              const Icon = m.icon;
-              const selected = m.key === active;
-              return (
-                <button
-                  key={m.key}
-                  type="button"
-                  onClick={() => setActive(m.key)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors",
-                    selected
-                      ? "bg-foreground text-background"
-                      : "text-foreground hover:bg-[#EBE9E4]",
-                  )}
-                >
-                  <Icon className="size-4" />
-                  {m.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="custom-scrollbar overflow-y-auto px-6 pt-6 pb-8">
-            {active === "account" ? (
-              <AccountPane onClose={() => onOpenChange(false)} />
-            ) : active === "policy" ? (
-              <PolicyPane />
-            ) : (
-              <GuidePane />
-            )}
-          </div>
+      <div className="custom-scrollbar flex-1 overflow-y-auto px-8 pt-8 pb-12">
+        <div className="mx-auto w-full max-w-2xl">
+          {active === "account" ? (
+            <AccountPane />
+          ) : active === "policy" ? (
+            <PolicyPane />
+          ) : (
+            <GuidePane />
+          )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
 
-function AccountPane({ onClose }: { onClose: () => void }) {
+function AccountPane() {
   const router = useRouter();
   const user = useCurrentUser();
   const [name, setName] = useState(user.name ?? "");
@@ -154,24 +132,23 @@ function AccountPane({ onClose }: { onClose: () => void }) {
       }
       toast.success("계정이 초기화됐어요.");
       setConfirmReset(false);
-      onClose();
-      router.refresh();
+      router.push("/");
     });
   };
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <header>
-        <h2 className="text-lg font-semibold">계정 설정</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="text-xl font-semibold">계정 설정</h2>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           아이디·로그아웃·계정 초기화를 관리해요.
         </p>
       </header>
 
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="text-sm font-medium">아이디 변경</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <h3 className="text-base font-medium">아이디 변경</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             표시 이름(유저네임)을 변경할 수 있어요. 2–32자, 한글·영문·숫자와
             <code className="mx-1">._-</code>를 쓸 수 있어요.
           </p>
@@ -185,7 +162,7 @@ function AccountPane({ onClose }: { onClose: () => void }) {
             maxLength={32}
             onChange={(e) => setName(e.target.value)}
             className={cn(
-              "h-9 flex-1 rounded-md border border-[#E4E2DD] bg-white px-3 text-sm",
+              "h-10 flex-1 rounded-md border border-[#E4E2DD] bg-white px-3 text-sm",
               "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
               "disabled:cursor-not-allowed disabled:opacity-50",
             )}
@@ -202,8 +179,8 @@ function AccountPane({ onClose }: { onClose: () => void }) {
 
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="text-sm font-medium">로그아웃</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <h3 className="text-base font-medium">로그아웃</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             현재 브라우저에서 로그아웃해요.
           </p>
         </div>
@@ -221,8 +198,8 @@ function AccountPane({ onClose }: { onClose: () => void }) {
 
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="text-sm font-medium text-destructive">계정 초기화</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <h3 className="text-base font-medium text-destructive">계정 초기화</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             계정은 유지하되, 등록한 프로젝트와 세션, 정책, 프로필 설정을 모두
             지워요. 되돌릴 수 없어요.
           </p>
@@ -320,16 +297,12 @@ function PolicyPane() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <header>
-        <h2 className="text-lg font-semibold">전체 정책</h2>
+        <h2 className="text-xl font-semibold">전체 정책</h2>
         <span className="mt-2 text-sm text-muted-foreground">
-          <p>
-            모든 프로젝트에 공통으로 적용할 AI 활용 정책을 적어주세요.
-          </p>
-          <p>
-            ex. 보안·민감 정보 처리 기준 등
-          </p>
+          <p>모든 프로젝트에 공통으로 적용할 AI 활용 정책을 적어주세요.</p>
+          <p>ex. 보안·민감 정보 처리 기준 등</p>
         </span>
       </header>
 
@@ -356,7 +329,7 @@ function PolicyPane() {
         )}
       </div>
 
-      <div className="mt-auto flex justify-end py-4">
+      <div className="flex justify-end">
         <Button
           type="button"
           onClick={onSave}
@@ -498,30 +471,26 @@ function GuidePane() {
   return (
     <div className="flex flex-col gap-12">
       <header>
-        <h2 className="text-lg font-semibold">안내</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="text-xl font-semibold">안내</h2>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           votra는 AI 에이전트 세션을 팀과 함께 분석하고 관리하는 도구예요.
         </p>
       </header>
 
-      {/* 서비스 사용 방법 */}
       <section className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold">서비스 사용 방법</h3>
+        <h3 className="text-base font-semibold">서비스 사용 방법</h3>
         <div className="flex flex-col gap-10">
           {SERVICE_FEATURES.map((tab) => {
             const TabIcon = tab.icon;
             return (
               <div key={tab.name} className="flex flex-col gap-4">
-                {/* 탭 제목 + 한 줄 설명 */}
                 <div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <TabIcon className="size-4" />
                     <span className="text-sm font-semibold">{tab.name}</span>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{tab.desc}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{tab.desc}</p>
                 </div>
-
-                {/* 스크린샷만 박스에 */}
                 <div className="overflow-hidden rounded-lg border border-border">
                   <img
                     src={tab.screenshot}
@@ -529,15 +498,16 @@ function GuidePane() {
                     className="w-full"
                   />
                 </div>
-
-                {/* 세부 기능 목록 — 박스 없음 */}
                 <div className="flex flex-col gap-4">
                   {tab.features.map((feat) => (
                     <div key={feat.title}>
-                      <p className="text-xs font-semibold">{feat.title}</p>
-                      <div className="mt-1 flex flex-col gap-0.5">
+                      <p className="text-sm font-semibold">{feat.title}</p>
+                      <div className="mt-1 flex flex-col gap-1">
                         {feat.lines.map((line, i) => (
-                          <p key={i} className="text-[11px] leading-relaxed text-muted-foreground">
+                          <p
+                            key={i}
+                            className="text-sm leading-relaxed text-muted-foreground"
+                          >
                             {line}
                           </p>
                         ))}
@@ -551,20 +521,19 @@ function GuidePane() {
         </div>
       </section>
 
-      {/* CLI 연동 방법 */}
       <section className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold">CLI 연동 방법</h3>
-        <p className="text-xs text-muted-foreground">
+        <h3 className="text-base font-semibold">CLI 연동 방법</h3>
+        <p className="text-sm text-muted-foreground">
           votra CLI를 설치하면 AI 에이전트 세션이 자동으로 웹 대시보드에 올라가요.
         </p>
         <ol className="flex flex-col gap-2">
           {CLI_STEPS.map(({ step, title, code }) => (
             <li key={step} className="flex items-center gap-3">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
                 {step}
               </span>
-              <span className="w-28 shrink-0 text-xs font-medium">{title}</span>
-              <code className="flex-1 rounded bg-[#F0EDE8] px-2 py-1 font-mono text-xs text-foreground">
+              <span className="w-28 shrink-0 text-sm font-medium">{title}</span>
+              <code className="flex-1 rounded bg-[#F0EDE8] px-3 py-1.5 font-mono text-sm text-foreground">
                 {code}
               </code>
             </li>
@@ -572,30 +541,29 @@ function GuidePane() {
         </ol>
       </section>
 
-      {/* CLI 명령어 모음 */}
       <section className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <Terminal className="size-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">CLI 명령어 모음</h3>
+          <h3 className="text-base font-semibold">CLI 명령어 모음</h3>
         </div>
         <div className="overflow-hidden rounded-lg border border-border">
           {CLI_COMMANDS.map(({ cmd, desc, usage }, i) => (
             <div
               key={cmd}
               className={cn(
-                "flex flex-col gap-1 px-4 py-3",
+                "flex flex-col gap-1.5 px-4 py-3.5",
                 i !== 0 && "border-t border-border",
               )}
             >
               <div className="flex items-start justify-between gap-4">
-                <code className="font-mono text-xs font-semibold text-foreground">
+                <code className="font-mono text-sm font-semibold text-foreground">
                   {cmd}
                 </code>
-                <span className="text-right text-xs text-muted-foreground">
+                <span className="text-right text-sm text-muted-foreground">
                   {desc}
                 </span>
               </div>
-              <code className="font-mono text-[11px] text-muted-foreground/70">
+              <code className="font-mono text-xs text-muted-foreground/70">
                 {usage}
               </code>
             </div>
