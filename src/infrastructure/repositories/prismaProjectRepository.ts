@@ -217,6 +217,7 @@ export const prismaProjectRepository: ProjectRepository = {
         tokenUsage: { create: {} },
       },
       update: {
+        source,
         title: session.title ?? undefined,
         // model 이 null 이면 (부분 payload) 기존 값 보존
         model: session.model ?? undefined,
