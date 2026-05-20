@@ -4,7 +4,6 @@ import {
   AlertOctagon,
   ChevronDown,
   ChevronRight,
-  ClipboardCopy,
   FileText,
   Folder,
   FolderOpen,
@@ -14,6 +13,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { AgentCommandBox } from "@/components/common/AgentCommandBox";
 import { ClaudeFileSeverityBadge } from "@/components/claude-files/ClaudeFileSeverityBadge";
 import type {
   ClaudeFileRecord,
@@ -319,15 +319,6 @@ function GlobalPolicyViolationCallout({
 }: {
   violation: { problem: string; agentCommand: string };
 }) {
-  const onCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(violation.agentCommand);
-      toast.success("명령어를 복사했어요.");
-    } catch {
-      toast.error("복사하지 못했어요.");
-    }
-  };
-
   return (
     <div className="mb-2 flex flex-col gap-2 rounded border border-rose-200 bg-rose-50 p-2">
       <div className="flex items-start gap-2 text-rose-700">
@@ -339,20 +330,7 @@ function GlobalPolicyViolationCallout({
           <p className="text-[12px] leading-snug">{violation.problem}</p>
         </div>
       </div>
-      <div className="flex items-start gap-2 rounded border border-rose-200 bg-white p-2 font-mono text-[11px] leading-snug">
-        <p className="flex-1 whitespace-pre-wrap break-words text-foreground">
-          {violation.agentCommand}
-        </p>
-        <button
-          type="button"
-          onClick={onCopy}
-          aria-label="명령어 복사"
-          title="복사"
-          className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <ClipboardCopy className="size-3.5" />
-        </button>
-      </div>
+      <AgentCommandBox command={violation.agentCommand} />
     </div>
   );
 }

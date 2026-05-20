@@ -106,7 +106,7 @@ export function OverviewTab({ selected }: { selected: Project }) {
 
   useEffect(() => {
     const key = `votra-tasks-init-${selected.id}`;
-    if (!nextTasksLoading && nextTasks === null && !isInitialized(key)) {
+    if (!nextTasksLoading && (nextTasks === null || nextTasks.tasks.length === 0) && !isInitialized(key)) {
       markInitialized(key);
       void onRefreshNextTasks();
     }

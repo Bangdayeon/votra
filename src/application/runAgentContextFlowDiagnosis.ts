@@ -28,7 +28,7 @@ export async function runAgentContextFlowDiagnosis(
     system:
       "주어진 형식에 맞춰 한국어로만 응답하세요. 형식 이외의 텍스트는 출력하지 마세요.",
     prompt,
-    maxTokens: 2048,
+    maxTokens: 8192,
     responseFormat: "text",
   });
 }

@@ -1,13 +1,10 @@
 "use client";
 
-import { Copy, Check } from "lucide-react";
-import { useState } from "react";
-
 import type { ProjectAiInsightRow } from "@/application/ports/projectAiSummaryRepository";
+import { AgentCommandBox } from "@/components/common/AgentCommandBox";
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
 import { InlineMarkdown } from "@/components/common/InlineMarkdown";
-import { Button } from "@/components/ui/button";
 
 type Props = {
   summary?: string;
@@ -85,19 +82,6 @@ export function AiSummaryCard({
 }
 
 function SuggestionItem({ insight }: { insight: ProjectAiInsightRow }) {
-  const [copied, setCopied] = useState(false);
-
-  const onCopy = async () => {
-    if (!insight.agentCommand) return;
-    try {
-      await navigator.clipboard.writeText(insight.agentCommand);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // 무시
-    }
-  };
-
   return (
     <li className="flex flex-col gap-2">
       {insight.message && (
@@ -108,22 +92,8 @@ function SuggestionItem({ insight }: { insight: ProjectAiInsightRow }) {
         </ul>
       )}
       {insight.agentCommand && (
-        <div className="ml-4 rounded-md border border-[#E4E2DD] bg-[#FAFAF8] p-3">
-          <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground">
-            {insight.agentCommand}
-          </pre>
-          <div className="mt-2 flex justify-end">
-            <Button type="button" size="sm" variant="ghost" onClick={onCopy}>
-              {copied ? (
-                <Check className="size-3.5 text-green-600" />
-              ) : (
-                <Copy className="size-3.5" />
-              )}
-              <span className={`ml-1.5 text-xs ${copied ? "text-green-600" : ""}`}>
-                {copied ? "복사됨" : "복사"}
-              </span>
-            </Button>
-          </div>
+        <div className="ml-4">
+          <AgentCommandBox command={insight.agentCommand} />
         </div>
       )}
     </li>

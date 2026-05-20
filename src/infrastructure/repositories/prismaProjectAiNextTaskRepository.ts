@@ -37,14 +37,19 @@ export const prismaProjectAiNextTaskRepository: ProjectAiNextTaskRepository = {
 
 function parseTasks(raw: unknown): NextTask[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter(isNextTask);
+  return raw.flatMap((item): NextTask[] => {
+    if (isNextTask(item)) return [item];
+    // backward compat: old string[] storage
+    if (typeof item === "string" && item.trim().length > 0) {
+      return [{ title: item, reason: "", priority: "medium", agentCommand: item }];
+    }
+    return [];
+  });
 }
 
 function isNextTask(v: unknown): v is NextTask {
   if (typeof v !== "object" || v === null || Array.isArray(v)) return false;
   const r = v as Record<string, unknown>;
-  // backward compat: old string[] storage
-  if (typeof r === "string") return false;
   return (
     typeof r.title === "string" &&
     typeof r.reason === "string" &&

@@ -1,9 +1,7 @@
 "use client";
 
-import { ClipboardCopy } from "lucide-react";
-import { toast } from "sonner";
-
 import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
+import { AgentCommandBox } from "@/components/common/AgentCommandBox";
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
 import { cn } from "@/lib/utils";
@@ -67,15 +65,6 @@ export function RecommendedNextTaskCard({
 }
 
 function NextTaskItem({ task }: { task: NextTask }) {
-  const onCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(task.agentCommand);
-      toast.success("명령어를 복사했어요.");
-    } catch {
-      toast.error("복사하지 못했어요.");
-    }
-  };
-
   return (
     <li className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
@@ -90,20 +79,7 @@ function NextTaskItem({ task }: { task: NextTask }) {
         <span className="text-sm font-medium text-foreground">{task.title}</span>
       </div>
       <p className="text-xs text-muted-foreground leading-snug">{task.reason}</p>
-      <div className="flex items-start gap-2 rounded border border-border bg-muted/40 px-2 py-1.5 font-mono text-[11px] leading-snug">
-        <p className="flex-1 whitespace-pre-wrap break-words text-foreground">
-          {task.agentCommand}
-        </p>
-        <button
-          type="button"
-          onClick={onCopy}
-          aria-label="명령어 복사"
-          title="복사"
-          className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <ClipboardCopy className="size-3.5" />
-        </button>
-      </div>
+      <AgentCommandBox command={task.agentCommand} />
     </li>
   );
 }
