@@ -1,5 +1,7 @@
 "use client";
 
+import { useLayoutEffect } from "react";
+
 import { ProjectsProvider, type Project } from "@/components/project/ProjectsContext";
 import { CurrentUserProvider } from "@/components/project/shell/CurrentUserContext";
 import { SideNavigation } from "@/components/project/shell/SideNavigation";
@@ -15,11 +17,16 @@ export type AppShellUser = {
 
 function ShellLayout({ children }: { children: React.ReactNode }) {
   const { open } = useSidebar();
+  const sidebarWidth = open ? 240 : 64;
+
+  useLayoutEffect(() => {
+    document.documentElement.style.setProperty("--sidebar-width", `${sidebarWidth}px`);
+  }, [sidebarWidth]);
 
   return (
     <div
       className="grid h-screen transition-[grid-template-columns] duration-200 ease-out"
-      style={{ gridTemplateColumns: `${open ? 240 : 64}px 1fr` }}
+      style={{ gridTemplateColumns: `${sidebarWidth}px 1fr` }}
     >
       <SideNavigation />
       <main className="custom-scrollbar overflow-auto bg-[#F7F6F3]">{children}</main>
