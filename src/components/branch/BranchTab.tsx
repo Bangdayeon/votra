@@ -84,7 +84,13 @@ export function BranchTab({
   }, []);
 
   return (
-    <div className="flex max-h-[calc(100vh-100px)] flex-col">
+    <div
+      className={`flex flex-col ${
+        activeSessionId
+          ? "h-[calc(100vh-100px)] overflow-hidden"
+          : "max-h-[calc(100vh-100px)]"
+      }`}
+    >
       <SectionTitle
         text="세션 흐름"
         info={{
@@ -141,9 +147,9 @@ export function BranchTab({
             }}
           />
           {activeNode?.model && <ModelTag model={activeNode.model} />}
-          <div className="flex min-h-[320px] flex-1 flex-col pt-2">
+          <div className="flex min-h-0 flex-1 flex-col pt-2">
             {detailLoading ? (
-              <div className="flex h-full min-h-[320px] items-center justify-center">
+              <div className="flex h-full min-h-[200px] items-center justify-center">
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
               </div>
             ) : branches && branches.length > 0 ? (
