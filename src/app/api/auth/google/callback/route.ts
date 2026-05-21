@@ -16,11 +16,11 @@ interface GoogleTokenResponse {
 }
 
 interface GoogleUserInfo {
-  sub: string;
+  id: string;
   email: string;
   name?: string;
   picture?: string;
-  email_verified?: boolean;
+  verified_email?: boolean;
 }
 
 export async function GET(req: NextRequest) {
@@ -79,14 +79,14 @@ export async function GET(req: NextRequest) {
 
   const googleUser = (await userRes.json()) as GoogleUserInfo;
 
-  if (!googleUser.email) return fail("Google 계정에 이메일이 없어요.");
+  if (!googleUser.email || !googleUser.id) return fail("Google 계정 정보를 가져오지 못했어요.");
 
   const randomAppearance = randomProfileAppearance();
   const user = await prisma.user.upsert({
-    where: { googleId: googleUser.sub },
+    where: { googleId: googleUser.id },
     update: { email: googleUser.email, name: googleUser.name ?? undefined },
     create: {
-      googleId: googleUser.sub,
+      googleId: googleUser.id,
       email: googleUser.email,
       name: googleUser.name,
       profileColor: randomAppearance.profileColor,
