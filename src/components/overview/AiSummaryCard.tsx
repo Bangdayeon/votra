@@ -25,7 +25,6 @@ export function AiSummaryCard({
   onRefresh,
   className,
 }: Props) {
-  const hasContent = Boolean(summary) || suggestions.length > 0;
   const summaryLines = summary ? summary.split("\n").filter(Boolean) : [];
 
   return (

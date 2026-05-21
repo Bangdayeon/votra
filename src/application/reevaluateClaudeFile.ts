@@ -2,10 +2,7 @@ import { createHash } from "node:crypto";
 
 import { ensureProjectGuideline } from "@/application/ensureProjectGuideline";
 import { evaluateClaudeFile } from "@/application/evaluateClaudeFile";
-import type {
-  ClaudeFileEvaluationRepository,
-  ClaudeFileEvaluationUpsert,
-} from "@/application/ports/claudeFileEvaluationRepository";
+import type { ClaudeFileEvaluationRepository } from "@/application/ports/claudeFileEvaluationRepository";
 import type { ClaudeFileRepository } from "@/application/ports/claudeFileRepository";
 import type { LlmClient } from "@/application/ports/llmClient";
 import type { PolicyRuleRepository } from "@/application/ports/policyRuleRepository";

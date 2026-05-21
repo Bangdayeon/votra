@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import { updateProjectAction } from "@/app/actions/updateProject";
@@ -10,20 +10,11 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { colorForFolder } from "@/lib/colorForFolder";
-import { scanFolderTree } from "@/lib/scanFolderTree";
 
 type Props = {
   /** null 이면 닫힘 */
@@ -37,7 +28,6 @@ export function EditProjectDialog({ project, onClose, onSaved }: Props) {
   const [description, setDescription] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [codeTree, setCodeTree] = useState<FolderNode[] | null>(null);
-  const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -51,42 +41,6 @@ export function EditProjectDialog({ project, onClose, onSaved }: Props) {
   }, [project]);
 
   if (!project) return null;
-
-  async function handlePickCodeFolder() {
-    setError(null);
-    const picker = (
-      window as unknown as {
-        showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle>;
-      }
-    ).showDirectoryPicker;
-    if (typeof picker !== "function") {
-      setError("이 브라우저는 폴더 선택을 지원하지 않아요. Chrome/Edge/Brave 를 써주세요.");
-      return;
-    }
-    let handle: FileSystemDirectoryHandle;
-    try {
-      handle = await picker();
-    } catch {
-      return;
-    }
-    setScanning(true);
-    try {
-      const children = await scanFolderTree(handle, "");
-      const rootName = handle.name || "프로젝트";
-      setCodeTree([
-        {
-          name: rootName,
-          color: colorForFolder(rootName, true),
-          children,
-          defaultOpen: true,
-        },
-      ]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "폴더를 읽지 못했어요.");
-    } finally {
-      setScanning(false);
-    }
-  }
 
   async function handleThumbnailSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

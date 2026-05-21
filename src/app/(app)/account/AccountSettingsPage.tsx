@@ -12,6 +12,7 @@ import {
   Terminal,
   UserCog,
 } from "lucide-react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -492,10 +493,12 @@ function GuidePane() {
                   <p className="mt-1 text-sm text-muted-foreground">{tab.desc}</p>
                 </div>
                 <div className="overflow-hidden rounded-lg border border-border">
-                  <img
+                  <Image
                     src={tab.screenshot}
                     alt={`${tab.name} 화면`}
-                    className="w-full"
+                    width={1200}
+                    height={675}
+                    className="w-full h-auto"
                   />
                 </div>
                 <div className="flex flex-col gap-4">
