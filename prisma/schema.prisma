@@ -32,6 +32,8 @@ model User {
   passwordHash String?
   /// axhub 플랫폼의 사용자 식별자. axhub SSO 로 가입/연결되면 채워짐
   axhubUserId  String? @unique
+  /// Google OAuth 사용자 식별자. Google 로그인으로 가입/연결되면 채워짐
+  googleId     String? @unique
 
   /// 프로필 색상 (hex without #) 또는 프로필 이미지 경로 중 하나만 사용
   profileColor String?

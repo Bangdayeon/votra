@@ -52,11 +52,13 @@ function formatRefreshedAt(
   if (value === null || value === undefined || value === "") return "없음";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "없음";
-  return d.toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+  const yy = String(d.getFullYear() % 100).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const time = d.toLocaleString("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
+  return `${yy}.${mm}.${dd}. ${time}`;
 }

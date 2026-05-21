@@ -111,7 +111,7 @@ function AppearancePicker({
                 aria-label={`색상 #${color}`}
                 aria-pressed={selected}
                 className={cn(
-                  "relative size-7 rounded-full transition-transform hover:scale-110 disabled:opacity-50",
+                  "relative size-7 cursor-pointer rounded-full transition-transform hover:scale-110 disabled:opacity-50",
                   selected && "ring-2 ring-foreground ring-offset-2",
                 )}
                 style={{ backgroundColor: `#${color}` }}
@@ -139,7 +139,7 @@ function AppearancePicker({
                 aria-label="프로필 이미지 선택"
                 aria-pressed={selected}
                 className={cn(
-                  "size-12 overflow-hidden rounded-full transition-transform hover:scale-105 disabled:opacity-50",
+                  "size-12 cursor-pointer overflow-hidden rounded-full transition-transform hover:scale-105 disabled:opacity-50",
                   selected && "ring-2 ring-foreground ring-offset-2",
                 )}
                 style={{
@@ -219,7 +219,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
       type="button"
       title={`${displayName} 프로필`}
       aria-label="프로필 메뉴 열기"
-      className="rounded-full outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="cursor-pointer rounded-full outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       <Avatar
         color={user.profileColor}

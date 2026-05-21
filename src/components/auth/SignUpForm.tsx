@@ -5,6 +5,7 @@ import { useActionState } from "react";
 
 import { signUpAction, type SignUpState } from "@/app/actions/signUp";
 import { AxhubSignInButton } from "@/components/auth/AxhubSignInButton";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -62,6 +63,7 @@ export function SignUpForm({ next }: { next?: string }) {
       </div>
 
       <AxhubSignInButton next={next} />
+      <GoogleSignInButton next={next} />
 
       <p className="text-center text-sm text-muted-foreground">
         이미 계정이 있으세요?{" "}
