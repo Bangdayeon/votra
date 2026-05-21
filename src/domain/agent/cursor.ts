@@ -74,7 +74,7 @@ function parseCursorSession(text: string, relativePath: string) {
         uuid,
         parentUuid: prevUuid ?? undefined,
         sessionId,
-        message: { role: "assistant", content: mapContentBlocks(rawContent) },
+        message: { role: "assistant", content: mapContentBlocks(rawContent), model: "cursor" },
       });
     }
 
