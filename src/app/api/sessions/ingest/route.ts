@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (result.value.insertedEvents > 0) {
+  if (result.value.insertedEvents > 0 || result.value.sessions.length > 0) {
     revalidateTag(projectMetricsTag(result.value.projectId));
   }
 
