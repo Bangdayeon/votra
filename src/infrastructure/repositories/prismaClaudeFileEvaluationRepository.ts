@@ -8,6 +8,7 @@ import type {
 } from "@/application/ports/claudeFileEvaluationRepository";
 import type {
   AiScores,
+  AiSuggestions,
   ClaudeFileEvaluationStatus,
   ClaudeFileSeverity,
   GlobalPolicyViolation,
@@ -28,6 +29,7 @@ export const prismaClaudeFileEvaluationRepository: ClaudeFileEvaluationRepositor
           errorMessage: r.errorMessage,
           aiReason: r.aiReason,
           scores: parseScores(r.scoresJson),
+          suggestions: parseSuggestions(r.suggestionsJson),
           criteria: {
             basic: r.basedOnBasic,
             project: r.basedOnProject,
@@ -65,6 +67,10 @@ export const prismaClaudeFileEvaluationRepository: ClaudeFileEvaluationRepositor
                 r.scores === null
                   ? Prisma.JsonNull
                   : (r.scores as Prisma.InputJsonValue),
+              suggestionsJson:
+                r.suggestions === null
+                  ? Prisma.JsonNull
+                  : (r.suggestions as Prisma.InputJsonValue),
               basedOnBasic: r.criteria.basic,
               basedOnProject: r.criteria.project,
               basedOnTeam: r.criteria.team,
@@ -83,6 +89,10 @@ export const prismaClaudeFileEvaluationRepository: ClaudeFileEvaluationRepositor
                 r.scores === null
                   ? Prisma.JsonNull
                   : (r.scores as Prisma.InputJsonValue),
+              suggestionsJson:
+                r.suggestions === null
+                  ? Prisma.JsonNull
+                  : (r.suggestions as Prisma.InputJsonValue),
               basedOnBasic: r.criteria.basic,
               basedOnProject: r.criteria.project,
               basedOnTeam: r.criteria.team,
@@ -114,4 +124,14 @@ function parseScores(raw: unknown): AiScores | null {
     if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
   }
   return out;
+}
+
+function parseSuggestions(raw: unknown): AiSuggestions | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  const out: AiSuggestions = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === "string" && v.trim().length > 0) out[k] = v.trim();
+  }
+  return Object.keys(out).length > 0 ? out : null;
 }

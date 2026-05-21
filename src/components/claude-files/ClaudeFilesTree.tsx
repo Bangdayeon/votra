@@ -168,9 +168,9 @@ function TreeItem({
     setReevalLoading(true);
     try {
       await onReeval(node.record.absPath);
-      toast.success("재평가가 완료됐어요.");
+      toast.success("재평가가 완료됐습니다.");
     } catch {
-      toast.error("재평가에 실패했어요.");
+      toast.error("재평가에 실패했습니다.");
     } finally {
       setReevalLoading(false);
     }
@@ -258,6 +258,15 @@ function TreeItem({
   );
 }
 
+type RuleStatus = "good" | "warning" | "problem";
+
+function getRuleStatus(score: number | undefined, maxPoints: number): RuleStatus {
+  if (score === undefined) return "warning";
+  if (score >= maxPoints) return "good";
+  if (score === 0) return "problem";
+  return "warning";
+}
+
 function ScoreBreakdown({
   record,
   rules,
@@ -268,12 +277,24 @@ function ScoreBreakdown({
   indentPx: number;
 }) {
   const ev = record.evaluation;
-  const mtimeText = new Date(record.mtime).toLocaleString();
+  const mtimeText = formatMtime(record.mtime);
   const reason = readReason(ev);
   const scoreByKey: Record<string, number> | null =
     ev.status === "DONE" ? ev.scores : null;
+  const suggestionsByKey: Record<string, string> =
+    ev.status === "DONE" ? (ev.suggestions ?? {}) : {};
   const violation =
     ev.status === "DONE" ? ev.globalPolicyViolation : null;
+
+  const classified = rules.map((r) => ({
+    rule: r,
+    status: getRuleStatus(scoreByKey?.[r.key], r.maxPoints),
+    suggestion: suggestionsByKey[r.key] ?? null,
+  }));
+  const problems = classified.filter((c) => c.status === "problem");
+  const warnings = classified.filter((c) => c.status === "warning");
+  const goods = classified.filter((c) => c.status === "good");
+  const allGood = problems.length === 0 && warnings.length === 0 && scoreByKey !== null;
 
   return (
     <div
@@ -288,25 +309,33 @@ function ScoreBreakdown({
 
       <p className="mb-2 text-[11px] leading-snug text-foreground">{reason}</p>
 
-      <ul className="flex flex-col gap-1">
-        {rules.map((r) => {
-          const value = scoreByKey?.[r.key];
-          return (
-            <li key={r.key} className="flex flex-col">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-foreground">{r.label}</span>
-                <span className="font-mono tabular-nums">
-                  {value ?? "—"}
-                  <span className="text-muted-foreground">/{r.maxPoints}</span>
-                </span>
-              </div>
-              <span className="text-[10px] leading-snug text-muted-foreground">
-                {r.description}
-              </span>
+      {allGood ? (
+        <p className="text-[11px] text-emerald-600">✅ 문서 상태를 확인했습니다.</p>
+      ) : (
+        <ul className="flex flex-col gap-1">
+          {problems.map(({ rule, suggestion }) => (
+            <li key={rule.key} className="text-[11px] leading-snug">
+              <span className="mr-1">❌</span>
+              <span className="font-medium text-foreground">{rule.label}</span>
+              <span className="text-muted-foreground">: {suggestion ?? rule.description}</span>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+          {warnings.map(({ rule, suggestion }) => (
+            <li key={rule.key} className="text-[11px] leading-snug">
+              <span className="mr-1">⚠️</span>
+              <span className="font-medium text-foreground">{rule.label}</span>
+              <span className="text-muted-foreground">: {suggestion ?? rule.description}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!allGood && goods.length > 0 && (
+        <p className="mt-2 text-[10px] text-muted-foreground">
+          ✓ {goods.map((c) => c.rule.label).join(" · ")}
+        </p>
+      )}
+
       <div className="mt-2 text-[10px] text-muted-foreground">
         수정 시각: {mtimeText}
       </div>
@@ -339,12 +368,22 @@ function readReason(ev: ClaudeFileRecord["evaluation"]): string {
   switch (ev.status) {
     case "PENDING":
     case "LOADING":
-      return "평가가 아직 완료되지 않았어요.";
+      return "평가가 아직 완료되지 않았습니다.";
     case "ERROR":
-      return `평가 중 오류가 났어요. ${sanitizeGeminiErrorMessage(ev.errorMessage)}`;
+      return `평가 중 오류가 발생했습니다. ${sanitizeGeminiErrorMessage(ev.errorMessage)}`;
     case "DONE":
-      return ev.reason || "평가 결과 설명이 없어요.";
+      return ev.reason || "평가 결과 설명이 없습니다.";
   }
+}
+
+function formatMtime(mtime: number): string {
+  const d = new Date(mtime);
+  const yy = String(d.getFullYear()).slice(2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${yy}.${mm}.${dd}, ${hh}:${min}`;
 }
 
 function buildGroups(records: ClaudeFileRecord[], cwd?: string): ScopeGroup[] {

@@ -22,6 +22,9 @@ export type EvaluationCriteria = {
 /** LLM 이 채점한 PolicyRule.key → 점수 매핑. */
 export type AiScores = Record<string, number>;
 
+/** LLM 이 생성한 PolicyRule.key → 개선 제안 매핑. 점수가 낮은 항목만 포함. */
+export type AiSuggestions = Record<string, string>;
+
 /**
  * 계정의 "전체 정책" 위반 정보.
  * 위반이 감지되면 severity 는 무조건 DANGER 가 돼요.
@@ -41,6 +44,8 @@ export type ClaudeFileEvaluation =
       reason: string;
       /** PolicyRule.key 별 점수. */
       scores: AiScores;
+      /** PolicyRule.key 별 개선 제안 — 점수가 낮은 항목만 포함. */
+      suggestions: AiSuggestions;
       criteria: EvaluationCriteria;
       /** 계정 전체 정책 위반 감지 결과. 위반 없으면 null. */
       globalPolicyViolation: GlobalPolicyViolation | null;

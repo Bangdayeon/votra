@@ -404,6 +404,9 @@ model ClaudeFileEvaluation {
   /// LLM 이 채점한 PolicyRule.key → 점수 매핑. e.g. { "commands": 18, "architecture": 12, ... }
   scoresJson Json?
 
+  /// LLM 이 생성한 항목별 개선 제안. 점수가 낮은 항목만 포함. e.g. { "commands": "npm run dev 를 코드 펜스로 추가해보세요." }
+  suggestionsJson Json?
+
   /// 평가 기준 적용 여부 — 사용자가 어떤 기준으로 통과/탈락 판단됐는지 캡션에 사용
   basedOnBasic   Boolean @default(true)
   basedOnProject Boolean @default(false)

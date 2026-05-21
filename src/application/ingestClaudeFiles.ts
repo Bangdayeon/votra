@@ -14,6 +14,10 @@ import type { LlmClient } from "@/application/ports/llmClient";
 import type { PolicyRuleRepository } from "@/application/ports/policyRuleRepository";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
 import type { EvaluationCriteria } from "@/domain/claudeFiles/types";
+import {
+  classifyDocLevel,
+  getDefaultAiSpecGuideline,
+} from "@/domain/aiSpec/defaultAiSpecGuideline";
 import { buildDefaultGuideline } from "@/domain/policy/buildDefaultGuideline";
 
 export type IngestClaudeFilesInput = {
@@ -55,22 +59,26 @@ export async function ingestClaudeFiles(
     deps.policyRules.list(),
     deps.projects.findOwnerAiPolicy(input.projectId),
   ]);
-  const guideline = await ensureProjectGuideline(
+  const savedGuideline = await ensureProjectGuideline(
     input.projectId,
     projectSettings.aiSpecGuideline,
     deps,
   );
   const defaultGuideline = buildDefaultGuideline(rules);
-  const criteria: EvaluationCriteria = {
-    basic: true,
-    project: guideline.trim() !== defaultGuideline.trim(),
-    team: globalPolicy !== null,
-  };
+  const hasCustomGuideline = savedGuideline.trim() !== defaultGuideline.trim();
   const globalPolicyHash = hashPolicy(globalPolicy);
 
   // 무료 quota 회피 위해 직렬 처리.
   const upserts: ClaudeFileEvaluationUpsert[] = [];
   for (const f of changed) {
+    const guideline = hasCustomGuideline
+      ? savedGuideline
+      : getDefaultAiSpecGuideline(classifyDocLevel(f.absPath));
+    const criteria: EvaluationCriteria = {
+      basic: true,
+      project: hasCustomGuideline,
+      team: globalPolicy !== null,
+    };
     const now = Date.now();
     try {
       const result = await evaluateClaudeFile(
@@ -90,6 +98,7 @@ export async function ingestClaudeFiles(
         errorMessage: null,
         aiReason: result.reason,
         scores: result.scores,
+        suggestions: result.suggestions,
         criteria,
         globalPolicyHash,
         globalPolicyViolation: result.globalPolicyViolation,
@@ -105,6 +114,7 @@ export async function ingestClaudeFiles(
         errorMessage: message,
         aiReason: null,
         scores: null,
+        suggestions: null,
         criteria,
         globalPolicyHash,
         globalPolicyViolation: null,

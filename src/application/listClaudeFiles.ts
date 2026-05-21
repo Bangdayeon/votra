@@ -66,6 +66,7 @@ function fromCached(cached: ClaudeFileEvaluationRow): ClaudeFileEvaluation {
       severity: cached.severity,
       reason: cached.aiReason ?? "",
       scores: cached.scores ?? {},
+      suggestions: cached.suggestions ?? {},
       criteria: cached.criteria,
       globalPolicyViolation: cached.globalPolicyViolation,
       evaluatedAt: cached.evaluatedAt ?? 0,

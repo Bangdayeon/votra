@@ -1,5 +1,6 @@
 import type {
   AiScores,
+  AiSuggestions,
   ClaudeFileEvaluationStatus,
   ClaudeFileSeverity,
   EvaluationCriteria,
@@ -13,6 +14,7 @@ export type ClaudeFileEvaluationRow = {
   errorMessage: string | null;
   aiReason: string | null;
   scores: AiScores | null;
+  suggestions: AiSuggestions | null;
   criteria: EvaluationCriteria;
   globalPolicyHash: string | null;
   globalPolicyViolation: GlobalPolicyViolation | null;
@@ -27,6 +29,7 @@ export type ClaudeFileEvaluationUpsert = {
   errorMessage: string | null;
   aiReason: string | null;
   scores: AiScores | null;
+  suggestions: AiSuggestions | null;
   criteria: EvaluationCriteria;
   globalPolicyHash: string | null;
   globalPolicyViolation: GlobalPolicyViolation | null;

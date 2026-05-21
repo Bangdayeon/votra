@@ -28,7 +28,7 @@ export function SideNavigation() {
   if (!open) {
     return (
       <aside className="group flex h-screen w-full flex-col overflow-hidden border-r border-border bg-background">
-        <div className="relative flex items-center justify-center border-b border-border px-4 py-4">
+        <div className="relative flex items-center justify-center px-4 py-4">
           <Image
             src="/assets/images/logo.svg"
             alt="votra logo"
@@ -73,7 +73,7 @@ export function SideNavigation() {
   return (
     <>
       <aside className="flex h-screen w-full shrink-0 flex-col overflow-hidden border-r border-border bg-background">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4">
+        <div className="flex items-center justify-between gap-3 px-4 py-4">
           <div className="flex items-center gap-3">
             <Image
               src="/assets/images/logo.svg"

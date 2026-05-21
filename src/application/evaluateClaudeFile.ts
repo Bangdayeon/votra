@@ -1,6 +1,7 @@
 import type { LlmClient } from "@/application/ports/llmClient";
 import type {
   AiScores,
+  AiSuggestions,
   ClaudeFileSeverity,
   GlobalPolicyViolation,
 } from "@/domain/claudeFiles/types";
@@ -23,6 +24,7 @@ export type PolicyEvaluationResult = {
   severity: ClaudeFileSeverity;
   reason: string;
   scores: AiScores;
+  suggestions: AiSuggestions;
   /** 전체 정책 위반 감지 결과. 없으면 null. */
   globalPolicyViolation: GlobalPolicyViolation | null;
 };
@@ -35,6 +37,7 @@ const SYSTEM_PROMPT = `당신은 AI 정책 문서(예: CLAUDE.md, AGENTS.md, SKI
   "severity": "OK" | "WARNING" | "DANGER",
   "reason": "<한국어 1~2문장: 왜 이 결과인지>",
   "scores": { "<rule.key>": <0..maxPoints 사이 정수>, ... },
+  "suggestions": { "<rule.key>": "<이 파일에 맞는 구체적인 한 줄 개선 제안>", ... },
   "globalPolicyViolation": null | {
     "problem": "<한 줄: 어떤 전체 정책 항목을 어떻게 위반했는지>",
     "agentCommand": "<사용자가 AI agent 에 그대로 붙여 넣어 이 md 파일을 고치게 할 한국어 명령. 한 단락 이내, 코드 펜스 금지.>"
@@ -45,7 +48,12 @@ const SYSTEM_PROMPT = `당신은 AI 정책 문서(예: CLAUDE.md, AGENTS.md, SKI
 - severity: 지침을 충실히 따르면 "OK", 일부 누락이면 "WARNING", 핵심 항목이 빠지거나 어긋나면 "DANGER".
   · 단, globalPolicyViolation 이 null 이 아닐 때는 무조건 "DANGER" 로 두세요.
 - scores: 입력 rules 의 모든 key 를 포함하고, 각 점수는 0 이상 해당 항목의 maxPoints 이하의 정수.
-- reason: 점수가 특히 낮은 항목을 짧게 언급. 두 문장 이내. 친절하고 간결하게.
+- suggestions: 점수가 maxPoints 미만인 항목에만 포함해요. 만점인 항목은 제외.
+  · 이 파일의 실제 내용을 읽고 "무엇이 없는지, 어떻게 추가하면 되는지"를 구체적으로 적어요.
+  · 말투는 반드시 "~해주세요" 형태로. 예: "npm run dev, npm run test 명령어를 코드 펜스로 추가해주세요."
+  · 예: "레이어 의존 방향(app → application → domain)을 한 줄이라도 명시해주세요."
+  · 추상적인 설명("개선이 필요합니다") 금지. 실제 파일 내용 기반 구체적 제안만.
+- reason: 가장 점수가 낮은 항목 위주로 요약. 두 문장 이내. 친절하고 간결하게. 말투는 "~합니다/~해주세요" 형태.
 - globalPolicyViolation:
   · "전체 정책" 입력이 없거나 위반이 명확하지 않으면 반드시 null.
   · 본문에 근거가 분명할 때만 위반으로 봐요. 단순히 "보강이 필요해 보임" 은 위반이 아니에요.
@@ -176,7 +184,30 @@ function parseResult(
   }
   const globalPolicyViolation = parseViolation(obj.globalPolicyViolation);
   if (globalPolicyViolation) severity = "DANGER";
-  return { severity, reason: obj.reason, scores, globalPolicyViolation };
+  const suggestions = parseSuggestions(obj.suggestions, scores, rules);
+  return { severity, reason: obj.reason, scores, suggestions, globalPolicyViolation };
+}
+
+function parseSuggestions(
+  raw: unknown,
+  scores: AiScores,
+  rules: PolicyRule[],
+): AiSuggestions {
+  const out: AiSuggestions = {};
+  if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+    const obj = raw as Record<string, unknown>;
+    for (const rule of rules) {
+      const val = obj[rule.key];
+      if (typeof val === "string" && val.trim().length > 0) {
+        out[rule.key] = val.trim();
+      }
+    }
+  }
+  // maxPoints 인 항목은 suggestion 불필요 — 혹시 LLM 이 포함했으면 제거
+  for (const rule of rules) {
+    if ((scores[rule.key] ?? 0) >= rule.maxPoints) delete out[rule.key];
+  }
+  return out;
 }
 
 function parseViolation(raw: unknown): GlobalPolicyViolation | null {

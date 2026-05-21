@@ -79,7 +79,7 @@ export function SideNavMenuItem({
       />
     );
     const compactClassName = cn(
-      "inline-flex items-center justify-center size-9 rounded-full p-0 transition-shadow hover:bg-accent",
+      "inline-flex items-center justify-center size-9 cursor-pointer rounded-full p-0 transition-shadow hover:bg-accent",
       ringCls,
       className,
     );
@@ -104,7 +104,7 @@ export function SideNavMenuItem({
         title={title}
         aria-label={title}
         className={cn(
-          "size-9 rounded-full p-0 transition-shadow",
+          "size-9 cursor-pointer rounded-full p-0 transition-shadow",
           ringCls,
           className,
         )}
@@ -117,7 +117,7 @@ export function SideNavMenuItem({
   const hasMenu = onEdit !== undefined || onDelete !== undefined;
 
   const rowClassName = cn(
-    "inline-flex items-center gap-2 w-full justify-start rounded-full px-1 py-2 text-sm font-normal hover:bg-accent hover:text-accent-foreground",
+    "inline-flex items-center gap-2 w-full cursor-pointer justify-start rounded-full px-1 py-2 text-sm font-normal hover:bg-accent hover:text-accent-foreground",
     hasMenu && "pr-9",
     selected &&
       "bg-primary/15 font-semibold text-primary hover:bg-primary/20 hover:text-primary",
@@ -216,7 +216,7 @@ function RowMenu({
                 setOpen(false);
                 onEdit();
               }}
-              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
             >
               <Pencil className="size-4 text-muted-foreground" />
               수정하기
@@ -230,7 +230,7 @@ function RowMenu({
                 setOpen(false);
                 onDelete();
               }}
-              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
+              className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="size-4" />
               삭제하기

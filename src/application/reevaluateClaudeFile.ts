@@ -11,6 +11,10 @@ import type { LlmClient } from "@/application/ports/llmClient";
 import type { PolicyRuleRepository } from "@/application/ports/policyRuleRepository";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
 import type { EvaluationCriteria } from "@/domain/claudeFiles/types";
+import {
+  classifyDocLevel,
+  getDefaultAiSpecGuideline,
+} from "@/domain/aiSpec/defaultAiSpecGuideline";
 import { buildDefaultGuideline } from "@/domain/policy/buildDefaultGuideline";
 
 type GlobalPolicy = { text: string; fileContent: string | null } | null;
@@ -36,15 +40,19 @@ export async function reevaluateClaudeFile(
   const file = files.find((f) => f.absPath === absPath);
   if (!file) return;
 
-  const guideline = await ensureProjectGuideline(
+  const savedGuideline = await ensureProjectGuideline(
     projectId,
     projectSettings.aiSpecGuideline,
     deps,
   );
   const defaultGuideline = buildDefaultGuideline(rules);
+  const hasCustomGuideline = savedGuideline.trim() !== defaultGuideline.trim();
+  const guideline = hasCustomGuideline
+    ? savedGuideline
+    : getDefaultAiSpecGuideline(classifyDocLevel(absPath));
   const criteria: EvaluationCriteria = {
     basic: true,
-    project: guideline.trim() !== defaultGuideline.trim(),
+    project: hasCustomGuideline,
     team: globalPolicy !== null,
   };
   const globalPolicyHash = hashPolicy(globalPolicy);
@@ -69,6 +77,7 @@ export async function reevaluateClaudeFile(
       errorMessage: null,
       aiReason: result.reason,
       scores: result.scores,
+      suggestions: result.suggestions,
       criteria,
       globalPolicyHash,
       globalPolicyViolation: result.globalPolicyViolation,
@@ -84,6 +93,7 @@ export async function reevaluateClaudeFile(
       errorMessage: message,
       aiReason: null,
       scores: null,
+      suggestions: null,
       criteria,
       globalPolicyHash,
       globalPolicyViolation: null,

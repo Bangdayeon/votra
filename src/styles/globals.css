@@ -155,7 +155,3 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-
-[data-sonner-toaster][data-position="top-center"] {
-  left: calc(50% + var(--sidebar-width, 0px) / 2) !important;
-}
