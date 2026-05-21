@@ -81,20 +81,39 @@ export async function GET(req: NextRequest) {
 
   if (!googleUser.email || !googleUser.id) return fail("Google 계정 정보를 가져오지 못했어요.");
 
-  const randomAppearance = randomProfileAppearance();
-  const user = await prisma.user.upsert({
+  // googleId로 찾거나, 같은 이메일 계정에 googleId를 연결하거나, 새로 생성
+  let user = await prisma.user.findUnique({
     where: { googleId: googleUser.id },
-    update: { email: googleUser.email, name: googleUser.name ?? undefined },
-    create: {
-      googleId: googleUser.id,
-      email: googleUser.email,
-      name: googleUser.name,
-      profileColor: randomAppearance.profileColor,
-      profileImage: randomAppearance.profileImage,
-      aiPolicyText: DEFAULT_AI_POLICY_TEXT,
-    },
     select: { id: true },
   });
+
+  if (!user) {
+    const byEmail = await prisma.user.findUnique({
+      where: { email: googleUser.email },
+      select: { id: true },
+    });
+
+    if (byEmail) {
+      user = await prisma.user.update({
+        where: { id: byEmail.id },
+        data: { googleId: googleUser.id, name: googleUser.name ?? undefined },
+        select: { id: true },
+      });
+    } else {
+      const randomAppearance = randomProfileAppearance();
+      user = await prisma.user.create({
+        data: {
+          googleId: googleUser.id,
+          email: googleUser.email,
+          name: googleUser.name,
+          profileColor: randomAppearance.profileColor,
+          profileImage: randomAppearance.profileImage,
+          aiPolicyText: DEFAULT_AI_POLICY_TEXT,
+        },
+        select: { id: true },
+      });
+    }
+  }
 
   const jwt = await signSessionJwt({ userId: user.id });
   const res = NextResponse.redirect(new URL(safeNextPath(next), origin));
