@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 export type BarItem = {
   label: string;
   value: number;
@@ -9,10 +11,11 @@ export type BarItem = {
 type Props = {
   items: BarItem[];
   formatValue?: (v: number) => string;
+  renderValue?: (item: BarItem) => ReactNode;
   emptyText?: string;
 };
 
-export function MiniBarList({ items, formatValue, emptyText }: Props) {
+export function MiniBarList({ items, formatValue, renderValue, emptyText }: Props) {
   if (items.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">{emptyText ?? "기록 없음"}</p>
@@ -49,7 +52,7 @@ export function MiniBarList({ items, formatValue, emptyText }: Props) {
               {it.label}
             </span>
             <span className="ml-auto shrink-0 text-muted-foreground">
-              {format(it.value)}
+              {renderValue ? renderValue(it) : format(it.value)}
             </span>
           </li>
         ))}

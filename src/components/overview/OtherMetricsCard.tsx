@@ -1,8 +1,11 @@
 "use client";
 
+import { Info } from "lucide-react";
+
 import type { ProjectMetrics } from "@/application/getProjectMetrics";
 import { Card } from "@/components/common/Card";
 import { MiniBarList, type BarItem } from "@/components/charts/MiniBarList";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const MODEL_COLOR_RULES: Array<{ match: string; color: string }> = [
   // Claude
@@ -88,6 +91,27 @@ export function OtherMetricsCard({ metrics, className }: Props) {
         <MiniBarList
           items={modelBars}
           formatValue={formatTokens}
+          renderValue={(item) => {
+            if (item.label.toLowerCase() === "cursor") {
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="size-3 cursor-default" />
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="text-xs">
+                  <p>Cursor는 로컬에서 토큰 정보를 제공하지 않습니다.</p>
+                  <p>
+                    <a href="https://cursor.com/dashboard/usage" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                      Cursor 웹사이트 
+                    </a>
+                    또는 데스크탑 앱에서 확인하세요.
+                  </p>
+                </TooltipContent>
+                </Tooltip>
+              );
+            }
+            return formatTokens(item.value);
+          }}
           emptyText="기록 없음"
         />
       </section>

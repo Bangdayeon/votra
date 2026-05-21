@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Info } from "lucide-react";
 
 import type {
   ProjectMetrics,
@@ -52,12 +53,13 @@ type Props = {
 
 export function SessionTokensCard({ metrics, className, onSelect, selectedId }: Props) {
   const sortedSessions = [...metrics.sessions]
-    .filter((s) => s.totalTokens > 0)
+    .filter((s) => s.totalTokens > 0 || s.model === "cursor")
     .sort((a, b) => b.totalTokens - a.totalTokens);
 
-  const topCount = computeTopCount(sortedSessions.length);
+  const donutSessions = sortedSessions.filter((s) => s.totalTokens > 0);
+  const topCount = computeTopCount(donutSessions.length);
   const donutSegments = compactSegments(
-    sortedSessions.map((s, i) => ({
+    donutSessions.map((s, i) => ({
       label: s.title,
       value: s.totalTokens,
       color: SESSION_PALETTE[i % SESSION_PALETTE.length],
@@ -91,11 +93,7 @@ export function SessionTokensCard({ metrics, className, onSelect, selectedId }: 
             <SessionListItem
               key={s.id}
               session={s}
-              color={
-                isInOthers
-                  ? FALLBACK_COLOR
-                  : SESSION_PALETTE[i % SESSION_PALETTE.length]
-              }
+              color={isInOthers ? FALLBACK_COLOR : SESSION_PALETTE[i % SESSION_PALETTE.length]}
               onSelect={onSelect}
               selected={s.id === selectedId}
             />
@@ -146,7 +144,24 @@ function SessionListItem({
         {session.title}
       </span>
       <span className="ml-auto shrink-0 text-muted-foreground">
-        {formatTokens(session.totalTokens)}
+        {session.model === "cursor" ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="size-3 cursor-default" />
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs">
+              <p>Cursor는 로컬에서 토큰 정보를 제공하지 않습니다.</p>
+              <p>
+                <a href="https://cursor.com/dashboard/usage" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                  Cursor 웹사이트 
+                </a>
+                또는 데스크탑 앱에서 확인하세요.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          formatTokens(session.totalTokens)
+        )}
       </span>
     </li>
   );
