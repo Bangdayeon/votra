@@ -78,13 +78,14 @@ export async function ingestSessionEvents(
 
   for (const session of input.sessions) {
     const metrics = aggregateSessionMetrics(session.events);
+    const agent = input.agent ?? "CLAUDE";
     const prismaId = await deps.projects.upsertIngestSession({
       projectId: project.id,
-      agent: input.agent ?? "CLAUDE",
+      agent,
       session: {
         externalId: session.id,
         title: session.title ?? extractTitle(session.events),
-        model: metrics.model,
+        model: metrics.model ?? agentDefaultModel(agent),
         startedAt: parseDate(session.startedAt),
         endedAt: parseDate(session.endedAt),
       },
@@ -142,4 +143,11 @@ function parseDate(iso: string | undefined): Date | undefined {
 function deriveProjectTitle(source: string): string {
   const segments = source.split(/[\\/]/).filter((s) => s.length > 0);
   return segments[segments.length - 1] ?? source;
+}
+
+function agentDefaultModel(agent: string): string | null {
+  if (agent === "CURSOR") return "cursor";
+  if (agent === "GEMINI") return "gemini";
+  if (agent === "CODEX") return "codex";
+  return null;
 }
