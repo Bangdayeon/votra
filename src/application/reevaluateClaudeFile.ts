@@ -58,18 +58,18 @@ export async function reevaluateClaudeFile(
   const globalPolicyHash = hashPolicy(globalPolicy);
   const now = Date.now();
 
-  let upsert: ClaudeFileEvaluationUpsert;
-  try {
-    const result = await evaluateClaudeFile(
-      {
-        file: { displayPath: file.displayPath, content: file.content },
-        guideline,
-        rules,
-        globalPolicy,
-      },
-      { llm: deps.llm },
-    );
-    upsert = {
+  const result = await evaluateClaudeFile(
+    {
+      file: { displayPath: file.displayPath, content: file.content },
+      guideline,
+      rules,
+      globalPolicy,
+    },
+    { llm: deps.llm },
+  );
+
+  await deps.evaluations.upsertMany([
+    {
       projectId,
       absPath,
       status: "DONE",
@@ -82,26 +82,8 @@ export async function reevaluateClaudeFile(
       globalPolicyHash,
       globalPolicyViolation: result.globalPolicyViolation,
       evaluatedAt: now,
-    };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "평가에 실패했어요.";
-    upsert = {
-      projectId,
-      absPath,
-      status: "ERROR",
-      severity: null,
-      errorMessage: message,
-      aiReason: null,
-      scores: null,
-      suggestions: null,
-      criteria,
-      globalPolicyHash,
-      globalPolicyViolation: null,
-      evaluatedAt: now,
-    };
-  }
-
-  await deps.evaluations.upsertMany([upsert]);
+    },
+  ]);
 }
 
 function hashPolicy(policy: GlobalPolicy): string | null {
