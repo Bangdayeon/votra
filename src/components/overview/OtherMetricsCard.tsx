@@ -5,9 +5,16 @@ import { Card } from "@/components/common/Card";
 import { MiniBarList, type BarItem } from "@/components/charts/MiniBarList";
 
 const MODEL_COLOR_RULES: Array<{ match: string; color: string }> = [
+  // Claude
   { match: "opus", color: "#A843B1" },
   { match: "sonnet", color: "#7BA6E0" },
   { match: "haiku", color: "#7BC67E" },
+  // Gemini (구체적인 것 먼저, gemini는 catch-all)
+  { match: "ultra", color: "#4A90D9" },
+  { match: "flash", color: "#FBBC04" },
+  { match: "pro", color: "#34A853" },
+  { match: "nano", color: "#EA4335" },
+  { match: "gemini", color: "#4285F4" },
 ];
 
 const ERROR_COLOR_RULES: Array<{ match: string; color: string }> = [

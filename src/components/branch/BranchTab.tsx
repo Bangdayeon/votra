@@ -32,6 +32,8 @@ export function BranchTab({
   const [branches, setBranches] = useState<PromptBranch[] | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  const activeNode = nodes?.find((n) => n.id === activeSessionId) ?? null;
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -138,6 +140,7 @@ export function BranchTab({
               ),
             }}
           />
+          {activeNode?.model && <ModelTag model={activeNode.model} />}
           <div className="flex min-h-[320px] flex-1 flex-col pt-2">
             {detailLoading ? (
               <div className="flex h-full min-h-[320px] items-center justify-center">
@@ -154,6 +157,32 @@ export function BranchTab({
         </div>
       )}
     </div>
+  );
+}
+
+type ModelInfo = { color: string; textColor: string };
+
+function getModelInfo(model: string): ModelInfo | null {
+  const m = model.toLowerCase();
+  if (m.includes("claude")) return { color: "#E8704E", textColor: "#fff" };
+  if (m.includes("gpt") || m.includes("chatgpt") || /^o[1-9]-/.test(m))
+    return { color: "#0D0D0D", textColor: "#fff" };
+  if (m.includes("gemini")) return { color: "#0091FF", textColor: "#fff" };
+  if (m.includes("antigravity")) return { color: "#1685EA", textColor: "#fff" };
+  if (m.includes("cursor")) return { color: "#D7D1CC", textColor: "#1a1a1a" };
+  return null;
+}
+
+function ModelTag({ model }: { model: string }) {
+  const info = getModelInfo(model);
+  if (!info) return null;
+  return (
+    <span
+      className="mt-1 self-start rounded px-2 py-0.5 text-xs font-medium"
+      style={{ backgroundColor: info.color, color: info.textColor }}
+    >
+      {model}
+    </span>
   );
 }
 
