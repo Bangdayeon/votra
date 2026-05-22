@@ -85,7 +85,7 @@ export async function ingestSessionEvents(
       session: {
         externalId: session.id,
         title: session.title ?? extractTitle(session.events),
-        model: metrics.model ?? agentDefaultModel(agent),
+        model: agentDefaultModel(agent) ?? metrics.model,
         startedAt: parseDate(session.startedAt),
         endedAt: parseDate(session.endedAt),
       },
@@ -149,5 +149,6 @@ function agentDefaultModel(agent: string): string | null {
   if (agent === "CURSOR") return "cursor";
   if (agent === "GEMINI") return "gemini";
   if (agent === "CODEX") return "codex";
+  if (agent === "ANTIGRAVITY") return "antigravity";
   return null;
 }

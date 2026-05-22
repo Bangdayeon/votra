@@ -16,6 +16,7 @@ export type BranchErrorRow = {
 /** 브랜치 그래프 노드 하나에 필요한 모든 화면 데이터. */
 export type BranchNode = {
   id: string;
+  source: string;
   status: SessionStatus;
   title: string;
   model: string;
@@ -42,6 +43,7 @@ export async function getProjectBranchNodes(
     const { status } = scoreSession(metrics);
     return {
       id: row.id,
+      source: row.source,
       status,
       title: row.title ?? `세션 ${idx + 1}`,
       model: row.model,

@@ -53,7 +53,7 @@ type Props = {
 
 export function SessionTokensCard({ metrics, className, onSelect, selectedId }: Props) {
   const sortedSessions = [...metrics.sessions]
-    .filter((s) => s.totalTokens > 0 || s.model === "cursor")
+    .filter((s) => s.totalTokens > 0 || s.model === "cursor" || s.source === "ANTIGRAVITY")
     .sort((a, b) => b.totalTokens - a.totalTokens);
 
   const donutSessions = sortedSessions.filter((s) => s.totalTokens > 0);
@@ -86,7 +86,13 @@ export function SessionTokensCard({ metrics, className, onSelect, selectedId }: 
         세션 {sortedSessions.length} 개
       </p>
 
-      <ul className="custom-scrollbar mt-2 min-h-0 max-h-80 flex-1 space-y-1.5 overflow-y-auto pr-1">
+      <ul
+        className="custom-scrollbar mt-2 min-h-0 max-h-80 flex-1 space-y-1.5 overflow-y-auto pr-1"
+        style={{
+          maskImage: "linear-gradient(to bottom, transparent, black 12px, black calc(100% - 12px), transparent)",
+          WebkitMaskImage: "linear-gradient(to bottom, transparent, black 12px, black calc(100% - 12px), transparent)",
+        }}
+      >
         {sortedSessions.map((s, i) => {
           const isInOthers = i >= topCount;
           return (
@@ -153,10 +159,19 @@ function SessionListItem({
               <p>Cursor는 로컬에서 토큰 정보를 제공하지 않습니다.</p>
               <p>
                 <a href="https://cursor.com/dashboard/usage" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
-                  Cursor 웹사이트 
+                  Cursor 웹사이트
                 </a>
                 또는 데스크탑 앱에서 확인하세요.
               </p>
+            </TooltipContent>
+          </Tooltip>
+        ) : session.source === "ANTIGRAVITY" && session.totalTokens === 0 ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="size-3 cursor-default" />
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs">
+              <p>Antigravity는 토큰 정보를 제공하지 않습니다.</p>
             </TooltipContent>
           </Tooltip>
         ) : (

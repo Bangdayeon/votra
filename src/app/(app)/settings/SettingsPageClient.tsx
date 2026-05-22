@@ -221,7 +221,7 @@ function SettingsForm({
   return (
     <div className="flex h-full min-h-0 flex-col px-8 mb-6">
       <div className="mt-8 mx-auto w-full max-w-2xl flex flex-col gap-8">
-        {activeTab === "overview" && (
+        {(activeTab === "all" || activeTab === "overview") && (
           <>
             <Section
               title="프로젝트 상태 요약 & 솔루션 생성 지침"
@@ -291,17 +291,19 @@ function SettingsForm({
               </p>
             </Section>
 
-            <SaveBar
-              saving={saveState.kind === "saving"}
-              saved={saveState.kind === "saved"}
-              error={saveState.kind === "error" ? saveState.message : null}
-              disabled={loading}
-              onSave={onSave}
-            />
+            {activeTab === "overview" && (
+              <SaveBar
+                saving={saveState.kind === "saving"}
+                saved={saveState.kind === "saved"}
+                error={saveState.kind === "error" ? saveState.message : null}
+                disabled={loading}
+                onSave={onSave}
+              />
+            )}
           </>
         )}
 
-        {activeTab === "ai-management" && (
+        {(activeTab === "all" || activeTab === "ai-management") && (
           <>
             <Section
               title="AI 스펙 문서 지침"
@@ -349,14 +351,26 @@ function SettingsForm({
               </p>
             </Section>
 
-            <SaveBar
-              saving={saveState.kind === "saving"}
-              saved={saveState.kind === "saved"}
-              error={saveState.kind === "error" ? saveState.message : null}
-              disabled={loading}
-              onSave={onSave}
-            />
+            {activeTab === "ai-management" && (
+              <SaveBar
+                saving={saveState.kind === "saving"}
+                saved={saveState.kind === "saved"}
+                error={saveState.kind === "error" ? saveState.message : null}
+                disabled={loading}
+                onSave={onSave}
+              />
+            )}
           </>
+        )}
+
+        {activeTab === "all" && (
+          <SaveBar
+            saving={saveState.kind === "saving"}
+            saved={saveState.kind === "saved"}
+            error={saveState.kind === "error" ? saveState.message : null}
+            disabled={loading}
+            onSave={onSave}
+          />
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@ export type SessionMetricRow = {
   id: string;
   title: string | null;
   model: string;
+  source: string;
   startedAt: Date | null;
   inputTokens: number;
   outputTokens: number;
@@ -19,6 +20,7 @@ export type SessionScoringRow = {
   title: string | null;
   /** Session.model — "claude-opus-4-7" 같은 raw 값 */
   model: string;
+  source: string;
   startedAt: Date | null;
   endedAt: Date | null;
   totalTokens: number;

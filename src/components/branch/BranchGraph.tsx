@@ -119,7 +119,10 @@ function BranchTooltipBody({
     <div className="flex flex-col gap-2">
       <p className="text-sm font-semibold">{branch.title}</p>
       <p className="text-xs text-muted-foreground">
-        {formatModel(branch.model)} · {formatDuration(branch.durationSec)} ·{" "}
+        {branch.source === "CLAUDE"
+          ? formatModel(branch.model)
+          : formatAgent(branch.source)}{" "}
+        · {formatDuration(branch.durationSec)} ·{" "}
         {formatTokens(branch.totalTokens)} tokens
       </p>
       {branch.editedFiles.length > 0 && (
@@ -158,6 +161,16 @@ function BranchTooltipBody({
       )}
     </div>
   );
+}
+
+function formatAgent(source: string): string {
+  const map: Record<string, string> = {
+    ANTIGRAVITY: "Antigravity",
+    GEMINI: "Gemini",
+    CURSOR: "Cursor",
+    CODEX: "Codex",
+  };
+  return map[source] ?? source;
 }
 
 // "claude-opus-4-7" → "Claude Opus 4.7"

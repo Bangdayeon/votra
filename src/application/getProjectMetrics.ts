@@ -4,6 +4,7 @@ export type SessionTokenRow = {
   id: string;
   title: string;
   model: string;
+  source: string;
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
@@ -46,6 +47,7 @@ export async function getProjectMetrics(
     id: s.id,
     title: s.title ?? `세션 ${idx + 1}`,
     model: s.model,
+    source: s.source,
     inputTokens: s.inputTokens,
     outputTokens: s.outputTokens,
     totalTokens: s.inputTokens + s.outputTokens,
