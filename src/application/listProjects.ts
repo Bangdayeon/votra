@@ -25,7 +25,7 @@ export async function listProjects(
     image: r.thumbnailUrl ?? undefined,
     structure: extractTree(r.structure),
     cwd: r.cwd ?? undefined,
-    isOwner: r.ownerId === args.userId,
+    isOwner: r.memberRole === "OWNER",
   }));
 }
 

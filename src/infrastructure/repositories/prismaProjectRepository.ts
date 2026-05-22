@@ -37,7 +37,10 @@ export const prismaProjectRepository: ProjectRepository = {
         ],
       },
       orderBy: { createdAt: "desc" },
-      include: { agents: { take: 1 } },
+      include: {
+        agents: { take: 1 },
+        members: { where: { userId }, select: { role: true } },
+      },
     });
     return rows.map(
       (r): ProjectListRow => ({
@@ -48,7 +51,7 @@ export const prismaProjectRepository: ProjectRepository = {
         structure: r.structure,
         cwd: r.cwd,
         firstAgentSource: r.agents[0]?.source ?? null,
-        ownerId: r.ownerId,
+        memberRole: r.members[0]?.role ?? null,
       }),
     );
   },
@@ -188,51 +191,28 @@ export const prismaProjectRepository: ProjectRepository = {
   },
 
   findMembers: async (projectId) => {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
+    const rows = await prisma.projectMember.findMany({
+      where: { projectId },
       select: {
-        createdAt: true,
-        owner: {
+        role: true,
+        joinedAt: true,
+        user: {
           select: { id: true, name: true, email: true, profileColor: true, profileImage: true },
         },
-        members: {
-          select: {
-            role: true,
-            joinedAt: true,
-            user: {
-              select: { id: true, name: true, email: true, profileColor: true, profileImage: true },
-            },
-          },
-        },
       },
+      orderBy: { joinedAt: "asc" },
     });
-    if (!project) return [];
-
-    const owner: ProjectMemberRow = {
-      userId: project.owner.id,
-      name: project.owner.name,
-      email: project.owner.email,
-      profileColor: project.owner.profileColor,
-      profileImage: project.owner.profileImage,
-      role: "OWNER",
-      joinedAt: project.createdAt,
-    };
-
-    const others = project.members
-      .filter((m) => m.user.id !== project.owner.id)
-      .map(
-        (m): ProjectMemberRow => ({
-          userId: m.user.id,
-          name: m.user.name,
-          email: m.user.email,
-          profileColor: m.user.profileColor,
-          profileImage: m.user.profileImage,
-          role: m.role as "OWNER" | "MEMBER",
-          joinedAt: m.joinedAt,
-        }),
-      );
-
-    return [owner, ...others];
+    return rows.map(
+      (m): ProjectMemberRow => ({
+        userId: m.user.id,
+        name: m.user.name,
+        email: m.user.email,
+        profileColor: m.user.profileColor,
+        profileImage: m.user.profileImage,
+        role: m.role as "OWNER" | "MEMBER",
+        joinedAt: m.joinedAt,
+      }),
+    );
   },
 
   findSettings: async (id) => {

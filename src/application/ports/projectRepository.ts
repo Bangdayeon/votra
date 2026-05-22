@@ -30,7 +30,7 @@ export type ProjectListRow = {
   structure: unknown;
   cwd: string | null;
   firstAgentSource: string | null;
-  ownerId: string;
+  memberRole: string | null;
 };
 
 export type SessionErrorCreate = {
