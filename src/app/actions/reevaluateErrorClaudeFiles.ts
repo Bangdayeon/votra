@@ -1,7 +1,7 @@
 "use server";
 
 import { reevaluateErrorClaudeFiles } from "@/application/reevaluateErrorClaudeFiles";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaClaudeFileEvaluationRepository } from "@/infrastructure/repositories/prismaClaudeFileEvaluationRepository";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
@@ -11,7 +11,7 @@ import { prismaProjectRepository } from "@/infrastructure/repositories/prismaPro
 export async function reevaluateErrorClaudeFilesAction(
   projectId: string,
 ): Promise<void> {
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectOwner(projectId);
   if (!guard.ok) return;
   await reevaluateErrorClaudeFiles(projectId, {
     claudeFiles: prismaClaudeFileRepository,

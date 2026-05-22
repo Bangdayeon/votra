@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { deleteProject } from "@/application/deleteProject";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 export type DeleteProjectResult =
@@ -11,7 +11,7 @@ export type DeleteProjectResult =
   | { ok: false; error: string };
 
 export async function deleteProjectAction(id: string): Promise<DeleteProjectResult> {
-  const guard = await assertOwnedProject(id);
+  const guard = await assertProjectOwner(id);
   if (!guard.ok) return { ok: false, error: guard.error };
 
   try {

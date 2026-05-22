@@ -7,7 +7,7 @@ import {
   refreshProjectAiSummary,
   type RefreshedProjectAiSummary,
 } from "@/application/refreshProjectAiSummary";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
@@ -16,7 +16,7 @@ import { prismaSessionRepository } from "@/infrastructure/repositories/prismaSes
 export async function refreshProjectAiSummaryAction(
   projectId: string,
 ): Promise<RefreshedProjectAiSummary> {
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectOwner(projectId);
   if (!guard.ok) throw new Error(guard.error);
 
   const result = await refreshProjectAiSummary(projectId, {

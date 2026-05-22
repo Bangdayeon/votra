@@ -7,7 +7,7 @@ import {
   refreshAgentContextFlowDiagnosis,
   type RefreshedAgentContextFlowDiagnosis,
 } from "@/application/refreshAgentContextFlowDiagnosis";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaAgentContextFlowDiagnosisRepository } from "@/infrastructure/repositories/prismaAgentContextFlowDiagnosisRepository";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
@@ -17,7 +17,7 @@ import { prismaSessionRepository } from "@/infrastructure/repositories/prismaSes
 export async function refreshAgentContextFlowDiagnosisAction(
   projectId: string,
 ): Promise<RefreshedAgentContextFlowDiagnosis> {
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectOwner(projectId);
   if (!guard.ok) throw new Error(guard.error);
 
   const result = await refreshAgentContextFlowDiagnosis(projectId, {

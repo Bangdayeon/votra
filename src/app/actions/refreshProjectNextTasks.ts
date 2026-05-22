@@ -7,7 +7,7 @@ import {
   refreshProjectNextTasks,
   type RefreshedProjectNextTasks,
 } from "@/application/refreshProjectNextTasks";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaProjectAiNextTaskRepository } from "@/infrastructure/repositories/prismaProjectAiNextTaskRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
@@ -16,7 +16,7 @@ import { prismaSessionRepository } from "@/infrastructure/repositories/prismaSes
 export async function refreshProjectNextTasksAction(
   projectId: string,
 ): Promise<RefreshedProjectNextTasks> {
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectOwner(projectId);
   if (!guard.ok) throw new Error(guard.error);
 
   const result = await refreshProjectNextTasks(projectId, {

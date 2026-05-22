@@ -9,7 +9,7 @@ import { AI_SPEC_GUIDELINE_MAX } from "@/domain/aiSpec/types";
 import { AGENT_CONTEXT_FLOW_PROMPT_MAX } from "@/domain/project/settings/types";
 import { parseAiSpecFilePayload } from "@/domain/aiSpec/parseAiSpecFilePayload";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { prismaPolicyRuleRepository } from "@/infrastructure/repositories/prismaPolicyRuleRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
@@ -17,7 +17,7 @@ type RouteContext = { params: Promise<{ projectId: string }> };
 
 export async function GET(_req: Request, ctx: RouteContext) {
   const { projectId } = await ctx.params;
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectOwner(projectId);
   if (!guard.ok) {
     return NextResponse.json(
       { ok: false, error: guard.error },
@@ -39,7 +39,7 @@ export async function GET(_req: Request, ctx: RouteContext) {
 
 export async function PATCH(req: Request, ctx: RouteContext) {
   const { projectId } = await ctx.params;
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectOwner(projectId);
   if (!guard.ok) {
     return NextResponse.json(
       { ok: false, error: guard.error },

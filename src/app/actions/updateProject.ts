@@ -6,7 +6,7 @@ import {
   updateProject,
   type UpdateProjectInput,
 } from "@/application/updateProject";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 export type UpdateProjectResult =
@@ -16,7 +16,7 @@ export type UpdateProjectResult =
 export async function updateProjectAction(
   input: UpdateProjectInput,
 ): Promise<UpdateProjectResult> {
-  const guard = await assertOwnedProject(input.id);
+  const guard = await assertProjectOwner(input.id);
   if (!guard.ok) return { ok: false, error: guard.error };
 
   try {

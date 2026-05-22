@@ -19,7 +19,7 @@ export async function assertProjectOwner(
   });
 
   if (member?.role !== "OWNER") {
-    return { ok: false, error: "소유자만 초대 링크를 만들 수 있어요." };
+    return { ok: false, error: "권한이 없어요." };
   }
   return { ok: true, userId: user.id };
 }
