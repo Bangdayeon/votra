@@ -9,6 +9,7 @@ import { HistoryTab } from "@/components/history/HistoryTab";
 import { OverviewTab } from "@/components/overview/OverviewTab";
 import { useProjects } from "@/components/project/ProjectsContext";
 import { TeamTab } from "@/components/team/TeamTab";
+import { useProjectEvents } from "@/hooks/useProjectEvents";
 
 type Tab = "main" | "manage" | "history" | "team";
 
@@ -25,11 +26,13 @@ export function ProjectPageClient() {
   const tab = parseTab(searchParams.get("tab"));
 
   const slug = decodeSlug(params.projectName);
-  const { projects } = useProjects();
+  const { projects, refresh } = useProjects();
   const project = useMemo(
     () => projects.find((p) => p.name === slug) ?? null,
     [projects, slug],
   );
+
+  useProjectEvents(project?.id ?? "", refresh);
 
   if (!project) {
     return (

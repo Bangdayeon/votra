@@ -1,7 +1,8 @@
 "use server";
 
 import { updateMemberRole } from "@/application/updateMemberRole";
-import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
+import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
+import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 export async function updateMemberRoleAction(
@@ -9,7 +10,7 @@ export async function updateMemberRoleAction(
   targetUserId: string,
   newRole: "OWNER" | "MEMBER",
 ): Promise<void> {
-  const guard = await assertProjectMember(projectId);
+  const guard = await assertProjectOwner(projectId);
   if (!guard.ok) throw new Error(guard.error);
 
   const result = await updateMemberRole(
@@ -17,4 +18,6 @@ export async function updateMemberRoleAction(
     { projects: prismaProjectRepository },
   );
   if (!result.ok) throw new Error(result.error);
+
+  emitProjectUpdate(projectId);
 }
