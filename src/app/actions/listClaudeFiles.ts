@@ -4,7 +4,7 @@ import {
   listClaudeFiles,
   type ListClaudeFilesResult,
 } from "@/application/listClaudeFiles";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
 import { prismaClaudeFileEvaluationRepository } from "@/infrastructure/repositories/prismaClaudeFileEvaluationRepository";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 
@@ -16,7 +16,7 @@ const EMPTY: ListClaudeFilesResult = {
 export async function listClaudeFilesAction(
   projectId: string,
 ): Promise<ListClaudeFilesResult> {
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectMember(projectId);
   if (!guard.ok) return EMPTY;
   return listClaudeFiles(projectId, {
     claudeFiles: prismaClaudeFileRepository,

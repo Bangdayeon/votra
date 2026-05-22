@@ -9,6 +9,7 @@ export type ProjectListItem = {
   image?: string;
   structure?: FolderNode[];
   cwd?: string;
+  isOwner: boolean;
 };
 
 export async function listProjects(
@@ -24,6 +25,7 @@ export async function listProjects(
     image: r.thumbnailUrl ?? undefined,
     structure: extractTree(r.structure),
     cwd: r.cwd ?? undefined,
+    isOwner: r.ownerId === args.userId,
   }));
 }
 

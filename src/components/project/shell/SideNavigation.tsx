@@ -109,10 +109,8 @@ export function SideNavigation() {
                   image={project.image}
                   selected={project.id === selectedId}
                   href={projectHref(project.name)}
-                  onEdit={() => setEditing(project)}
-                  onDelete={() =>
-                    setDeleting({ id: project.id, name: project.name })
-                  }
+                  onEdit={project.isOwner ? () => setEditing(project) : undefined}
+                  onDelete={project.isOwner ? () => setDeleting({ id: project.id, name: project.name }) : undefined}
                 />
               </li>
             ))}

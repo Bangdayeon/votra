@@ -7,13 +7,13 @@ import {
   getCachedProjectNextTasks,
   type CachedProjectNextTasks,
 } from "@/application/getCachedProjectNextTasks";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
 import { prismaProjectAiNextTaskRepository } from "@/infrastructure/repositories/prismaProjectAiNextTaskRepository";
 
 export async function getProjectNextTasksAction(
   projectId: string,
 ): Promise<CachedProjectNextTasks> {
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectMember(projectId);
   if (!guard.ok) throw new Error(guard.error);
 
   const compute = unstable_cache(

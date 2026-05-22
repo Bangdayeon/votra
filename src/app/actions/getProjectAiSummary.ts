@@ -7,7 +7,7 @@ import {
   getCachedProjectAiSummary,
   type CachedProjectAiSummary,
 } from "@/application/getCachedProjectAiSummary";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
 import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
 
 function makeCachedFetch(projectId: string) {
@@ -24,7 +24,7 @@ function makeCachedFetch(projectId: string) {
 export async function getProjectAiSummaryAction(
   projectId: string,
 ): Promise<CachedProjectAiSummary> {
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectMember(projectId);
   if (!guard.ok) throw new Error(guard.error);
 
   return makeCachedFetch(projectId)();

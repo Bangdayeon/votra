@@ -7,7 +7,7 @@ import {
   getCachedAgentContextFlowDiagnosis,
   type CachedAgentContextFlowDiagnosis,
 } from "@/application/getCachedAgentContextFlowDiagnosis";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
 import { prismaAgentContextFlowDiagnosisRepository } from "@/infrastructure/repositories/prismaAgentContextFlowDiagnosisRepository";
 
 function makeCachedFetch(projectId: string) {
@@ -24,7 +24,7 @@ function makeCachedFetch(projectId: string) {
 export async function getAgentContextFlowDiagnosisAction(
   projectId: string,
 ): Promise<CachedAgentContextFlowDiagnosis> {
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectMember(projectId);
   if (!guard.ok) throw new Error(guard.error);
 
   return makeCachedFetch(projectId)();

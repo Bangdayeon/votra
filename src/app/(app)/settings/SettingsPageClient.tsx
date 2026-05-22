@@ -57,7 +57,7 @@ export function SettingsPageClient({ slug: slugProp }: { slug?: string } = {}) {
     );
   }
 
-  return <SettingsForm projectId={project.id} projectName={project.name} />;
+  return <SettingsForm projectId={project.id} projectName={project.name} isOwner={project.isOwner ?? true} />;
 }
 
 function ProjectPicker() {
@@ -96,9 +96,11 @@ function ProjectPicker() {
 function SettingsForm({
   projectId,
   projectName: _projectName,
+  isOwner,
 }: {
   projectId: string;
   projectName: string;
+  isOwner: boolean;
 }) {
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab");
@@ -239,7 +241,7 @@ function SettingsForm({
               />
               <textarea
                 value={analysisInstruction}
-                disabled={loading}
+                disabled={loading || !isOwner}
                 maxLength={AI_ANALYSIS_INSTRUCTION_MAX}
                 placeholder="예) 비용 절감 위주로 요약해 주세요. 에러가 가장 많은 세션을 콕 짚어 알려 주세요."
                 rows={5}
@@ -272,7 +274,7 @@ function SettingsForm({
               />
               <textarea
                 value={nextTaskPrompt}
-                disabled={loading}
+                disabled={loading || !isOwner}
                 maxLength={AI_NEXT_TASK_PROMPT_MAX}
                 placeholder="예) 현재 마감이 촉박한 기능 위주로 제안해 주세요."
                 rows={3}
@@ -291,7 +293,7 @@ function SettingsForm({
               </p>
             </Section>
 
-            {activeTab === "overview" && (
+            {activeTab === "overview" && isOwner && (
               <SaveBar
                 saving={saveState.kind === "saving"}
                 saved={saveState.kind === "saved"}
@@ -321,7 +323,7 @@ function SettingsForm({
                   setFileChange(next);
                   markDirty();
                 }}
-                disabled={loading}
+                disabled={loading || !isOwner}
                 guidelinePlaceholder="예) 보안 관련 지침이 명시돼야 해요. 폴더 구조와 의존 방향이 적혀 있어야 통과로 봐주세요."
               />
             </Section>
@@ -332,7 +334,7 @@ function SettingsForm({
             >
               <textarea
                 value={agentContextFlowPrompt}
-                disabled={loading}
+                disabled={loading || !isOwner}
                 maxLength={AGENT_CONTEXT_FLOW_PROMPT_MAX}
                 placeholder="비워두면 시스템 기본 프롬프트가 사용돼요."
                 rows={8}
@@ -351,7 +353,7 @@ function SettingsForm({
               </p>
             </Section>
 
-            {activeTab === "ai-management" && (
+            {activeTab === "ai-management" && isOwner && (
               <SaveBar
                 saving={saveState.kind === "saving"}
                 saved={saveState.kind === "saved"}
@@ -363,7 +365,7 @@ function SettingsForm({
           </>
         )}
 
-        {activeTab === "all" && (
+        {activeTab === "all" && isOwner && (
           <SaveBar
             saving={saveState.kind === "saving"}
             saved={saveState.kind === "saved"}

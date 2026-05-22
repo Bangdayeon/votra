@@ -1,4 +1,4 @@
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
 import { subscribeProject } from "@/infrastructure/events/projectEventBus";
 
 type RouteContext = { params: Promise<{ projectId: string }> };
@@ -6,7 +6,7 @@ type RouteContext = { params: Promise<{ projectId: string }> };
 export async function GET(_req: Request, ctx: RouteContext) {
   const { projectId } = await ctx.params;
 
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectMember(projectId);
   if (!guard.ok) {
     return new Response(guard.error, { status: 401 });
   }

@@ -3,14 +3,14 @@
 import { headers } from "next/headers";
 
 import { createProjectInvite } from "@/application/createProjectInvite";
-import { assertOwnedProject } from "@/infrastructure/auth/assertOwnedProject";
+import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { prismaProjectInviteRepository } from "@/infrastructure/repositories/prismaProjectInviteRepository";
 
 export async function createProjectInviteAction(
   projectId: string,
   email: string | null,
 ): Promise<{ inviteUrl: string }> {
-  const guard = await assertOwnedProject(projectId);
+  const guard = await assertProjectOwner(projectId);
   if (!guard.ok) throw new Error(guard.error);
 
   const token = await createProjectInvite(

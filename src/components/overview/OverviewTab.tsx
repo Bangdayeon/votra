@@ -120,14 +120,14 @@ export function OverviewTab({ selected }: { selected: Project }) {
         refreshedAt={aiSummary?.refreshedAt}
         loading={aiLoading}
         refreshing={aiRefreshing}
-        onRefresh={onRefreshAi}
+        onRefresh={selected.isOwner ? onRefreshAi : undefined}
       />
       <RecommendedNextTaskCard
         tasks={nextTasks?.tasks}
         refreshedAt={nextTasks?.refreshedAt}
         loading={nextTasksLoading}
         refreshing={nextTasksRefreshing}
-        onRefresh={onRefreshNextTasks}
+        onRefresh={selected.isOwner ? onRefreshNextTasks : undefined}
       />
     </div>
   );

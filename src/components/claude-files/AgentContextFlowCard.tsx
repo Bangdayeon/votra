@@ -55,7 +55,7 @@ export function AgentContextFlowCard({ selected }: { selected: Project }) {
         refreshedAt={refreshedAt}
         loading={state.kind === "loading"}
         refreshing={refreshing}
-        onRefresh={onRefresh}
+        onRefresh={selected.isOwner ? onRefresh : undefined}
       />
 
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">

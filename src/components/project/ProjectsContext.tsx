@@ -23,6 +23,7 @@ export type Project = {
   structure?: FolderNode[];
   /** 로컬 폴더 절대경로 (예: "/Users/bibi/votra") — 파일 경로 표시 prefix */
   cwd?: string;
+  isOwner?: boolean;
 };
 
 type ProjectsCtx = {

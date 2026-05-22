@@ -25,19 +25,21 @@ export function CardRefreshHeader({
     <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
       <div className="flex w-full items-center justify-between gap-3 mb-1 lg:w-auto lg:justify-start">
         <h3 className="text-xl font-semibold">{title}</h3>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={busy}
-          onClick={onRefresh}
-        >
-          {refreshing ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <RefreshCw className="size-4" />
-          )}
-        </Button>
+        {onRefresh && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={onRefresh}
+          >
+            {refreshing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+          </Button>
+        )}
       </div>
       <p className="self-end text-xs text-muted-foreground lg:self-auto">
         마지막 업데이트: {formatRefreshedAt(refreshedAt)}

@@ -48,6 +48,7 @@ export const prismaProjectRepository: ProjectRepository = {
         structure: r.structure,
         cwd: r.cwd,
         firstAgentSource: r.agents[0]?.source ?? null,
+        ownerId: r.ownerId,
       }),
     );
   },
@@ -268,7 +269,10 @@ export const prismaProjectRepository: ProjectRepository = {
 
   findByCwd: async ({ cwd, ownerId }) => {
     const row = await prisma.project.findFirst({
-      where: { cwd, ownerId },
+      where: {
+        cwd,
+        OR: [{ ownerId }, { members: { some: { userId: ownerId } } }],
+      },
       select: { id: true, ownerId: true },
       orderBy: { createdAt: "desc" },
     });

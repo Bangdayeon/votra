@@ -258,15 +258,17 @@ export function TeamTab({ selected }: { selected: Project }) {
                 <p className="text-xs text-muted-foreground">{members.length}명</p>
               )}
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setInviteOpen(true)}
-              className="gap-1.5"
-            >
-              <UserPlus className="size-3.5" />
-              팀원 초대
-            </Button>
+            {isOwner && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setInviteOpen(true)}
+                className="gap-1.5"
+              >
+                <UserPlus className="size-3.5" />
+                팀원 초대
+              </Button>
+            )}
           </div>
 
           {loading ? (
