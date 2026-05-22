@@ -196,7 +196,7 @@ type KickTarget = { userId: string; name: string };
 export function TeamTab({ selected }: { selected: Project }) {
   const [members, setMembers] = useState<ProjectMemberRow[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState<KickTarget | null>(null);
 
