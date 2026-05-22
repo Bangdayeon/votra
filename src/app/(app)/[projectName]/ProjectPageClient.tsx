@@ -6,15 +6,19 @@ import { useMemo } from "react";
 import { AgentContextFlowCard } from "@/components/claude-files/AgentContextFlowCard";
 import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
 import { HistoryTab } from "@/components/history/HistoryTab";
+import { MemoryTab } from "@/components/memory/MemoryTab";
+import { TasksTab } from "@/components/memory/TasksTab";
 import { OverviewTab } from "@/components/overview/OverviewTab";
 import { useProjects } from "@/components/project/ProjectsContext";
 import { TeamTab } from "@/components/team/TeamTab";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 
-type Tab = "main" | "manage" | "history" | "team";
+type Tab = "main" | "manage" | "tasks" | "memory" | "history" | "team";
 
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
+  if (value === "tasks") return "tasks";
+  if (value === "memory") return "memory";
   if (value === "history") return "history";
   if (value === "team") return "team";
   return "main";
@@ -52,6 +56,12 @@ export function ProjectPageClient() {
           <ClaudeFilesCard selected={project} />
           <AgentContextFlowCard selected={project} />
         </div>
+      </div>
+      <div className={tab === "tasks" ? undefined : "hidden"}>
+        <TasksTab selected={project} />
+      </div>
+      <div className={tab === "memory" ? undefined : "hidden"}>
+        <MemoryTab selected={project} />
       </div>
       <div className={tab === "history" ? undefined : "hidden"}>
         <HistoryTab selected={project} />
