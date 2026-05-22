@@ -110,7 +110,7 @@ export type ProjectMemberRow = {
 };
 
 export type ProjectRepository = {
-  list: (args: { ownerId: string }) => Promise<ProjectListRow[]>;
+  list: (args: { userId: string }) => Promise<ProjectListRow[]>;
   findMembers: (projectId: string) => Promise<ProjectMemberRow[]>;
   findMemberRole: (input: { projectId: string; userId: string }) => Promise<"OWNER" | "MEMBER" | null>;
   countOwners: (projectId: string) => Promise<number>;

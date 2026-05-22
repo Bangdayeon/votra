@@ -11,7 +11,7 @@ export async function listProjectsAction(): Promise<ProjectListItem[]> {
   const user = await getCurrentUser();
   if (!user) return [];
   return listProjectsImpl(
-    { ownerId: user.id },
+    { userId: user.id },
     { projects: prismaProjectRepository },
   );
 }

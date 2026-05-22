@@ -174,7 +174,7 @@ async function findProjectByCwdLenient(
   });
   if (exact) return exact;
 
-  const all = await prismaProjectRepository.list({ ownerId });
+  const all = await prismaProjectRepository.list({ userId: ownerId });
   const sourceWithSep = source + PATH_SEP;
   for (const p of all) {
     if (typeof p.cwd !== "string" || p.cwd.length === 0) continue;

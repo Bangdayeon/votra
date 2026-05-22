@@ -12,10 +12,10 @@ export type ProjectListItem = {
 };
 
 export async function listProjects(
-  args: { ownerId: string },
+  args: { userId: string },
   deps: { projects: ProjectRepository },
 ): Promise<ProjectListItem[]> {
-  const rows = await deps.projects.list({ ownerId: args.ownerId });
+  const rows = await deps.projects.list({ userId: args.userId });
   return rows.map((r) => ({
     id: r.id,
     name: r.title,

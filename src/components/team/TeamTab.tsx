@@ -105,13 +105,11 @@ function InviteDialog({
   onClose: () => void;
   projectId: string;
 }) {
-  const [email, setEmail] = useState("");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
 
   function handleClose() {
-    setEmail("");
     setInviteUrl(null);
     setCopied(false);
     onClose();
@@ -120,10 +118,7 @@ function InviteDialog({
   async function handleCreate() {
     setCreating(true);
     try {
-      const { inviteUrl: url } = await createProjectInviteAction(
-        projectId,
-        email.trim() || null,
-      );
+      const { inviteUrl: url } = await createProjectInviteAction(projectId, null);
       setInviteUrl(url);
     } catch {
       toast.error("초대 링크 생성에 실패했어요.");
@@ -152,21 +147,6 @@ function InviteDialog({
             <p className="text-sm text-muted-foreground">
               초대 링크를 생성해서 팀원에게 공유하세요. 링크에 접속하면 프로젝트에 합류해요.
             </p>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                이메일
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="teammate@example.com"
-                className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-              />
-              <p className="text-xs text-muted-foreground">
-                표시용으로만 저장해요. 링크는 누구든 사용할 수 있어요.
-              </p>
-            </div>
             <Button onClick={handleCreate} disabled={creating} className="w-full">
               {creating ? (
                 <><Loader2 className="mr-2 size-4 animate-spin" />생성 중...</>
@@ -181,7 +161,7 @@ function InviteDialog({
               아래 링크를 복사해서 팀원에게 공유하세요. 링크는 <span className="font-medium text-foreground">1일간</span> 유효해요.
             </p>
             <div className="flex min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-border bg-muted px-3 py-2">
-              <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              <span className="w-0 flex-1 truncate text-xs text-muted-foreground">
                 {inviteUrl}
               </span>
               <button
