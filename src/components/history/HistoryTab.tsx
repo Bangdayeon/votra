@@ -10,6 +10,7 @@ import { Card } from "@/components/common/Card";
 import { OtherMetricsCard } from "@/components/overview/OtherMetricsCard";
 import { SessionTokensCard } from "@/components/overview/SessionTokensCard";
 import type { Project } from "@/components/project/ProjectsContext";
+import { useProjectEvents } from "@/hooks/useProjectEvents";
 
 export function HistoryTab({ selected }: { selected: Project }) {
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);
@@ -26,19 +27,20 @@ export function HistoryTab({ selected }: { selected: Project }) {
     let cancelled = false;
     setMetricsLoading(true);
     getProjectMetricsAction(selected.id)
-      .then((m) => {
-        if (!cancelled) setMetrics(m);
-      })
-      .catch(() => {
-        if (!cancelled) setMetrics(null);
-      })
-      .finally(() => {
-        if (!cancelled) setMetricsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .then((m) => { if (!cancelled) setMetrics(m); })
+      .catch(() => { if (!cancelled) setMetrics(null); })
+      .finally(() => { if (!cancelled) setMetricsLoading(false); });
+    return () => { cancelled = true; };
   }, [selected.id]);
+
+  useProjectEvents(
+    selected.id,
+    useCallback(() => {
+      getProjectMetricsAction(selected.id)
+        .then((m) => setMetrics(m))
+        .catch(() => {});
+    }, [selected.id]),
+  );
 
   return (
     <div className="flex flex-col gap-6 pb-6">

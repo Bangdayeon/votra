@@ -10,6 +10,7 @@ import type { PromptBranch } from "@/application/getSessionPromptBranches";
 import { BranchGraph } from "@/components/branch/BranchGraph";
 import type { Project } from "@/components/project/ProjectsContext";
 import { SessionDetailGraph } from "@/components/branch/SessionDetailGraph";
+import { useProjectEvents } from "@/hooks/useProjectEvents";
 import {
   Dialog,
   DialogContent,
@@ -82,6 +83,15 @@ export function BranchTab({
   const handleSelect = useCallback((id: string) => {
     setActiveSessionId(id);
   }, []);
+
+  useProjectEvents(
+    selected.id,
+    useCallback(() => {
+      getProjectBranchNodesAction(selected.id)
+        .then((n) => setNodes(n))
+        .catch(() => {});
+    }, [selected.id]),
+  );
 
   return (
     <div

@@ -9,6 +9,7 @@ import {
 import type { AgentKind } from "@/domain/agent/types";
 import type { RawEvent } from "@/domain/session/types";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
+import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 
 export async function POST(req: Request) {
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
 
   if (result.value.insertedEvents > 0 || result.value.sessions.length > 0) {
     revalidateTag(projectMetricsTag(result.value.projectId));
+    emitProjectUpdate(result.value.projectId);
   }
 
   return NextResponse.json({
