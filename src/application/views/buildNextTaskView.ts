@@ -2,9 +2,10 @@ import type { ParsedSession } from "@/domain/session/types";
 
 export type NextTaskView = {
   lastSessionFiles: string[];
-  incompleteSignals: { title: string; intentHint: string; errors: { type: string; context: string }[] }[];
+  incompleteSignals: { title: string; agentKind: string; intentHint: string; errors: { type: string; context: string }[] }[];
   recentWorkFlow: {
     title: string;
+    agentKind: string;
     filesModified: string[];
     intentHint: string;
   }[];
@@ -25,10 +26,11 @@ export function buildNextTaskView(sessions: ParsedSession[]): NextTaskView {
   const incompleteSignals = sorted
     .filter((s) => !s.isComplete)
     .slice(0, 3)
-    .map((s) => ({ title: s.title, intentHint: s.intentHint, errors: s.errors }));
+    .map((s) => ({ title: s.title, agentKind: s.agentKind, intentHint: s.intentHint, errors: s.errors }));
 
   const recentWorkFlow = sorted.slice(0, 3).map((s) => ({
     title: s.title,
+    agentKind: s.agentKind,
     filesModified: s.filesModified,
     intentHint: s.intentHint,
   }));

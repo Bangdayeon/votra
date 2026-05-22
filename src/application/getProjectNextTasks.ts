@@ -16,12 +16,19 @@ export async function getProjectNextTasks(
 당신은 AI 코딩 에이전트 활동 분석 전문가예요.
 아래는 프로젝트의 최근 세션 데이터입니다.
 
+세션 데이터 필드 설명:
+- recentWorkFlow[].agentKind : 세션을 생성한 AI 에이전트 (CLAUDE/CURSOR/CODEX/GEMINI/ANTIGRAVITY)
+- recentWorkFlow[].intentHint : 세션의 작업 의도
+- recentWorkFlow[].filesModified : 수정된 파일 목록
+- incompleteSignals[].agentKind : 미완료 세션의 AI 에이전트
+
 ## 세션 데이터
 ${JSON.stringify(view, null, 2)}
 ${customPrompt ? `\n## 추가 지침\n${customPrompt}` : ""}
 
 위 데이터를 바탕으로 현재 작업 흐름을 파악하고, 가장 효율적인 다음 액션을 **1~3개** 제안해 주세요.
 - 한국어로 답변해 주세요.
+- agentCommand 는 해당 세션의 agentKind 에 맞는 AI 에이전트에 바로 붙여넣을 수 있는 자연어 명령문으로 작성해 주세요.
 
 반드시 아래 JSON 형식만 반환하세요:
 {

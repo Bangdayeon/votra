@@ -5,6 +5,7 @@ const RISK_KEYWORDS = ["deploy", "auth", "migration", "secret", "env", "config",
 export type StatusView = {
   recentSessions: {
     title: string;
+    agentKind: string;
     intentHint: string;
     filesModified: string[];
     errors: { type: string; context: string }[];
@@ -25,6 +26,7 @@ export function buildStatusView(sessions: ParsedSession[]): StatusView {
 
   const recentSessions = recent.map((s) => ({
     title: s.title,
+    agentKind: s.agentKind,
     intentHint: s.intentHint,
     filesModified: s.filesModified,
     errors: s.errors,

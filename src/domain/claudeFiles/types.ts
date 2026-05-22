@@ -1,4 +1,4 @@
-export type ClaudeFileKind = "CLAUDE" | "AGENTS" | "SKILL";
+export type ClaudeFileKind = "CLAUDE" | "AGENTS" | "SKILL" | "CURSOR" | "GEMINI";
 
 export type ClaudeFileScope = "global" | "project-root" | "subdir";
 

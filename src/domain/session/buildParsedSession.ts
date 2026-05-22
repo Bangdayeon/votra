@@ -4,6 +4,7 @@ import type { ParsedSession } from "@/domain/session/types";
 type SessionInput = {
   id: string;
   title: string | null;
+  source: string;
   startedAt: Date | null;
   events: SessionEventRow[];
 };
@@ -44,6 +45,7 @@ export function buildParsedSession(session: SessionInput): ParsedSession {
   return {
     sessionId: session.id,
     title: session.title ?? "",
+    agentKind: session.source,
     startedAt: session.startedAt ?? new Date(0),
     filesModified,
     filesRead,

@@ -56,6 +56,7 @@ export type Session = {
 export type ParsedSession = {
   sessionId: string;
   title: string;
+  agentKind: string;
   startedAt: Date;
   filesModified: string[];
   filesRead: string[];

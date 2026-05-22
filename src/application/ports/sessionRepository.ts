@@ -57,6 +57,7 @@ export type SessionEventRow = {
 export type SessionWithEvents = {
   id: string;
   title: string | null;
+  source: string;
   startedAt: Date | null;
   events: SessionEventRow[];
 };

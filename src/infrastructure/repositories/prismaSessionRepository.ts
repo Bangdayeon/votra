@@ -131,6 +131,7 @@ export const prismaSessionRepository: SessionRepository = {
       select: {
         id: true,
         title: true,
+        source: true,
         startedAt: true,
         events: {
           orderBy: { timestamp: "asc" },
@@ -149,6 +150,7 @@ export const prismaSessionRepository: SessionRepository = {
       (s): SessionWithEvents => ({
         id: s.id,
         title: s.title,
+        source: s.source,
         startedAt: s.startedAt,
         events: s.events.map(
           (e): SessionEventRow => ({

@@ -15,7 +15,7 @@ import { prismaProjectRepository } from "@/infrastructure/repositories/prismaPro
 
 const PATH_SEP = "/";
 
-const VALID_KINDS: ClaudeFileKind[] = ["CLAUDE", "AGENTS", "SKILL"];
+const VALID_KINDS: ClaudeFileKind[] = ["CLAUDE", "AGENTS", "SKILL", "CURSOR", "GEMINI"];
 const VALID_SCOPES: ClaudeFileScope[] = ["global", "project-root", "subdir"];
 const MAX_CONTENT_BYTES = 256 * 1024;
 

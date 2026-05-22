@@ -25,6 +25,8 @@ const ROOT_FILE_KIND: Record<string, ClaudeFileKind> = {
   "CLAUDE.md": "CLAUDE",
   "CLAUDE.local.md": "CLAUDE",
   "AGENTS.md": "AGENTS",
+  ".cursorrules": "CURSOR",
+  "GEMINI.md": "GEMINI",
 };
 
 const NESTED_FILE_KIND: Record<string, ClaudeFileKind> = {
@@ -32,6 +34,7 @@ const NESTED_FILE_KIND: Record<string, ClaudeFileKind> = {
   "CLAUDE.local.md": "CLAUDE",
   "AGENTS.md": "AGENTS",
   "SKILL.md": "SKILL",
+  "GEMINI.md": "GEMINI",
 };
 
 export async function discoverClaudeFiles(
@@ -41,6 +44,7 @@ export async function discoverClaudeFiles(
   await collectGlobal(results);
   if (cwd) {
     await collectProjectRoot(results, cwd);
+    await collectCursorRules(results, cwd);
     await collectSubdir(results, cwd);
   }
   return results;
@@ -55,6 +59,9 @@ async function collectGlobal(out: DiscoveredFile[]): Promise<void> {
 
   const skillsRoot = join(dotClaude, "skills");
   await walkSkills(skillsRoot, "~/.claude/skills", out);
+
+  const dotGemini = join(home, ".gemini");
+  await collectRootFiles(dotGemini, "~/.gemini", out);
 }
 
 async function collectRootFiles(
@@ -122,6 +129,29 @@ async function collectProjectRoot(
         displayPath: e.name,
         kind: ROOT_FILE_KIND[e.name],
         scope: "project-root",
+      });
+    }
+  }
+}
+
+async function collectCursorRules(
+  out: DiscoveredFile[],
+  cwd: string,
+): Promise<void> {
+  const rulesDir = join(cwd, ".cursor", "rules");
+  let entries;
+  try {
+    entries = await readdir(rulesDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const e of entries) {
+    if ((e.isFile() || e.isSymbolicLink()) && e.name.endsWith(".mdc")) {
+      out.push({
+        absPath: join(rulesDir, e.name),
+        displayPath: `.cursor/rules/${e.name}`,
+        kind: "CURSOR",
+        scope: "subdir",
       });
     }
   }

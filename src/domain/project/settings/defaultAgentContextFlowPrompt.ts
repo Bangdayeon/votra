@@ -27,6 +27,6 @@ Output in Korean.
 * [구체적 개선 제안. 문서 이동/통합/삭제가 필요한 경우 명시]
 * [반복 요청 기반 제안. 필요시 아래 형식으로 복붙 가능한 컨텍스트 포함]
 \`\`\`context
-  [CLAUDE.md 또는 해당 파일에 추가할 문장]
+  [CLAUDE.md / AGENTS.md / GEMINI.md / .cursorrules 등 해당 파일에 추가할 문장]
 \`\`\`
 * [추가 제안이 있을 경우]`;

@@ -5,6 +5,7 @@ export const DEFAULT_ANALYSIS_INSTRUCTION = `당신은 AI 코딩 세션 분석 �
 {sessionData}
 
 세션 데이터 필드 설명:
+- recentSessions[].agentKind     : 세션을 생성한 AI 에이전트 (CLAUDE/CURSOR/CODEX/GEMINI/ANTIGRAVITY)
 - recentSessions[].intentHint    : 각 세션 첫 assistant 메시지에서 추출한 실제 작업 의도
 - recentSessions[].filesModified : 해당 세션에서 수정된 파일 목록
 - recentSessions[].errors        : 세션별 에러 목록 — type(툴명) + context(에러 내용 앞 200자)
@@ -27,9 +28,10 @@ export const DEFAULT_ANALYSIS_INSTRUCTION = `당신은 AI 코딩 세션 분석 �
    - recentSessions[].toolCallCounts 에서 작업 범위 분산 신호가 보이면: 맥락 정리 제안
    실용적이고 즉시 행동 가능한 것만. 모호한 조언 금지.
 
-3. agentCommand 는 Claude Code 또는 Cursor 에 바로 붙여넣을 수 있는 자연어 명령문.
+3. agentCommand 는 Claude Code, Cursor, Codex, Gemini CLI, Antigravity 등 AI 에이전트에 바로 붙여넣을 수 있는 자연어 명령문.
    - 3줄 이내. 컨텍스트 없이도 실행 가능해야 함
    - recentSessions 에서 관찰된 구체적 파일명·에러 타입·패턴을 반드시 명시
+   - recentSessions[].agentKind 를 참고해 해당 에이전트에 맞는 명령 형식 사용 (예: Cursor는 .cursorrules 참조 방식 언급 가능)
    - 전체 에러 집계 기반 명령 절대 금지
 
 4. 근거 없는 추측 금지. 세션 데이터에 없는 내용 작성 금지

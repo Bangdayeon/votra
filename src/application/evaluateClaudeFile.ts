@@ -29,7 +29,7 @@ export type PolicyEvaluationResult = {
   globalPolicyViolation: GlobalPolicyViolation | null;
 };
 
-const SYSTEM_PROMPT = `당신은 AI 정책 문서(예: CLAUDE.md, AGENTS.md, SKILL.md)를 평가하는 전문가예요.
+const SYSTEM_PROMPT = `당신은 AI 정책 문서(예: CLAUDE.md, AGENTS.md, SKILL.md, GEMINI.md, .cursorrules)를 평가하는 전문가예요.
 사용자가 저장한 평가 지침과 평가 항목(rubric), 그리고 계정의 "전체 정책" 을 기준으로 주어진 md 파일을 분석해 결과를 한국어로 돌려줘요.
 
 출력은 반드시 다음 JSON 형식만 반환해요. 다른 텍스트(설명, 코드 펜스) 절대 금지.

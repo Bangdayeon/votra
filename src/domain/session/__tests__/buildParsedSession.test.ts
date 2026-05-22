@@ -57,12 +57,14 @@ describe("buildParsedSession", () => {
     const result = buildParsedSession({
       id: "session-1",
       title: "Auth 리팩토링",
+      source: "CLAUDE",
       startedAt: new Date("2025-01-01T10:00:00Z"),
       events,
     });
 
     expect(result.sessionId).toBe("session-1");
     expect(result.title).toBe("Auth 리팩토링");
+    expect(result.agentKind).toBe("CLAUDE");
     expect(result.filesModified).toEqual(["/src/auth.ts", "/src/session.ts"]);
     expect(result.filesRead).toEqual(["/src/auth.ts"]);
     expect(result.errors).toEqual([
@@ -71,5 +73,23 @@ describe("buildParsedSession", () => {
     expect(result.toolCallCounts).toEqual({ Read: 1, Bash: 1 });
     expect(result.intentHint).toBe("인증 로직을 리팩토링할게요.");
     expect(result.isComplete).toBe(true);
+  });
+
+  it.each([
+    ["CLAUDE", "CLAUDE"],
+    ["CURSOR", "CURSOR"],
+    ["CODEX", "CODEX"],
+    ["GEMINI", "GEMINI"],
+    ["ANTIGRAVITY", "ANTIGRAVITY"],
+  ])("source=%s 이면 agentKind=%s 로 반환한다", (source, expected) => {
+    const result = buildParsedSession({
+      id: "session-x",
+      title: null,
+      source,
+      startedAt: null,
+      events: [],
+    });
+
+    expect(result.agentKind).toBe(expected);
   });
 });
