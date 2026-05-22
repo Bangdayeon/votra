@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import { updateProjectAction } from "@/app/actions/updateProject";
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export function EditProjectDialog({ project, onClose, onSaved }: Props) {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
@@ -72,6 +74,10 @@ export function EditProjectDialog({ project, onClose, onSaved }: Props) {
       if (result.ok) {
         onSaved();
         onClose();
+        const newTitle = title.trim();
+        if (newTitle !== project.name) {
+          router.push(`/${encodeURIComponent(newTitle)}`);
+        }
       } else {
         setError(result.error);
       }
