@@ -1,0 +1,38 @@
+import type { TaskRecord, TaskStatusValue } from "@/domain/memory/types";
+
+export type TaskCreateInput = {
+  title: string;
+  description?: string;
+  module?: string;
+  priority?: number;
+  projectId: string;
+  userId: string;
+};
+
+export type TaskUpdateInput = {
+  seq: number;
+  userId: string;
+  title?: string;
+  description?: string | null;
+  status?: TaskStatusValue;
+  module?: string | null;
+  priority?: number;
+};
+
+export type TaskListFilter = {
+  projectId: string;
+  userId: string;
+  status?: TaskStatusValue;
+  module?: string;
+};
+
+export type TaskRepository = {
+  create: (input: TaskCreateInput) => Promise<TaskRecord>;
+  update: (input: TaskUpdateInput) => Promise<TaskRecord | null>;
+  listByFilter: (filter: TaskListFilter) => Promise<TaskRecord[]>;
+  findRecentDone: (args: {
+    projectId: string;
+    userId: string;
+    limit: number;
+  }) => Promise<TaskRecord[]>;
+};

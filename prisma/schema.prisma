@@ -17,7 +17,14 @@ datasource db {
 
 enum ProjectRole {
   OWNER
-  VIEWER
+  MEMBER
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  CANCELLED
 }
 
 // ────────────────────────────────────────────
@@ -50,9 +57,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  projects       Project[]
-  projectMembers ProjectMember[]
-  apiKeys        ApiKey[]
+  projects           Project[]
+  projectMembers     ProjectMember[]
+  apiKeys            ApiKey[]
+  sentInvites        ProjectInvite[] @relation("InvitedByUser")
+  acceptedInvites    ProjectInvite[] @relation("AcceptedByUser")
+  thoughts           Thought[]
+  tasks              Task[]
 }
 
 // ────────────────────────────────────────────
@@ -119,6 +130,9 @@ model Project {
   aiSummary            ProjectAiSummary?
   aiNextTask           ProjectAiNextTask?
   agentContextFlowDiagnosis ProjectAgentContextFlowDiagnosis?
+  invites              ProjectInvite[]
+  thoughts             Thought[]
+  tasks                Task[]
 
   @@unique([ownerId, cwd])
   @@index([ownerId])
@@ -177,7 +191,7 @@ model ProjectAiNextTask {
 
 model ProjectMember {
   id       String      @id @default(cuid())
-  role     ProjectRole @default(VIEWER)
+  role     ProjectRole @default(MEMBER)
   joinedAt DateTime    @default(now())
 
   projectId String
@@ -189,6 +203,32 @@ model ProjectMember {
   @@unique([projectId, userId])
   @@index([projectId])
   @@index([userId])
+}
+
+// ────────────────────────────────────────────
+// PROJECT INVITE (팀원 초대 링크)
+// ────────────────────────────────────────────
+
+model ProjectInvite {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  email       String?
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  invitedById String
+  invitedBy   User   @relation("InvitedByUser", fields: [invitedById], references: [id])
+
+  acceptedById String?
+  acceptedBy   User?  @relation("AcceptedByUser", fields: [acceptedById], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@index([token])
 }
 
 // ────────────────────────────────────────────
@@ -483,4 +523,57 @@ model PolicyRule {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ────────────────────────────────────────────
+// THOUGHT (세션 간 메모리 — 생각/결정/인사이트)
+// pgvector 로 시맨틱 검색 지원. Prisma 가 vector 타입을 직접 지원하지 않아
+// Unsupported 로 선언하고 $queryRaw / $executeRaw 로 읽고 씀.
+// ────────────────────────────────────────────
+
+model Thought {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  tags      String[] @default([])
+  /// Google text-embedding-004 (768차원). 생성 시점에 채워짐.
+  embedding Unsupported("vector(768)")?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt(sort: Desc)])
+  @@index([userId])
+}
+
+// ────────────────────────────────────────────
+// TASK (세션 간 태스크 관리)
+// ────────────────────────────────────────────
+
+model Task {
+  id          String     @id @default(cuid())
+  /// 사람이 읽기 쉬운 순번. MCP tool에서 #42 형태로 참조.
+  seq         Int        @unique @default(autoincrement())
+  title       String
+  description String?    @db.Text
+  status      TaskStatus @default(PENDING)
+  /// 작업 모듈 (예: "auth", "api", "ui"). 필터링에 사용.
+  module      String?
+  priority    Int        @default(0)
+  /// status 가 DONE/CANCELLED 로 바뀐 시각
+  doneAt      DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@index([projectId, module])
+  @@index([userId])
 }

@@ -1,8 +1,18 @@
 type Listener = () => void;
 
-const listeners = new Map<string, Set<Listener>>();
+declare global {
+  var __projectListeners: Map<string, Set<Listener>> | undefined;
+}
+
+function getListeners(): Map<string, Set<Listener>> {
+  if (!global.__projectListeners) {
+    global.__projectListeners = new Map();
+  }
+  return global.__projectListeners;
+}
 
 export function subscribeProject(projectId: string, fn: Listener): () => void {
+  const listeners = getListeners();
   if (!listeners.has(projectId)) listeners.set(projectId, new Set());
   listeners.get(projectId)!.add(fn);
   return () => {
@@ -14,5 +24,5 @@ export function subscribeProject(projectId: string, fn: Listener): () => void {
 }
 
 export function emitProjectUpdate(projectId: string): void {
-  listeners.get(projectId)?.forEach((fn) => fn());
+  getListeners().get(projectId)?.forEach((fn) => fn());
 }

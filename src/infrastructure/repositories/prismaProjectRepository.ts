@@ -6,6 +6,7 @@ import type {
   IngestEventInput,
   ProjectEventCreate,
   ProjectListRow,
+  ProjectMemberRow,
   ProjectRepository,
 } from "@/application/ports/projectRepository";
 import { prisma } from "@/infrastructure/db/prisma";
@@ -57,6 +58,7 @@ export const prismaProjectRepository: ProjectRepository = {
         structure: data.structure as Prisma.InputJsonValue | undefined,
         cwd: data.cwd,
         agents: { create: [{ source }] },
+        members: { create: [{ userId: data.ownerId, role: "OWNER" }] },
         sessions: {
           create: data.sessions.map((s) => ({
             title: s.title,
@@ -146,6 +148,87 @@ export const prismaProjectRepository: ProjectRepository = {
     await prisma.project.delete({ where: { id } });
   },
 
+  findMemberRole: async ({ projectId, userId }) => {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { ownerId: true },
+    });
+    if (!project) return null;
+    if (project.ownerId === userId) return "OWNER";
+    const member = await prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      select: { role: true },
+    });
+    return (member?.role as "OWNER" | "MEMBER") ?? null;
+  },
+
+  countOwners: async (projectId) => {
+    return prisma.projectMember.count({
+      where: { projectId, role: "OWNER" },
+    });
+  },
+
+  updateMemberRole: async ({ projectId, targetUserId, newRole }) => {
+    await prisma.projectMember.update({
+      where: { projectId_userId: { projectId, userId: targetUserId } },
+      data: { role: newRole },
+    });
+  },
+
+  removeMember: async ({ projectId, targetUserId }) => {
+    await prisma.projectMember.delete({
+      where: { projectId_userId: { projectId, userId: targetUserId } },
+    });
+  },
+
+  findMembers: async (projectId) => {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        createdAt: true,
+        owner: {
+          select: { id: true, name: true, email: true, profileColor: true, profileImage: true },
+        },
+        members: {
+          select: {
+            role: true,
+            joinedAt: true,
+            user: {
+              select: { id: true, name: true, email: true, profileColor: true, profileImage: true },
+            },
+          },
+        },
+      },
+    });
+    if (!project) return [];
+
+    const owner: ProjectMemberRow = {
+      userId: project.owner.id,
+      name: project.owner.name,
+      email: project.owner.email,
+      profileColor: project.owner.profileColor,
+      profileImage: project.owner.profileImage,
+      role: "OWNER",
+      joinedAt: project.createdAt,
+    };
+
+    const others = project.members
+      .filter((m) => m.user.id !== project.owner.id)
+      .map(
+        (m): ProjectMemberRow => ({
+          userId: m.user.id,
+          name: m.user.name,
+          email: m.user.email,
+          profileColor: m.user.profileColor,
+          profileImage: m.user.profileImage,
+          role: m.role as "OWNER" | "MEMBER",
+          joinedAt: m.joinedAt,
+        }),
+      );
+
+    return [owner, ...others];
+  },
+
   findSettings: async (id) => {
     const row = await prisma.project.findUnique({
       where: { id },
@@ -194,6 +277,7 @@ export const prismaProjectRepository: ProjectRepository = {
         ownerId,
         cwd,
         agents: { create: [{ source: agent }] },
+        members: { create: [{ userId: ownerId, role: "OWNER" }] },
       },
       select: { id: true, ownerId: true },
     });

@@ -99,8 +99,23 @@ export type ProjectUpdateInput = {
   agentContextFlowPrompt?: string | null;
 };
 
+export type ProjectMemberRow = {
+  userId: string;
+  name: string | null;
+  email: string;
+  profileColor: string | null;
+  profileImage: string | null;
+  role: "OWNER" | "MEMBER";
+  joinedAt: Date;
+};
+
 export type ProjectRepository = {
   list: (args: { ownerId: string }) => Promise<ProjectListRow[]>;
+  findMembers: (projectId: string) => Promise<ProjectMemberRow[]>;
+  findMemberRole: (input: { projectId: string; userId: string }) => Promise<"OWNER" | "MEMBER" | null>;
+  countOwners: (projectId: string) => Promise<number>;
+  updateMemberRole: (input: { projectId: string; targetUserId: string; newRole: "OWNER" | "MEMBER" }) => Promise<void>;
+  removeMember: (input: { projectId: string; targetUserId: string }) => Promise<void>;
   create: (data: ProjectCreateInput) => Promise<string>;
   update: (input: ProjectUpdateInput) => Promise<void>;
   delete: (id: string) => Promise<void>;

@@ -8,12 +8,14 @@ import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
 import { HistoryTab } from "@/components/history/HistoryTab";
 import { OverviewTab } from "@/components/overview/OverviewTab";
 import { useProjects } from "@/components/project/ProjectsContext";
+import { TeamTab } from "@/components/team/TeamTab";
 
-type Tab = "main" | "manage" | "history";
+type Tab = "main" | "manage" | "history" | "team";
 
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "history") return "history";
+  if (value === "team") return "team";
   return "main";
 }
 
@@ -50,6 +52,9 @@ export function ProjectPageClient() {
       </div>
       <div className={tab === "history" ? undefined : "hidden"}>
         <HistoryTab selected={project} />
+      </div>
+      <div className={tab === "team" ? undefined : "hidden"}>
+        <TeamTab selected={project} />
       </div>
     </div>
   );
