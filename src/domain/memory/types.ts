@@ -1,10 +1,3 @@
-export type ThoughtRecord = {
-  id: string;
-  content: string;
-  tags: string[];
-  createdAt: Date;
-};
-
 export type TaskStatusValue = "PENDING" | "IN_PROGRESS" | "DONE" | "CANCELLED";
 
 export type SessionLogRecord = {
@@ -25,6 +18,8 @@ export type TaskRecord = {
   status: TaskStatusValue;
   module: string | null;
   priority: number;
+  keyDecisions: string[];
+  outcome: string | null;
   createdAt: Date;
   updatedAt: Date;
   doneAt: Date | null;

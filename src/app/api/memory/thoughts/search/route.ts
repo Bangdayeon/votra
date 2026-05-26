@@ -2,11 +2,7 @@ import { NextResponse } from "next/server";
 
 import { recallThoughts } from "@/application/recallThoughts";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
-import { prismaThoughtRepository } from "@/infrastructure/repositories/prismaThoughtRepository";
-
-const deps = {
-  thoughts: prismaThoughtRepository,
-};
+import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function POST(req: Request) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
@@ -33,7 +29,7 @@ export async function POST(req: Request) {
 
   const result = await recallThoughts(
     { query: body.query, projectId: body.projectId, userId: user.id, limit },
-    deps,
+    { tasks: prismaTaskRepository },
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });

@@ -1,5 +1,5 @@
-import type { ThoughtRepository } from "@/application/ports/thoughtRepository";
-import type { ThoughtRecord } from "@/domain/memory/types";
+import type { TaskRepository } from "@/application/ports/taskRepository";
+import type { TaskRecord } from "@/domain/memory/types";
 import { err, ok } from "@/shared/lib/result";
 import type { Result } from "@/shared/lib/result";
 
@@ -12,10 +12,10 @@ export type RecallThoughtsInput = {
 
 export async function recallThoughts(
   input: RecallThoughtsInput,
-  deps: { thoughts: ThoughtRepository },
-): Promise<Result<ThoughtRecord[], string>> {
+  deps: { tasks: TaskRepository },
+): Promise<Result<TaskRecord[], string>> {
   try {
-    const results = await deps.thoughts.search({
+    const results = await deps.tasks.search({
       query: input.query,
       projectId: input.projectId,
       userId: input.userId,
@@ -23,6 +23,6 @@ export async function recallThoughts(
     });
     return ok(results);
   } catch (e) {
-    return err(e instanceof Error ? e.message : "Thought 검색에 실패했어요.");
+    return err(e instanceof Error ? e.message : "검색에 실패했어요.");
   }
 }

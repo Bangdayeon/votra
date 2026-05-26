@@ -7,7 +7,6 @@ import { prisma } from "@/infrastructure/db/prisma";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 import { prismaSessionLogRepository } from "@/infrastructure/repositories/prismaSessionLogRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
-import { prismaThoughtRepository } from "@/infrastructure/repositories/prismaThoughtRepository";
 
 export async function GET(req: Request) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
@@ -50,7 +49,6 @@ export async function GET(req: Request) {
     },
     {
       tasks: prismaTaskRepository,
-      thoughts: prismaThoughtRepository,
       claudeFiles: prismaClaudeFileRepository,
       sessionLogs: prismaSessionLogRepository,
     },
@@ -58,7 +56,6 @@ export async function GET(req: Request) {
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
 
-  // 브리프 스킬 활성화 여부 확인 (기본: 활성화)
   let briefSkillContent: string | undefined;
   if (briefSkillRow?.isActive) {
     const skillConfig = await prisma.projectSkillConfig.findUnique({

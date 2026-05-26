@@ -10,6 +10,8 @@ export type FinishTaskInput = {
   projectId: string;
   summary: string;
   aiTool: string;
+  keyDecisions?: string[];
+  outcome?: string;
 };
 
 export type FinishTaskResult = {
@@ -22,7 +24,13 @@ export async function finishTask(
   deps: { tasks: TaskRepository; sessionLogs: SessionLogRepository },
 ): Promise<Result<FinishTaskResult, string>> {
   try {
-    const task = await deps.tasks.update({ seq: input.seq, userId: input.userId, status: "DONE" });
+    const task = await deps.tasks.update({
+      seq: input.seq,
+      userId: input.userId,
+      status: "DONE",
+      ...(input.keyDecisions !== undefined && { keyDecisions: input.keyDecisions }),
+      ...(input.outcome !== undefined && { outcome: input.outcome }),
+    });
     if (!task) return err(`태스크 #${input.seq}를 찾을 수 없거나 권한이 없어요.`);
 
     const sessionLog = await deps.sessionLogs.save({

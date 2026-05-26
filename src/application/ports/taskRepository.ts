@@ -17,6 +17,8 @@ export type TaskUpdateInput = {
   status?: TaskStatusValue;
   module?: string | null;
   priority?: number;
+  keyDecisions?: string[];
+  outcome?: string;
 };
 
 export type TaskListFilter = {
@@ -31,6 +33,12 @@ export type TaskRepository = {
   update: (input: TaskUpdateInput) => Promise<TaskRecord | null>;
   listByFilter: (filter: TaskListFilter) => Promise<TaskRecord[]>;
   findRecentDone: (args: {
+    projectId: string;
+    userId: string;
+    limit: number;
+  }) => Promise<TaskRecord[]>;
+  search: (args: {
+    query: string;
     projectId: string;
     userId: string;
     limit: number;

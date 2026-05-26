@@ -1,8 +1,7 @@
 import type { ClaudeFileRepository } from "@/application/ports/claudeFileRepository";
 import type { SessionLogRepository } from "@/application/ports/sessionLogRepository";
 import type { TaskRepository } from "@/application/ports/taskRepository";
-import type { ThoughtRepository } from "@/application/ports/thoughtRepository";
-import type { SessionLogRecord, TaskRecord, ThoughtRecord } from "@/domain/memory/types";
+import type { SessionLogRecord, TaskRecord } from "@/domain/memory/types";
 import { err, ok } from "@/shared/lib/result";
 import type { Result } from "@/shared/lib/result";
 
@@ -11,7 +10,7 @@ export type ProjectBrief = {
   cwd: string | null;
   pendingTasks: TaskRecord[];
   inProgressTasks: TaskRecord[];
-  recentDecisions: ThoughtRecord[];
+  recentDecisions: TaskRecord[];
   recentlyDone: TaskRecord[];
   rules: string[];
   lastSessionSummary: SessionLogRecord | null;
@@ -28,7 +27,6 @@ export async function getProjectBrief(
   input: GetProjectBriefInput,
   deps: {
     tasks: TaskRepository;
-    thoughts: ThoughtRepository;
     claudeFiles: ClaudeFileRepository;
     sessionLogs: SessionLogRepository;
   },
@@ -43,18 +41,8 @@ export async function getProjectBrief(
         deps.sessionLogs.listRecent({ projectId: input.projectId, userId: input.userId, limit: 1 }),
       ]);
 
-    const activeModules = inProgressTasks.flatMap((t) => (t.module ? [t.module] : []));
-    const recentDecisions =
-      activeModules.length > 0
-        ? await deps.thoughts.listByTags({
-            projectId: input.projectId,
-            userId: input.userId,
-            tags: activeModules,
-            limit: 10,
-          })
-        : await deps.thoughts.listRecent({ projectId: input.projectId, userId: input.userId, limit: 10 });
+    const recentDecisions = recentlyDone.filter((t) => t.keyDecisions.length > 0);
 
-    // CLAUDE.md / AGENTS.md에서 bullet 규칙 추출 (project-root 우선)
     const ruleFile =
       claudeFiles.find((f) => f.kind === "CLAUDE" && f.scope === "project-root") ??
       claudeFiles.find((f) => f.kind === "AGENTS" && f.scope === "project-root") ??
@@ -77,7 +65,6 @@ export async function getProjectBrief(
   }
 }
 
-// content가 바뀌지 않으면 재파싱 생략 (process 수명 동안 유효)
 const rulesCache = new Map<string, string[]>();
 
 function extractRules(content: string): string[] {

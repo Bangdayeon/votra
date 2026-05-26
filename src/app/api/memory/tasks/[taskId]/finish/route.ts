@@ -37,9 +37,13 @@ export async function POST(
   }
 
   const aiTool = typeof body.aiTool === "string" && body.aiTool ? body.aiTool : "unknown";
+  const keyDecisions = Array.isArray(body.keyDecisions)
+    ? (body.keyDecisions as unknown[]).filter((d): d is string => typeof d === "string")
+    : undefined;
+  const outcome = typeof body.outcome === "string" && body.outcome ? body.outcome : undefined;
 
   const result = await finishTask(
-    { seq, userId: user.id, projectId: body.projectId, summary: body.summary, aiTool },
+    { seq, userId: user.id, projectId: body.projectId, summary: body.summary, aiTool, keyDecisions, outcome },
     { tasks: prismaTaskRepository, sessionLogs: prismaSessionLogRepository },
   );
 

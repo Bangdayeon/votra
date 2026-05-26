@@ -62,7 +62,6 @@ model User {
   apiKeys            ApiKey[]
   sentInvites        ProjectInvite[] @relation("InvitedByUser")
   acceptedInvites    ProjectInvite[] @relation("AcceptedByUser")
-  thoughts           Thought[]
   tasks              Task[]
   sessionLogs        SessionLog[]
 }
@@ -132,7 +131,6 @@ model Project {
   aiNextTask           ProjectAiNextTask?
   agentContextFlowDiagnosis ProjectAgentContextFlowDiagnosis?
   invites              ProjectInvite[]
-  thoughts             Thought[]
   tasks                Task[]
   sessionLogs          SessionLog[]
   skillConfigs         ProjectSkillConfig[]
@@ -529,29 +527,7 @@ model PolicyRule {
 }
 
 // ────────────────────────────────────────────
-// THOUGHT (세션 간 메모리 — 생각/결정/인사이트)
-// pgvector 로 시맨틱 검색 지원. Prisma 가 vector 타입을 직접 지원하지 않아
-// Unsupported 로 선언하고 $queryRaw / $executeRaw 로 읽고 씀.
-// ────────────────────────────────────────────
-
-model Thought {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
-  tags      String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([projectId, createdAt(sort: Desc)])
-  @@index([userId])
-}
-
-// ────────────────────────────────────────────
-// TASK (세션 간 태스크 관리)
+// TASK (세션 간 태스크 관리 + 핵심 결정 저장)
 // ────────────────────────────────────────────
 
 model Task {
@@ -564,6 +540,10 @@ model Task {
   /// 작업 모듈 (예: "auth", "api", "ui"). 필터링에 사용.
   module      String?
   priority    Int        @default(0)
+  /// finish_task 시 AI가 추출한 핵심 결정/인사이트 목록. recall 검색 대상.
+  keyDecisions String[]   @default([])
+  /// finish_task 시 AI가 자유 서술로 기록한 "실제로 무엇을 했는지"
+  outcome      String?    @db.Text
   /// status 가 DONE/CANCELLED 로 바뀐 시각
   doneAt      DateTime?
   createdAt   DateTime   @default(now())
