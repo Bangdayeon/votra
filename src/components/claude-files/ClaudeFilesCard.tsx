@@ -147,4 +147,3 @@ function latestEvaluatedAt(records: ClaudeFileRecord[]): number | null {
   }
   return max > 0 ? max : null;
 }
-
