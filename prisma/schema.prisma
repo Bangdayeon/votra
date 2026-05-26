@@ -135,6 +135,7 @@ model Project {
   thoughts             Thought[]
   tasks                Task[]
   sessionLogs          SessionLog[]
+  skillConfigs         ProjectSkillConfig[]
 
   @@unique([ownerId, cwd])
   @@index([ownerId])
@@ -601,4 +602,44 @@ model SessionLog {
   @@unique([projectId, sessionId])
   @@index([projectId, createdAt(sort: Desc)])
   @@index([userId])
+}
+
+// ────────────────────────────────────────────
+// PLATFORM SKILL (Votra 팀 관리, 사용자 수정 불가)
+// ────────────────────────────────────────────
+
+model PlatformSkill {
+  slug        String   @id
+  name        String
+  description String
+  /// 에이전트 활성화 힌트 — brief에 목록으로 노출
+  contextHint String
+  /// 전체 MD 본문 (사용자 수정 불가)
+  content     String   @db.Text
+  /// Votra 팀이 전체 비활성화 가능
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  configs ProjectSkillConfig[]
+}
+
+// ────────────────────────────────────────────
+// PROJECT SKILL CONFIG (유저가 UI에서 켜고 끄는 상태)
+// ────────────────────────────────────────────
+
+model ProjectSkillConfig {
+  id        String @id @default(cuid())
+  /// 유저가 토글한 값. 기본값은 true (활성화)
+  enabled   Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  skillSlug String
+  skill     PlatformSkill @relation(fields: [skillSlug], references: [slug], onDelete: Cascade)
+
+  @@unique([projectId, skillSlug])
+  @@index([projectId])
 }

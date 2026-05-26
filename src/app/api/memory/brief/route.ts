@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
 import { getProjectBrief } from "@/application/getProjectBrief";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
@@ -20,10 +21,22 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { title: true, cwd: true },
-  });
+  const [project, aiNextTask, aiSummary, briefSkillRow] = await Promise.all([
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: { title: true, cwd: true },
+    }),
+    prisma.projectAiNextTask.findUnique({ where: { projectId } }),
+    prisma.projectAiSummary.findUnique({
+      where: { projectId },
+      select: { summary: true, warnings: true, suggestions: true },
+    }),
+    prisma.platformSkill.findUnique({
+      where: { slug: "brief" },
+      select: { content: true, isActive: true },
+    }),
+  ]);
+
   if (!project) {
     return NextResponse.json({ ok: false, error: "프로젝트를 찾을 수 없어요." }, { status: 404 });
   }
@@ -44,5 +57,25 @@ export async function GET(req: Request) {
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
-  return NextResponse.json({ ok: true, brief: result.value });
+
+  // 브리프 스킬 활성화 여부 확인 (기본: 활성화)
+  let briefSkillContent: string | undefined;
+  if (briefSkillRow?.isActive) {
+    const skillConfig = await prisma.projectSkillConfig.findUnique({
+      where: { projectId_skillSlug: { projectId, skillSlug: "brief" } },
+    });
+    if (skillConfig?.enabled ?? true) {
+      briefSkillContent = briefSkillRow.content;
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    brief: {
+      ...result.value,
+      recommendedNextTasks: aiNextTask ? (aiNextTask.tasks as NextTask[]) : undefined,
+      aiSummary: aiSummary ?? undefined,
+      briefSkillContent,
+    },
+  });
 }
