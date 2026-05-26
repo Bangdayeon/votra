@@ -116,7 +116,7 @@ export const prismaTaskRepository: TaskRepository = {
   async search({ query, projectId, userId, limit }) {
     const rows = await prisma.$queryRaw<typeof SELECT[]>`
       SELECT id, seq, "projectId", title, description, status, module, priority,
-             "keyDecisions", "createdAt", "updatedAt", "doneAt"
+             "keyDecisions", outcome, "createdAt", "updatedAt", "doneAt"
       FROM "Task"
       WHERE "projectId" = ${projectId}
         AND "userId" = ${userId}
