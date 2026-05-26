@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, CheckSquare, ChevronRight, Clock, LayoutGrid, Layers, Settings, Users } from "lucide-react";
+import { Bot, CheckSquare, ChevronRight, LayoutGrid, Layers, Settings, Users } from "lucide-react";
 
 import { useProjects } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
@@ -13,11 +13,10 @@ const TABS = [
   { label: "개요", key: "overview", icon: LayoutGrid },
   { label: "AI 작업 관리", key: "manage", icon: Bot },
   { label: "태스크", key: "tasks", icon: CheckSquare },
-  { label: "히스토리", key: "history", icon: Clock },
   { label: "팀작업", key: "team", icon: Users },
 ] as const;
 
-type Tab = "overview" | "manage" | "tasks" | "history" | "team";
+type Tab = "overview" | "manage" | "tasks" | "team";
 
 const SETTINGS_TABS = [
   { label: "전체", key: "all", icon: Layers },
@@ -30,7 +29,6 @@ type SettingsTab = "all" | "overview" | "ai-management";
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "tasks") return "tasks";
-  if (value === "history") return "history";
   if (value === "team") return "team";
   return "overview";
 }

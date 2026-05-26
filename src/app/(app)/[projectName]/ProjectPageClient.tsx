@@ -5,19 +5,17 @@ import { useMemo } from "react";
 
 import { AgentContextFlowCard } from "@/components/claude-files/AgentContextFlowCard";
 import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
-import { HistoryTab } from "@/components/history/HistoryTab";
 import { TasksTab } from "@/components/memory/TasksTab";
 import { OverviewTab } from "@/components/overview/OverviewTab";
 import { useProjects } from "@/components/project/ProjectsContext";
 import { TeamTab } from "@/components/team/TeamTab";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 
-type Tab = "main" | "manage" | "tasks" | "history" | "team";
+type Tab = "main" | "manage" | "tasks" | "team";
 
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "tasks") return "tasks";
-  if (value === "history") return "history";
   if (value === "team") return "team";
   return "main";
 }
@@ -54,7 +52,6 @@ export function ProjectPageClient() {
         </div>
       )}
       {tab === "tasks" && <TasksTab selected={project} />}
-      {tab === "history" && <HistoryTab selected={project} />}
       {tab === "team" && <TeamTab selected={project} />}
     </div>
   );
