@@ -12,6 +12,7 @@ import { prisma } from "@/infrastructure/db/prisma";
 function toRecord(row: {
   id: string;
   seq: number;
+  projectId: string;
   title: string;
   description: string | null;
   status: string;
@@ -24,6 +25,7 @@ function toRecord(row: {
   return {
     id: row.id,
     seq: row.seq,
+    projectId: row.projectId,
     title: row.title,
     description: row.description,
     status: row.status as TaskRecord["status"],
@@ -46,6 +48,10 @@ export const prismaTaskRepository: TaskRepository = {
         projectId,
         userId,
       },
+      select: {
+        id: true, seq: true, projectId: true, title: true, description: true,
+        status: true, module: true, priority: true, createdAt: true, updatedAt: true, doneAt: true,
+      },
     });
     return toRecord(row);
   },
@@ -65,6 +71,10 @@ export const prismaTaskRepository: TaskRepository = {
         ...(priority !== undefined && { priority }),
         ...(isDone && existing.doneAt === null && { doneAt: new Date() }),
       },
+      select: {
+        id: true, seq: true, projectId: true, title: true, description: true,
+        status: true, module: true, priority: true, createdAt: true, updatedAt: true, doneAt: true,
+      },
     });
     return toRecord(row);
   },
@@ -78,6 +88,10 @@ export const prismaTaskRepository: TaskRepository = {
         ...(module !== undefined && { module }),
       },
       orderBy: [{ priority: "desc" }, { seq: "asc" }],
+      select: {
+        id: true, seq: true, projectId: true, title: true, description: true,
+        status: true, module: true, priority: true, createdAt: true, updatedAt: true, doneAt: true,
+      },
     });
     return rows.map(toRecord);
   },
@@ -91,6 +105,10 @@ export const prismaTaskRepository: TaskRepository = {
       },
       orderBy: { doneAt: "desc" },
       take: limit,
+      select: {
+        id: true, seq: true, projectId: true, title: true, description: true,
+        status: true, module: true, priority: true, createdAt: true, updatedAt: true, doneAt: true,
+      },
     });
     return rows.map(toRecord);
   },

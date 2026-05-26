@@ -4,6 +4,7 @@ import { addTask } from "@/application/addTask";
 import { listTasks } from "@/application/listTasks";
 import type { TaskStatusValue } from "@/domain/memory/types";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
+import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 const VALID_STATUSES: TaskStatusValue[] = ["PENDING", "IN_PROGRESS", "DONE", "CANCELLED"];
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  emitProjectUpdate(body.projectId);
   return NextResponse.json({ ok: true, task: result.value });
 }
 

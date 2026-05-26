@@ -17,6 +17,7 @@ export type SessionLogRecord = {
 export type TaskRecord = {
   id: string;
   seq: number;
+  projectId: string;
   title: string;
   description: string | null;
   status: TaskStatusValue;

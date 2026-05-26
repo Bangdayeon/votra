@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
 import type { Project } from "@/components/project/ProjectsContext";
+import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABELS: Record<TaskStatusValue, string> = {
@@ -146,6 +147,7 @@ export function TasksTab({ selected }: { selected: Project }) {
   }, [selected.id]);
 
   useEffect(() => { return loadTasks(); }, [loadTasks]);
+  useProjectEvents(selected.id, loadTasks);
 
   function handleUpdated(updated: TaskRecord) {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));

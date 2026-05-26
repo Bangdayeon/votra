@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { updateTask } from "@/application/updateTask";
 import type { TaskStatusValue } from "@/domain/memory/types";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
+import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 const VALID_STATUSES: TaskStatusValue[] = ["PENDING", "IN_PROGRESS", "DONE", "CANCELLED"];
@@ -65,6 +66,7 @@ export async function PATCH(
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
+  emitProjectUpdate(result.value.projectId);
   return NextResponse.json({ ok: true, task: result.value });
 }
 
