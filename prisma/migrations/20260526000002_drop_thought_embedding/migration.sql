@@ -1,0 +1,1 @@
+ALTER TABLE "Thought" DROP COLUMN IF EXISTS "embedding";

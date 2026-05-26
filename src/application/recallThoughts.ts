@@ -1,8 +1,5 @@
-import type { EmbeddingClient } from "@/application/ports/embeddingClient";
-import type {
-  ThoughtRepository,
-  ThoughtSearchRow,
-} from "@/application/ports/thoughtRepository";
+import type { ThoughtRepository } from "@/application/ports/thoughtRepository";
+import type { ThoughtRecord } from "@/domain/memory/types";
 import { err, ok } from "@/shared/lib/result";
 import type { Result } from "@/shared/lib/result";
 
@@ -11,21 +8,18 @@ export type RecallThoughtsInput = {
   projectId: string;
   userId: string;
   limit?: number;
-  minSimilarity?: number;
 };
 
 export async function recallThoughts(
   input: RecallThoughtsInput,
-  deps: { embedding: EmbeddingClient; thoughts: ThoughtRepository },
-): Promise<Result<ThoughtSearchRow[], string>> {
+  deps: { thoughts: ThoughtRepository },
+): Promise<Result<ThoughtRecord[], string>> {
   try {
-    const queryEmbedding = await deps.embedding.embed(input.query);
     const results = await deps.thoughts.search({
-      queryEmbedding,
+      query: input.query,
       projectId: input.projectId,
       userId: input.userId,
       limit: input.limit ?? 10,
-      minSimilarity: input.minSimilarity,
     });
     return ok(results);
   } catch (e) {

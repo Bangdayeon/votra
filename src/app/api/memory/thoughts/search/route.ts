@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 
 import { recallThoughts } from "@/application/recallThoughts";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
-import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClient";
 import { prismaThoughtRepository } from "@/infrastructure/repositories/prismaThoughtRepository";
 
 const deps = {
-  embedding: geminiEmbeddingClient,
   thoughts: prismaThoughtRepository,
 };
 
@@ -32,10 +30,9 @@ export async function POST(req: Request) {
   }
 
   const limit = typeof body.limit === "number" ? body.limit : 10;
-  const minSimilarity = typeof body.minSimilarity === "number" ? body.minSimilarity : undefined;
 
   const result = await recallThoughts(
-    { query: body.query, projectId: body.projectId, userId: user.id, limit, minSimilarity },
+    { query: body.query, projectId: body.projectId, userId: user.id, limit },
     deps,
   );
 

@@ -3,24 +3,20 @@ import type { ThoughtRecord } from "@/domain/memory/types";
 export type ThoughtCreateInput = {
   content: string;
   tags: string[];
-  embedding: number[];
   projectId: string;
   userId: string;
 };
 
 export type ThoughtSearchInput = {
-  queryEmbedding: number[];
+  query: string;
   projectId: string;
   userId: string;
   limit: number;
-  minSimilarity?: number;
 };
-
-export type ThoughtSearchRow = ThoughtRecord & { similarity: number };
 
 export type ThoughtRepository = {
   create: (input: ThoughtCreateInput) => Promise<ThoughtRecord>;
-  search: (input: ThoughtSearchInput) => Promise<ThoughtSearchRow[]>;
+  search: (input: ThoughtSearchInput) => Promise<ThoughtRecord[]>;
   listRecent: (args: {
     projectId: string;
     userId: string;

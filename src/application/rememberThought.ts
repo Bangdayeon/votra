@@ -1,4 +1,3 @@
-import type { EmbeddingClient } from "@/application/ports/embeddingClient";
 import type { ThoughtRepository } from "@/application/ports/thoughtRepository";
 import type { ThoughtRecord } from "@/domain/memory/types";
 import { err, ok } from "@/shared/lib/result";
@@ -13,14 +12,12 @@ export type RememberThoughtInput = {
 
 export async function rememberThought(
   input: RememberThoughtInput,
-  deps: { embedding: EmbeddingClient; thoughts: ThoughtRepository },
+  deps: { thoughts: ThoughtRepository },
 ): Promise<Result<ThoughtRecord, string>> {
   try {
-    const vector = await deps.embedding.embed(input.content);
     const thought = await deps.thoughts.create({
       content: input.content,
       tags: input.tags,
-      embedding: vector,
       projectId: input.projectId,
       userId: input.userId,
     });

@@ -537,8 +537,6 @@ model Thought {
   id        String   @id @default(cuid())
   content   String   @db.Text
   tags      String[] @default([])
-  /// Google text-embedding-004 (768차원). 생성 시점에 채워짐.
-  embedding Unsupported("vector(768)")?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

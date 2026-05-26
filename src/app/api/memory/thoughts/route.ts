@@ -4,11 +4,9 @@ import { listThoughts } from "@/application/listThoughts";
 import { rememberThought } from "@/application/rememberThought";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
-import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClient";
 import { prismaThoughtRepository } from "@/infrastructure/repositories/prismaThoughtRepository";
 
 const deps = {
-  embedding: geminiEmbeddingClient,
   thoughts: prismaThoughtRepository,
 };
 
