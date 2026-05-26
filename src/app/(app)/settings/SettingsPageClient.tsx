@@ -3,7 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { updateProjectAction } from "@/app/actions/updateProject";
 import { AiSpecPolicyFields } from "@/components/aiSpec/AiSpecPolicyFields";
+import { DeleteProjectConfirmDialog } from "@/components/project/DeleteProjectConfirmDialog";
 import { useProjects } from "@/components/project/ProjectsContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,7 +59,7 @@ export function SettingsPageClient({ slug: slugProp }: { slug?: string } = {}) {
     );
   }
 
-  return <SettingsForm projectId={project.id} projectName={project.name} isOwner={project.isOwner ?? true} />;
+  return <SettingsForm projectId={project.id} projectName={project.name} projectDescription={project.description ?? ""} isOwner={project.isOwner ?? true} />;
 }
 
 function ProjectPicker() {
@@ -95,13 +97,17 @@ function ProjectPicker() {
 
 function SettingsForm({
   projectId,
-  projectName: _projectName,
+  projectName,
+  projectDescription: projectDescriptionProp,
   isOwner,
 }: {
   projectId: string;
   projectName: string;
+  projectDescription: string;
   isOwner: boolean;
 }) {
+  const router = useRouter();
+  const { refresh } = useProjects();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab");
   const activeTab: SettingsTab =
@@ -121,6 +127,11 @@ function SettingsForm({
   });
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
+
+  const [title, setTitle] = useState(projectName);
+  const [description, setDescription] = useState(projectDescriptionProp);
+  const [basicSaveState, setBasicSaveState] = useState<SaveState>({ kind: "idle" });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,6 +179,26 @@ function SettingsForm({
   }, [projectId]);
 
   const markDirty = useCallback(() => setSaveState({ kind: "idle" }), []);
+
+  const onSaveBasicInfo = useCallback(async () => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setBasicSaveState({ kind: "error", message: "이름을 입력해주세요." });
+      return;
+    }
+    setBasicSaveState({ kind: "saving" });
+    const result = await updateProjectAction({
+      id: projectId,
+      title: trimmedTitle,
+      description: description.trim() || null,
+    });
+    if (result.ok) {
+      setBasicSaveState({ kind: "saved" });
+      refresh();
+    } else {
+      setBasicSaveState({ kind: "error", message: result.error });
+    }
+  }, [projectId, title, description, refresh]);
 
   const onSave = useCallback(async () => {
     setSaveState({ kind: "saving" });
@@ -226,153 +257,93 @@ function SettingsForm({
         {(activeTab === "all" || activeTab === "overview") && (
           <>
             <Section
-              title="프로젝트 상태 요약 & 솔루션 생성 지침"
-              description="프로젝트 상태 요약 및 솔루션을 생성할 때 고려해야 할 사항을 작성해주세요."
+              title="프로젝트 기본 정보"
+              description="프로젝트의 이름과 설명을 수정해요."
             >
-              <SessionDataInfo
-                label="분석에 사용되는 세션 데이터"
-                fields={[
-                  "세션별 작업 의도 (최근 10개 세션)",
-                  "세션별 수정 파일 목록",
-                  "세션별 에러 목록",
-                  "반복 수정 파일",
-                  "보안 관련 파일 변경 신호",
-                ]}
-              />
-              <textarea
-                value={analysisInstruction}
-                disabled={loading || !isOwner}
-                maxLength={AI_ANALYSIS_INSTRUCTION_MAX}
-                placeholder="예) 비용 절감 위주로 요약해 주세요. 에러가 가장 많은 세션을 콕 짚어 알려 주세요."
-                rows={5}
-                onChange={(e) => {
-                  setAnalysisInstruction(e.target.value);
-                  markDirty();
-                }}
-                className={cn(
-                  "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
-                  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-                  "disabled:cursor-not-allowed disabled:opacity-50",
-                )}
-              />
-              <p className="text-xs text-muted-foreground">
-                {analysisInstruction.length} / {AI_ANALYSIS_INSTRUCTION_MAX}
-              </p>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">이름</label>
+                  <input
+                    type="text"
+                    value={title}
+                    disabled={!isOwner}
+                    maxLength={100}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      setBasicSaveState({ kind: "idle" });
+                    }}
+                    className={cn(
+                      "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+                      "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+                      "disabled:cursor-not-allowed disabled:opacity-50",
+                    )}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">설명</label>
+                  <textarea
+                    value={description}
+                    disabled={!isOwner}
+                    maxLength={500}
+                    placeholder="프로젝트에 대한 짧은 설명을 입력해주세요."
+                    rows={2}
+                    onChange={(e) => {
+                      setDescription(e.target.value);
+                      setBasicSaveState({ kind: "idle" });
+                    }}
+                    className={cn(
+                      "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+                      "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+                      "disabled:cursor-not-allowed disabled:opacity-50",
+                    )}
+                  />
+                </div>
+              </div>
+              {isOwner && (
+                <SaveBar
+                  saving={basicSaveState.kind === "saving"}
+                  saved={basicSaveState.kind === "saved"}
+                  error={basicSaveState.kind === "error" ? basicSaveState.message : null}
+                  disabled={false}
+                  onSave={onSaveBasicInfo}
+                />
+              )}
             </Section>
-
-            <Section
-              title="추천 다음 작업 생성 지침"
-              description="추천 다음 작업 리스트를 생성할 때 고려해야 할 사항을 작성해주세요."
-            >
-              <SessionDataInfo
-                label="분석에 사용되는 세션 데이터"
-                fields={[
-                  "세션별 작업 의도 (최근 5개 세션)",
-                  "세션별 수정 파일 목록",
-                  "진행 중인 작업 흐름",
-                ]}
-              />
-              <textarea
-                value={nextTaskPrompt}
-                disabled={loading || !isOwner}
-                maxLength={AI_NEXT_TASK_PROMPT_MAX}
-                placeholder="예) 현재 마감이 촉박한 기능 위주로 제안해 주세요."
-                rows={3}
-                onChange={(e) => {
-                  setNextTaskPrompt(e.target.value);
-                  markDirty();
-                }}
-                className={cn(
-                  "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
-                  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-                  "disabled:cursor-not-allowed disabled:opacity-50",
-                )}
-              />
-              <p className="text-xs text-muted-foreground">
-                {nextTaskPrompt.length} / {AI_NEXT_TASK_PROMPT_MAX}
-              </p>
-            </Section>
-
-            {activeTab === "overview" && isOwner && (
-              <SaveBar
-                saving={saveState.kind === "saving"}
-                saved={saveState.kind === "saved"}
-                error={saveState.kind === "error" ? saveState.message : null}
-                disabled={loading}
-                onSave={onSave}
-              />
-            )}
-          </>
-        )}
-
-        {(activeTab === "all" || activeTab === "ai-management") && (
-          <>
-            <Section
-              title="AI 스펙 문서 지침"
-              description="AI 에이전트용 문서(CLAUDE.md, AGENTS.md 등)를 평가할 때 고려해야 할 사항을 작성해주세요."
-            >
-              <AiSpecPolicyFields
-                guideline={guideline}
-                onGuidelineChange={(next) => {
-                  setGuideline(next);
-                  markDirty();
-                }}
-                existingFileName={existingFileName}
-                fileChange={fileChange}
-                onFileChange={(next) => {
-                  setFileChange(next);
-                  markDirty();
-                }}
-                disabled={loading || !isOwner}
-                guidelinePlaceholder="예) 보안 관련 지침이 명시돼야 해요. 폴더 구조와 의존 방향이 적혀 있어야 통과로 봐주세요."
-              />
-            </Section>
-
-            <Section
-              title="AI 지시 문서 흐름 진단 프롬프트"
-              description="팀·프로젝트 정책과 비교해 지시 문서 플로우를 진단할 때 고려해야 할 사항을 작성해주세요."
-            >
-              <textarea
-                value={agentContextFlowPrompt}
-                disabled={loading || !isOwner}
-                maxLength={AGENT_CONTEXT_FLOW_PROMPT_MAX}
-                placeholder="비워두면 시스템 기본 프롬프트가 사용돼요."
-                rows={8}
-                onChange={(e) => {
-                  setAgentContextFlowPrompt(e.target.value);
-                  markDirty();
-                }}
-                className={cn(
-                  "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 font-mono text-xs",
-                  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-                  "disabled:cursor-not-allowed disabled:opacity-50",
-                )}
-              />
-              <p className="text-xs text-muted-foreground">
-                {agentContextFlowPrompt.length} / {AGENT_CONTEXT_FLOW_PROMPT_MAX}
-              </p>
-            </Section>
-
-            {activeTab === "ai-management" && isOwner && (
-              <SaveBar
-                saving={saveState.kind === "saving"}
-                saved={saveState.kind === "saved"}
-                error={saveState.kind === "error" ? saveState.message : null}
-                disabled={loading}
-                onSave={onSave}
-              />
-            )}
           </>
         )}
 
         {activeTab === "all" && isOwner && (
-          <SaveBar
-            saving={saveState.kind === "saving"}
-            saved={saveState.kind === "saved"}
-            error={saveState.kind === "error" ? saveState.message : null}
-            disabled={loading}
-            onSave={onSave}
-          />
+          <>
+            <section className="flex flex-col gap-3 rounded-md border border-destructive/30 px-4 py-4">
+              <div>
+                <h2 className="text-sm font-medium text-destructive">위험 구역</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  되돌릴 수 없는 작업이에요. 신중하게 진행해주세요.
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">프로젝트 삭제</p>
+                  <p className="text-xs text-muted-foreground">
+                    프로젝트와 모든 세션·데이터가 영구 삭제돼요.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  삭제
+                </Button>
+              </div>
+            </section>
+            <DeleteProjectConfirmDialog
+              project={showDeleteDialog ? { id: projectId, name: projectName } : null}
+              onClose={() => setShowDeleteDialog(false)}
+              onDeleted={() => router.push("/")}
+            />
+          </>
         )}
       </div>
     </div>
