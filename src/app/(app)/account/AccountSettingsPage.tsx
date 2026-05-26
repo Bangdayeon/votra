@@ -3,22 +3,21 @@
 import {
   BookOpen,
   Bot,
-  Clock,
   Globe2,
   LayoutGrid,
-  Loader2,
+  ListChecks,
   LogOut,
   RotateCcw,
   Terminal,
   UserCog,
+  Users,
   Plug,
 } from "lucide-react";
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { getUserAiPolicyAction } from "@/app/actions/getUserAiPolicy";
+import { type UserAiPolicyBundle } from "@/app/actions/getUserAiPolicy";
 import { resetAccountAction } from "@/app/actions/resetAccount";
 import { signOutAction } from "@/app/actions/signOut";
 import { updateUserAiPolicyAction } from "@/app/actions/updateUserAiPolicy";
@@ -40,7 +39,11 @@ const MENU: { key: MenuKey; label: string; icon: React.ElementType }[] = [
   { key: "guide", label: "안내", icon: BookOpen },
 ];
 
-export function AccountSettingsPage() {
+export function AccountSettingsPage({
+  initialPolicy,
+}: {
+  initialPolicy: UserAiPolicyBundle;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab");
@@ -84,7 +87,7 @@ export function AccountSettingsPage() {
           {active === "account" ? (
             <AccountPane />
           ) : active === "policy" ? (
-            <PolicyPane />
+            <PolicyPane initialPolicy={initialPolicy} />
           ) : (
             <GuidePane />
           )}
@@ -244,36 +247,18 @@ function AccountPane() {
   );
 }
 
-function PolicyPane() {
-  const [loading, setLoading] = useState(true);
-  const [guideline, setGuideline] = useState("");
-  const [initialGuideline, setInitialGuideline] = useState("");
-  const [existingFileName, setExistingFileName] = useState<string | null>(null);
+function PolicyPane({ initialPolicy }: { initialPolicy: UserAiPolicyBundle }) {
+  const [guideline, setGuideline] = useState(initialPolicy.aiSpecGuideline);
+  const [initialGuideline, setInitialGuideline] = useState(
+    initialPolicy.aiSpecGuideline,
+  );
+  const [existingFileName, setExistingFileName] = useState<string | null>(
+    initialPolicy.aiSpecFileName,
+  );
   const [fileChange, setFileChange] = useState<AiSpecFileChange>({
     kind: "none",
   });
   const [pending, startSave] = useTransition();
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    getUserAiPolicyAction()
-      .then((res) => {
-        if (cancelled) return;
-        if (res.ok) {
-          setGuideline(res.policy.aiSpecGuideline);
-          setInitialGuideline(res.policy.aiSpecGuideline);
-          setExistingFileName(res.policy.aiSpecFileName);
-          setFileChange({ kind: "none" });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const hasChanges =
     guideline !== initialGuideline || fileChange.kind !== "none";
@@ -315,27 +300,17 @@ function PolicyPane() {
           existingFileName={existingFileName}
           fileChange={fileChange}
           onFileChange={setFileChange}
-          disabled={loading || pending}
+          disabled={pending}
           guidelinePlaceholder="예) 고객 데이터를 포함한 코드를 외부 LLM 으로 보내지 않아요. 보안 관련 변경은 사람이 검토해요."
           fileHint="이미 정리한 정책 문서가 있다면 텍스트 파일로 올려 주세요. (최대 512KB)"
         />
-        {loading && (
-          <div
-            role="status"
-            aria-live="polite"
-            aria-label="전체 정책 불러오는 중"
-            className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-foreground/10 backdrop-blur-[1px]"
-          >
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          </div>
-        )}
       </div>
 
       <div className="flex justify-end">
         <Button
           type="button"
           onClick={onSave}
-          disabled={loading || pending || !hasChanges}
+          disabled={pending || !hasChanges}
         >
           {pending ? "저장 중…" : "저장"}
         </Button>
@@ -396,29 +371,42 @@ const SERVICE_FEATURES: {
     ],
   },
   {
-    name: "히스토리",
-    icon: Clock,
-    screenshot: "/assets/images/guide/tab-history.png",
-    desc: "세션별 토큰 사용량·에러 분포·모델 사용 현황을 차트로 보여주고, 작업 흐름을 타임라인으로 탐색해요.",
+    name: "태스크",
+    icon: ListChecks,
+    screenshot: "",
+    desc: "AI 에이전트가 등록한 태스크를 프로젝트별로 추적하고 관리해요.",
     features: [
       {
-        title: "세션별 토큰 사용량",
+        title: "태스크 현황 조회",
         lines: [
-          "도넛 차트로 세션별 토큰 소비량을 한눈에 비교해요.",
-          "세션을 클릭하면 상세 작업 흐름으로 이동해요.",
+          "votra-memory MCP를 통해 에이전트가 등록한 태스크를 PENDING·IN_PROGRESS·DONE 상태로 분류해요.",
+          "세션과 연결된 태스크 흐름을 한눈에 파악할 수 있어요.",
         ],
       },
       {
-        title: "기타 데이터",
+        title: "태스크 이력",
         lines: [
-          "모델 사용량(Opus·Sonnet·Haiku)과 에러 유형 분포를 바 차트로 확인해요.",
+          "완료된 태스크와 핵심 결정 사항을 누적 관리해 프로젝트 맥락을 유지해요.",
+        ],
+      },
+    ],
+  },
+  {
+    name: "팀작업",
+    icon: Users,
+    screenshot: "",
+    desc: "팀원의 AI 에이전트 세션을 함께 확인하고 프로젝트 진행 상황을 공유해요.",
+    features: [
+      {
+        title: "공유 프로젝트",
+        lines: [
+          "프로젝트를 팀과 공유하면 멤버 모두가 세션·태스크·AI 요약을 볼 수 있어요.",
         ],
       },
       {
-        title: "세션 흐름 그래프",
+        title: "멤버별 활동 현황",
         lines: [
-          "세션을 노드로 시각화해요. 색상이 품질 점수를 나타내요(초록=정상, 노랑=복잡, 빨강=에러).",
-          "노드를 클릭하면 사용자 명령어·AI 작업·채팅 내역을 타임라인으로 볼 수 있어요.",
+          "누가 어떤 세션을 올렸는지, 진행 중인 태스크가 무엇인지 한눈에 확인해요.",
         ],
       },
     ],
@@ -521,15 +509,7 @@ function GuidePane() {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{tab.desc}</p>
                 </div>
-                <div className="overflow-hidden rounded-lg border border-border">
-                  <Image
-                    src={tab.screenshot}
-                    alt={`${tab.name} 화면`}
-                    width={1200}
-                    height={675}
-                    className="w-full h-auto"
-                  />
-                </div>
+                <div className="aspect-video rounded-lg border border-border bg-muted" />
                 <div className="flex flex-col gap-4">
                   {tab.features.map((feat) => (
                     <div key={feat.title}>
