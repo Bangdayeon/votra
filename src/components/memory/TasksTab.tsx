@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
 import type { Project } from "@/components/project/ProjectsContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
@@ -48,15 +49,18 @@ function TaskCard({
   task,
   projectId,
   onUpdated,
+  onSelect,
 }: {
   task: TaskRecord;
   projectId: string;
   onUpdated: (updated: TaskRecord) => void;
+  onSelect: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const nextStatus = NEXT_STATUS[task.status];
 
-  async function handleStatusClick() {
+  async function handleStatusClick(e: React.MouseEvent) {
+    e.stopPropagation();
     if (!nextStatus || loading) return;
     setLoading(true);
     try {
@@ -71,8 +75,9 @@ function TaskCard({
 
   return (
     <div
+      onClick={onSelect}
       className={cn(
-        "group flex flex-col gap-3 rounded-xl border border-border bg-white p-4 transition-shadow hover:shadow-sm",
+        "group flex flex-col gap-3 rounded-xl border border-border bg-white p-4 transition-shadow hover:shadow-sm cursor-pointer",
         task.status === "DONE" && "opacity-60",
       )}
     >
@@ -129,10 +134,119 @@ function TaskCard({
   );
 }
 
+function TaskDetailModal({
+  task,
+  projectId,
+  onUpdated,
+  open,
+  onOpenChange,
+}: {
+  task: TaskRecord | null;
+  projectId: string;
+  onUpdated: (updated: TaskRecord) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const nextStatus = task ? NEXT_STATUS[task.status] : undefined;
+
+  async function handleStatusClick() {
+    if (!nextStatus || loading || !task) return;
+    setLoading(true);
+    try {
+      const updated = await updateTaskStatusAction(projectId, task.seq, nextStatus);
+      onUpdated(updated);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "상태 변경에 실패했어요.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        {task && (
+          <>
+            <DialogHeader>
+              <div className="flex items-center gap-2">
+                <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", STATUS_STYLES[task.status])}>
+                  {STATUS_LABELS[task.status]}
+                </span>
+                <span className="text-xs text-muted-foreground">#{task.seq}</span>
+              </div>
+              <DialogTitle className={cn(task.status === "DONE" && "line-through")}>
+                {task.title}
+              </DialogTitle>
+            </DialogHeader>
+
+            {task.description && (
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {task.description}
+              </p>
+            )}
+
+            <div className="flex flex-col gap-2 text-sm">
+              {task.module && (
+                <div className="flex items-center gap-3">
+                  <span className="w-14 text-xs text-muted-foreground">모듈</span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    {task.module}
+                  </span>
+                </div>
+              )}
+              {task.priority > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="w-14 text-xs text-muted-foreground">우선순위</span>
+                  <span className="text-xs font-medium">P{task.priority}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <span className="w-14 text-xs text-muted-foreground">등록일</span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(task.createdAt).toLocaleDateString("ko-KR")}
+                </span>
+              </div>
+              {task.updatedAt.getTime() !== task.createdAt.getTime() && (
+                <div className="flex items-center gap-3">
+                  <span className="w-14 text-xs text-muted-foreground">수정일</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(task.updatedAt).toLocaleDateString("ko-KR")}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {nextStatus && (
+              <div className="border-t pt-3">
+                <button
+                  onClick={handleStatusClick}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+                >
+                  {loading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <StatusIcon status={nextStatus} />
+                  )}
+                  {STATUS_LABELS[nextStatus]}으로 변경
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function TasksTab({ selected }: { selected: Project }) {
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<TaskStatusValue | "ALL">("ALL");
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
 
   const loadTasks = useCallback(() => {
     let cancelled = false;
@@ -159,6 +273,14 @@ export function TasksTab({ selected }: { selected: Project }) {
   const pendingCount = tasks.filter((t) => t.status === "PENDING").length;
 
   return (
+    <>
+    <TaskDetailModal
+      task={selectedTask}
+      projectId={selected.id}
+      onUpdated={handleUpdated}
+      open={selectedTaskId !== null}
+      onOpenChange={(open) => { if (!open) setSelectedTaskId(null); }}
+    />
     <div className="flex flex-col gap-4">
       {/* 헤더 + 필터 */}
       <div className="flex items-center justify-between gap-4">
@@ -219,10 +341,12 @@ export function TasksTab({ selected }: { selected: Project }) {
               task={task}
               projectId={selected.id}
               onUpdated={handleUpdated}
+              onSelect={() => setSelectedTaskId(task.id)}
             />
           ))}
         </div>
       )}
     </div>
+    </>
   );
 }

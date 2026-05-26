@@ -24,11 +24,11 @@ function isInitialized(key: string) {
 
 export function OverviewTab({ selected }: { selected: Project }) {
   const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(null);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(true);
   const { refreshing: aiRefreshing, run: runAiRefresh } = useRefreshWithToast();
 
   const [nextTasks, setNextTasks] = useState<CachedProjectNextTasks>(null);
-  const [nextTasksLoading, setNextTasksLoading] = useState(false);
+  const [nextTasksLoading, setNextTasksLoading] = useState(true);
   const { refreshing: nextTasksRefreshing, run: runNextTasksRefresh } =
     useRefreshWithToast();
 
@@ -100,15 +100,16 @@ export function OverviewTab({ selected }: { selected: Project }) {
   useEffect(() => {
     const summaryKey = `votra-ai-init-${selected.id}`;
     const tasksKey = `votra-tasks-init-${selected.id}`;
-    if (aiLoading || nextTasksLoading) return;
+    if (aiLoading || nextTasksLoading || aiRefreshing || nextTasksRefreshing) return;
 
     const needsSummary = aiSummary === null && !isInitialized(summaryKey);
     const needsTasks = (nextTasks === null || nextTasks.tasks.length === 0) && !isInitialized(tasksKey);
 
+    let mounted = true;
     if (needsSummary) {
       markInitialized(summaryKey);
       void onRefreshAi().then(() => {
-        if (needsTasks) {
+        if (mounted && needsTasks) {
           markInitialized(tasksKey);
           void onRefreshNextTasks();
         }
@@ -117,7 +118,8 @@ export function OverviewTab({ selected }: { selected: Project }) {
       markInitialized(tasksKey);
       void onRefreshNextTasks();
     }
-  }, [aiLoading, nextTasksLoading, aiSummary, nextTasks, selected.id, onRefreshAi, onRefreshNextTasks]);
+    return () => { mounted = false; };
+  }, [aiLoading, nextTasksLoading, aiRefreshing, nextTasksRefreshing, aiSummary, nextTasks, selected.id, onRefreshAi, onRefreshNextTasks]);
 
   return (
     <div className="flex pb-6 flex-col gap-6">

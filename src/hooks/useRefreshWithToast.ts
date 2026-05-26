@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 type Options = {
@@ -9,7 +9,7 @@ type Options = {
 export function useRefreshWithToast() {
   const [refreshing, setRefreshing] = useState(false);
 
-  async function run<T>(
+  const run = useCallback(async function <T>(
     fn: () => Promise<T>,
     options?: Options & { onSuccess?: (result: T) => void },
   ): Promise<void> {
@@ -27,7 +27,7 @@ export function useRefreshWithToast() {
     } finally {
       setRefreshing(false);
     }
-  }
+  }, []);
 
   return { refreshing, run };
 }
