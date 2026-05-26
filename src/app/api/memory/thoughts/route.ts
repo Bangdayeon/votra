@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { listThoughts } from "@/application/listThoughts";
 import { rememberThought } from "@/application/rememberThought";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
+import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClient";
 import { prismaThoughtRepository } from "@/infrastructure/repositories/prismaThoughtRepository";
 
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  emitProjectUpdate(body.projectId);
   return NextResponse.json({ ok: true, thought: result.value });
 }
 

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { listSessionLogs } from "@/application/listSessionLogs";
 import { logSession } from "@/application/logSession";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
+import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaSessionLogRepository } from "@/infrastructure/repositories/prismaSessionLogRepository";
 
 const deps = { sessionLogs: prismaSessionLogRepository };
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  emitProjectUpdate(body.projectId);
   return NextResponse.json({ ok: true, sessionLog: result.value });
 }
 

@@ -3,6 +3,7 @@
 import { updateTask } from "@/application/updateTask";
 import type { TaskRecord, TaskStatusValue } from "@/domain/memory/types";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
+import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function updateTaskStatusAction(
@@ -18,5 +19,6 @@ export async function updateTaskStatusAction(
     { tasks: prismaTaskRepository },
   );
   if (!result.ok) throw new Error(result.error);
+  emitProjectUpdate(projectId);
   return result.value;
 }

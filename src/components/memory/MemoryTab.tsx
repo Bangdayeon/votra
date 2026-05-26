@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { getProjectSessionLogsAction, type SessionLogRecord } from "@/app/actions/getProjectSessionLogs";
 import { getProjectThoughtsAction, type ThoughtRecord } from "@/app/actions/getProjectThoughts";
 import type { Project } from "@/components/project/ProjectsContext";
+import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
 const AI_TOOL_LABELS: Record<string, string> = {
@@ -78,24 +79,20 @@ export function MemoryTab({ selected }: { selected: Project }) {
   const loadThoughts = useCallback(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      getProjectThoughtsAction(selected.id, 50),
-      getProjectSessionLogsAction(selected.id, 20),
-    ])
-      .then(([t, s]) => {
-        if (!cancelled) {
-          setThoughts(t);
-          setSessionLogs(s);
-        }
-      })
+    getProjectThoughtsAction(selected.id, 50)
+      .then((t) => { if (!cancelled) setThoughts(t); })
       .catch((e: unknown) => {
         if (!cancelled) toast.error(e instanceof Error ? e.message : "메모리를 불러오지 못했어요.");
       })
       .finally(() => { if (!cancelled) setLoading(false); });
+    getProjectSessionLogsAction(selected.id, 20)
+      .then((s) => { if (!cancelled) setSessionLogs(s); })
+      .catch(() => { /* 세션 로그 실패는 무시 */ });
     return () => { cancelled = true; };
   }, [selected.id]);
 
   useEffect(() => { return loadThoughts(); }, [loadThoughts]);
+  useProjectEvents(selected.id, loadThoughts);
 
   const allTags = Array.from(new Set(thoughts.flatMap((t) => t.tags))).sort();
   const filtered = tagFilter ? thoughts.filter((t) => t.tags.includes(tagFilter)) : thoughts;
