@@ -24,7 +24,8 @@ interface GoogleUserInfo {
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams, origin } = req.nextUrl;
+  const { searchParams } = req.nextUrl;
+  const origin = process.env.APP_URL ?? req.nextUrl.origin;
   const code = searchParams.get("code");
   const returnedState = searchParams.get("state");
 

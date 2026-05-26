@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   const next = req.nextUrl.searchParams.get("next") ?? "/";
   const state = randomBytes(16).toString("hex");
-  const callbackUrl = `${req.nextUrl.origin}/api/auth/google/callback`;
+  const callbackUrl = `${process.env.APP_URL ?? req.nextUrl.origin}/api/auth/google/callback`;
 
   const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authUrl.searchParams.set("client_id", clientId);
