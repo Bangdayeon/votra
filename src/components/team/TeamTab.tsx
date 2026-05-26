@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Check, CircleUserRound, Copy, Crown, Eye, Loader2, MoreHorizontal, UserPlus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { createProjectInviteAction } from "@/app/actions/createProjectInvite";
@@ -193,10 +193,20 @@ function InviteDialog({
 
 type KickTarget = { userId: string; name: string };
 
-export function TeamTab({ selected }: { selected: Project }) {
-  const [members, setMembers] = useState<ProjectMemberRow[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+export function TeamTab({
+  selected,
+  initialTeam,
+}: {
+  selected: Project;
+  initialTeam?: { members: ProjectMemberRow[]; currentUserId: string };
+}) {
+  const [members, setMembers] = useState<ProjectMemberRow[]>(
+    initialTeam?.members ?? [],
+  );
+  const [currentUserId, setCurrentUserId] = useState<string | null>(
+    initialTeam?.currentUserId ?? null,
+  );
+  const [loading, setLoading] = useState(!initialTeam);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState<KickTarget | null>(null);
 
@@ -215,7 +225,9 @@ export function TeamTab({ selected }: { selected: Project }) {
     return () => { cancelled = true; };
   }, [selected.id]);
 
+  const skipFirstFetch = useRef(!!initialTeam);
   useEffect(() => {
+    if (skipFirstFetch.current) { skipFirstFetch.current = false; return; }
     return loadMembers();
   }, [loadMembers]);
 

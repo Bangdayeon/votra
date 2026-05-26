@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckSquare, ChevronDown, ChevronRight, Circle, Clock, Loader2, XCircle } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
@@ -263,9 +263,15 @@ function TaskDetailModal({
   );
 }
 
-export function TasksTab({ selected }: { selected: Project }) {
-  const [tasks, setTasks] = useState<TaskRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+export function TasksTab({
+  selected,
+  initialTasks,
+}: {
+  selected: Project;
+  initialTasks?: TaskRecord[];
+}) {
+  const [tasks, setTasks] = useState<TaskRecord[]>(initialTasks ?? []);
+  const [loading, setLoading] = useState(!initialTasks);
   const [filter, setFilter] = useState<ActiveFilter>("ACTIVE");
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [doneExpanded, setDoneExpanded] = useState(false);
@@ -284,7 +290,11 @@ export function TasksTab({ selected }: { selected: Project }) {
     return () => { cancelled = true; };
   }, [selected.id]);
 
-  useEffect(() => { return loadTasks(); }, [loadTasks]);
+  const skipFirstFetch = useRef(!!initialTasks);
+  useEffect(() => {
+    if (skipFirstFetch.current) { skipFirstFetch.current = false; return; }
+    return loadTasks();
+  }, [loadTasks]);
   useProjectEvents(selected.id, loadTasks);
 
   function handleUpdated(updated: TaskRecord) {

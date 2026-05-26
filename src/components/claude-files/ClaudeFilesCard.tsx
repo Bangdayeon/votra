@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { listClaudeFilesAction } from "@/app/actions/listClaudeFiles";
 import { listPolicyRulesAction } from "@/app/actions/listPolicyRules";
@@ -28,11 +28,29 @@ type State =
       rules: PolicyRule[];
     };
 
-export function ClaudeFilesCard({ selected }: { selected: Project }) {
-  const [state, setState] = useState<State>({ kind: "loading" });
+export function ClaudeFilesCard({
+  selected,
+  initialManage,
+}: {
+  selected: Project;
+  initialManage?: { files: { records: ClaudeFileRecord[]; criteria: EvaluationCriteria }; rules: PolicyRule[] };
+}) {
+  const [state, setState] = useState<State>(() =>
+    initialManage
+      ? {
+          kind: "ready",
+          records: initialManage.files.records,
+          criteria: initialManage.files.criteria,
+          rules: initialManage.rules,
+        }
+      : { kind: "loading" },
+  );
   const { refreshing, run: runRefresh } = useRefreshWithToast();
 
+  const skipFirstFetch = useRef(!!initialManage);
+
   useEffect(() => {
+    if (skipFirstFetch.current) { skipFirstFetch.current = false; return; }
     let cancelled = false;
     setState({ kind: "loading" });
     Promise.all([listClaudeFilesAction(selected.id), listPolicyRulesAction()])

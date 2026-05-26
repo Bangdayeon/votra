@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getAgentContextFlowDiagnosisAction } from "@/app/actions/getAgentContextFlowDiagnosis";
 import { refreshAgentContextFlowDiagnosisAction } from "@/app/actions/refreshAgentContextFlowDiagnosis";
@@ -16,11 +16,24 @@ type State =
   | { kind: "error" }
   | { kind: "ready"; data: CachedAgentContextFlowDiagnosis };
 
-export function AgentContextFlowCard({ selected }: { selected: Project }) {
-  const [state, setState] = useState<State>({ kind: "loading" });
+export function AgentContextFlowCard({
+  selected,
+  initialDiagnosis,
+}: {
+  selected: Project;
+  initialDiagnosis?: CachedAgentContextFlowDiagnosis;
+}) {
+  const [state, setState] = useState<State>(() =>
+    initialDiagnosis !== undefined
+      ? { kind: "ready", data: initialDiagnosis }
+      : { kind: "loading" },
+  );
   const { refreshing, run: runRefresh } = useRefreshWithToast();
 
+  const skipFirstFetch = useRef(initialDiagnosis !== undefined);
+
   useEffect(() => {
+    if (skipFirstFetch.current) { skipFirstFetch.current = false; return; }
     let cancelled = false;
     setState({ kind: "loading" });
     getAgentContextFlowDiagnosisAction(selected.id)

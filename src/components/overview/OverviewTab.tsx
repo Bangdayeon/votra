@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { getProjectAiSummaryAction } from "@/app/actions/getProjectAiSummary";
@@ -22,17 +22,31 @@ function isInitialized(key: string) {
   return Boolean(localStorage.getItem(key));
 }
 
-export function OverviewTab({ selected }: { selected: Project }) {
-  const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(null);
-  const [aiLoading, setAiLoading] = useState(true);
+export function OverviewTab({
+  selected,
+  initialOverview,
+}: {
+  selected: Project;
+  initialOverview?: { aiSummary: CachedProjectAiSummary; nextTasks: CachedProjectNextTasks };
+}) {
+  const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(
+    initialOverview?.aiSummary ?? null,
+  );
+  const [aiLoading, setAiLoading] = useState(!initialOverview);
   const { refreshing: aiRefreshing, run: runAiRefresh } = useRefreshWithToast();
 
-  const [nextTasks, setNextTasks] = useState<CachedProjectNextTasks>(null);
-  const [nextTasksLoading, setNextTasksLoading] = useState(true);
+  const [nextTasks, setNextTasks] = useState<CachedProjectNextTasks>(
+    initialOverview?.nextTasks ?? null,
+  );
+  const [nextTasksLoading, setNextTasksLoading] = useState(!initialOverview);
   const { refreshing: nextTasksRefreshing, run: runNextTasksRefresh } =
     useRefreshWithToast();
 
+  const skipFirstAi = useRef(!!initialOverview);
+  const skipFirstNextTasks = useRef(!!initialOverview);
+
   useEffect(() => {
+    if (skipFirstAi.current) { skipFirstAi.current = false; return; }
     let cancelled = false;
     setAiLoading(true);
     getProjectAiSummaryAction(selected.id)
@@ -54,6 +68,7 @@ export function OverviewTab({ selected }: { selected: Project }) {
   }, [selected.id]);
 
   useEffect(() => {
+    if (skipFirstNextTasks.current) { skipFirstNextTasks.current = false; return; }
     let cancelled = false;
     setNextTasksLoading(true);
     getProjectNextTasksAction(selected.id)
