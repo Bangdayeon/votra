@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Terminal,
   UserCog,
+  Plug,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -468,6 +469,34 @@ const CLI_COMMANDS = [
   },
 ] as const;
 
+const MCP_SETUP_STEPS = [
+  {
+    step: "1",
+    title: "CLI 설치",
+    code: "npm install -g @votra/cli",
+  },
+  {
+    step: "2",
+    title: "로그인",
+    code: "votra signin",
+  },
+  {
+    step: "3",
+    title: "MCP 서버 등록",
+    code: "votra mcp install",
+  },
+] as const;
+
+const MCP_TOOLS: { tool: string; desc: string }[] = [
+  { tool: "brief", desc: "현재 프로젝트의 태스크·결정·규칙을 한번에 조회" },
+  { tool: "remember", desc: "결정·인사이트 저장 (decision / architecture / bug / context)" },
+  { tool: "recall", desc: "과거 결정을 의미 기반으로 검색" },
+  { tool: "add_task", desc: "새 태스크 등록" },
+  { tool: "update_task", desc: "태스크 상태 변경 (PENDING / IN_PROGRESS / DONE)" },
+  { tool: "list_tasks", desc: "태스크 목록 조회" },
+  { tool: "log_session", desc: "세션 종료 전 작업 요약 저장" },
+];
+
 function GuidePane() {
   return (
     <div className="flex flex-col gap-12">
@@ -571,6 +600,58 @@ function GuidePane() {
               </code>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-6">
+        <div className="flex items-center gap-2">
+          <Plug className="size-4 text-muted-foreground" />
+          <h3 className="text-base font-semibold">MCP 서버 연동</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Claude Code에 votra MCP 서버를 연결하면 AI 에이전트가 태스크·메모리를 프로젝트와 직접 연동해 관리해요.
+        </p>
+
+        <div className="flex flex-col gap-3">
+          <h4 className="text-sm font-medium">설정 방법</h4>
+          <ol className="flex flex-col gap-2">
+            {MCP_SETUP_STEPS.map(({ step, title, code }) => (
+              <li key={step} className="flex items-start gap-3">
+                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+                  {step}
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="text-sm font-medium">{title}</span>
+                  <code className="break-all rounded bg-[#F0EDE8] px-3 py-1.5 font-mono text-xs text-foreground">
+                    {code}
+                  </code>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="text-xs text-muted-foreground">
+            install 명령어가 Claude Code 설정에 자동으로 등록해줘요. 완료 후 Claude Code를 재시작하면 돼요.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <h4 className="text-sm font-medium">사용 가능한 툴</h4>
+          <div className="overflow-hidden rounded-lg border border-border">
+            {MCP_TOOLS.map(({ tool, desc }, i) => (
+              <div
+                key={tool}
+                className={cn(
+                  "flex items-center gap-4 px-4 py-3",
+                  i !== 0 && "border-t border-border",
+                )}
+              >
+                <code className="w-32 shrink-0 font-mono text-sm font-semibold text-foreground">
+                  {tool}
+                </code>
+                <span className="text-sm text-muted-foreground">{desc}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckSquare, Circle, Clock, Loader2, XCircle } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronRight, Circle, Clock, Loader2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -8,6 +8,12 @@ import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
 import type { Project } from "@/components/project/ProjectsContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +37,32 @@ const NEXT_STATUS: Partial<Record<TaskStatusValue, TaskStatusValue>> = {
   DONE: "PENDING",
 };
 
-const FILTERS: { label: string; value: TaskStatusValue | "ALL" }[] = [
-  { label: "전체", value: "ALL" },
+type ActiveFilter = "ACTIVE" | "IN_PROGRESS" | "PENDING";
+
+const FILTERS: { label: string; value: ActiveFilter }[] = [
+  { label: "전체", value: "ACTIVE" },
   { label: "진행 중", value: "IN_PROGRESS" },
   { label: "대기", value: "PENDING" },
-  { label: "완료", value: "DONE" },
 ];
+
+type SortKey = "createdAt" | "updatedAt" | "seq" | "priority";
+
+const SORT_LABELS: Record<SortKey, string> = {
+  createdAt: "등록일순",
+  updatedAt: "수정일순",
+  seq: "태스크 번호순",
+  priority: "우선순위순",
+};
+
+function sortTasks(tasks: TaskRecord[], key: SortKey): TaskRecord[] {
+  return [...tasks].sort((a, b) => {
+    if (key === "createdAt") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    if (key === "updatedAt") return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    if (key === "seq") return b.seq - a.seq;
+    if (key === "priority") return a.priority - b.priority;
+    return 0;
+  });
+}
 
 function StatusIcon({ status, className }: { status: TaskStatusValue; className?: string }) {
   if (status === "DONE") return <CheckSquare className={cn("size-4 text-green-600", className)} />;
@@ -81,7 +107,6 @@ function TaskCard({
         task.status === "DONE" && "opacity-60",
       )}
     >
-      {/* 상단: 상태 + seq */}
       <div className="flex items-center justify-between gap-2">
         <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", STATUS_STYLES[task.status])}>
           {STATUS_LABELS[task.status]}
@@ -89,19 +114,16 @@ function TaskCard({
         <span className="text-xs text-muted-foreground">#{task.seq}</span>
       </div>
 
-      {/* 제목 */}
       <p className={cn("text-sm font-semibold leading-snug", task.status === "DONE" && "line-through")}>
         {task.title}
       </p>
 
-      {/* 설명 */}
       {task.description && (
         <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
           {task.description}
         </p>
       )}
 
-      {/* 하단: 모듈 + 우선순위 + 상태 변경 버튼 */}
       <div className="mt-auto flex items-center justify-between gap-2 pt-1">
         <div className="flex flex-wrap items-center gap-1.5">
           {task.module && (
@@ -244,7 +266,9 @@ function TaskDetailModal({
 export function TasksTab({ selected }: { selected: Project }) {
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<TaskStatusValue | "ALL">("ALL");
+  const [filter, setFilter] = useState<ActiveFilter>("ACTIVE");
+  const [sortKey, setSortKey] = useState<SortKey>("createdAt");
+  const [doneExpanded, setDoneExpanded] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
 
@@ -267,86 +291,145 @@ export function TasksTab({ selected }: { selected: Project }) {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
   }
 
-  const filtered = filter === "ALL" ? tasks : tasks.filter((t) => t.status === filter);
+  const activeTasks = tasks.filter((t) => t.status !== "DONE" && t.status !== "CANCELLED");
+  const doneTasks = tasks.filter((t) => t.status === "DONE");
+
+  const filteredActive =
+    filter === "ACTIVE"
+      ? activeTasks
+      : activeTasks.filter((t) => t.status === filter);
+
+  const sortedActive = sortTasks(filteredActive, sortKey);
+  const sortedDone = sortTasks(doneTasks, sortKey);
 
   const inProgressCount = tasks.filter((t) => t.status === "IN_PROGRESS").length;
   const pendingCount = tasks.filter((t) => t.status === "PENDING").length;
 
   return (
     <>
-    <TaskDetailModal
-      task={selectedTask}
-      projectId={selected.id}
-      onUpdated={handleUpdated}
-      open={selectedTaskId !== null}
-      onOpenChange={(open) => { if (!open) setSelectedTaskId(null); }}
-    />
-    <div className="flex flex-col gap-4">
-      {/* 헤더 + 필터 */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-base font-semibold">태스크</h2>
-          {!loading && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              {inProgressCount > 0 && (
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-700 font-medium">
-                  진행 중 {inProgressCount}
-                </span>
-              )}
-              {pendingCount > 0 && (
-                <span className="rounded-full bg-muted px-2 py-0.5 font-medium">
-                  대기 {pendingCount}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex gap-1">
-          {FILTERS.map(({ label, value }) => (
-            <button
-              key={value}
-              onClick={() => setFilter(value)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                filter === value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <TaskDetailModal
+        task={selectedTask}
+        projectId={selected.id}
+        onUpdated={handleUpdated}
+        open={selectedTaskId !== null}
+        onOpenChange={(open) => { if (!open) setSelectedTaskId(null); }}
+      />
+      <div className="flex flex-col gap-4">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-base font-semibold">태스크</h2>
+            {!loading && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {inProgressCount > 0 && (
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-700 font-medium">
+                    진행 중 {inProgressCount}
+                  </span>
+                )}
+                {pendingCount > 0 && (
+                  <span className="rounded-full bg-muted px-2 py-0.5 font-medium">
+                    대기 {pendingCount}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
 
-      {/* 카드 그리드 */}
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          {/* 필터 + 정렬 */}
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {FILTERS.map(({ label, value }) => (
+                <button
+                  key={value}
+                  onClick={() => setFilter(value)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                    filter === value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  {SORT_LABELS[sortKey]}
+                  <ChevronDown className="size-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[130px]">
+                {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+                  <DropdownMenuItem
+                    key={key}
+                    onClick={() => setSortKey(key)}
+                    className={cn(sortKey === key && "font-medium")}
+                  >
+                    {SORT_LABELS[key]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
-          <CheckSquare className="size-8 opacity-30" strokeWidth={1.5} />
-          <p>{filter === "ALL" ? "AI가 등록한 태스크가 없어요." : "해당 상태의 태스크가 없어요."}</p>
-          <p className="text-xs">
-            AI 도구에서 <code className="rounded bg-muted px-1 py-0.5">add_task</code> 또는{" "}
-            <code className="rounded bg-muted px-1 py-0.5">brief</code> 툴로 등록하세요.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              projectId={selected.id}
-              onUpdated={handleUpdated}
-              onSelect={() => setSelectedTaskId(task.id)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+
+        {/* 활성 태스크 그리드 */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : sortedActive.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
+            <CheckSquare className="size-8 opacity-30" strokeWidth={1.5} />
+            <p>{filter === "ACTIVE" ? "활성 태스크가 없어요." : "해당 상태의 태스크가 없어요."}</p>
+            <p className="text-xs">
+              AI 도구에서 <code className="rounded bg-muted px-1 py-0.5">add_task</code> 또는{" "}
+              <code className="rounded bg-muted px-1 py-0.5">brief</code> 툴로 등록하세요.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {sortedActive.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                projectId={selected.id}
+                onUpdated={handleUpdated}
+                onSelect={() => setSelectedTaskId(task.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* 완료된 태스크 섹션 */}
+        {!loading && doneTasks.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => setDoneExpanded((v) => !v)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
+            >
+              {doneExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+              완료된 태스크 {doneTasks.length}개
+            </button>
+            {doneExpanded && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {sortedDone.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    projectId={selected.id}
+                    onUpdated={handleUpdated}
+                    onSelect={() => setSelectedTaskId(task.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </>
   );
 }
