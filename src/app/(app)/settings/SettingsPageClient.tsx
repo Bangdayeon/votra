@@ -1,23 +1,12 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { updateProjectAction } from "@/app/actions/updateProject";
-import { AiSpecPolicyFields } from "@/components/aiSpec/AiSpecPolicyFields";
 import { DeleteProjectConfirmDialog } from "@/components/project/DeleteProjectConfirmDialog";
 import { useProjects } from "@/components/project/ProjectsContext";
 import { Button } from "@/components/ui/button";
-import {
-  buildAiSpecPolicyPatch,
-  type AiSpecFileChange,
-} from "@/domain/aiSpec/types";
-import { DEFAULT_AI_SPEC_GUIDELINE } from "@/domain/aiSpec/defaultAiSpecGuideline";
-import {
-  AGENT_CONTEXT_FLOW_PROMPT_MAX,
-  AI_ANALYSIS_INSTRUCTION_MAX,
-  AI_NEXT_TASK_PROMPT_MAX,
-} from "@/domain/project/settings/types";
 import { cn } from "@/lib/utils";
 
 type SettingsTab = "all" | "overview" | "ai-management";
@@ -117,68 +106,10 @@ function SettingsForm({
         ? "ai-management"
         : "all";
 
-  const [analysisInstruction, setAnalysisInstruction] = useState("");
-  const [nextTaskPrompt, setNextTaskPrompt] = useState("");
-  const [guideline, setGuideline] = useState("");
-  const [agentContextFlowPrompt, setAgentContextFlowPrompt] = useState("");
-  const [existingFileName, setExistingFileName] = useState<string | null>(null);
-  const [fileChange, setFileChange] = useState<AiSpecFileChange>({
-    kind: "none",
-  });
-  const [loading, setLoading] = useState(true);
-  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
-
   const [title, setTitle] = useState(projectName);
   const [description, setDescription] = useState(projectDescriptionProp);
   const [basicSaveState, setBasicSaveState] = useState<SaveState>({ kind: "idle" });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    fetch(`/api/projects/${projectId}`, { cache: "no-store" })
-      .then(async (res) => {
-        const data: unknown = await res.json();
-        if (cancelled) return;
-        if (isRecord(data) && data.ok === true) {
-          const rawAi =
-            isRecord(data.settings) && isRecord(data.settings.ai)
-              ? data.settings.ai
-              : {};
-          setAnalysisInstruction(
-            typeof rawAi.analysisInstruction === "string"
-              ? rawAi.analysisInstruction
-              : "",
-          );
-          setNextTaskPrompt(
-            typeof rawAi.nextTaskPrompt === "string" ? rawAi.nextTaskPrompt : "",
-          );
-          setGuideline(
-            typeof data.aiSpecGuideline === "string" && data.aiSpecGuideline.length > 0
-              ? data.aiSpecGuideline
-              : DEFAULT_AI_SPEC_GUIDELINE,
-          );
-          setExistingFileName(
-            typeof data.aiSpecFileName === "string" ? data.aiSpecFileName : null,
-          );
-          setAgentContextFlowPrompt(
-            typeof data.agentContextFlowPrompt === "string"
-              ? data.agentContextFlowPrompt
-              : "",
-          );
-          setFileChange({ kind: "none" });
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId]);
-
-  const markDirty = useCallback(() => setSaveState({ kind: "idle" }), []);
 
   const onSaveBasicInfo = useCallback(async () => {
     const trimmedTitle = title.trim();
@@ -199,57 +130,6 @@ function SettingsForm({
       setBasicSaveState({ kind: "error", message: result.error });
     }
   }, [projectId, title, description, refresh]);
-
-  const onSave = useCallback(async () => {
-    setSaveState({ kind: "saving" });
-    try {
-      const res = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          settings: {
-            ai: {
-              analysisInstruction: analysisInstruction || null,
-              nextTaskPrompt: nextTaskPrompt || null,
-            },
-          },
-          ...buildAiSpecPolicyPatch(guideline, fileChange),
-          agentContextFlowPrompt: agentContextFlowPrompt || null,
-        }),
-      });
-      const data: unknown = await res.json();
-      if (!res.ok || !isRecord(data) || data.ok !== true) {
-        const msg =
-          isRecord(data) && typeof data.error === "string"
-            ? data.error
-            : "저장에 실패했어요.";
-        setSaveState({ kind: "error", message: msg });
-        return;
-      }
-      setExistingFileName(
-        typeof data.aiSpecFileName === "string" ? data.aiSpecFileName : null,
-      );
-      setAgentContextFlowPrompt(
-        typeof data.agentContextFlowPrompt === "string"
-          ? data.agentContextFlowPrompt
-          : "",
-      );
-      setFileChange({ kind: "none" });
-      setSaveState({ kind: "saved" });
-    } catch (err) {
-      setSaveState({
-        kind: "error",
-        message: err instanceof Error ? err.message : "저장에 실패했어요.",
-      });
-    }
-  }, [
-    projectId,
-    analysisInstruction,
-    nextTaskPrompt,
-    guideline,
-    fileChange,
-    agentContextFlowPrompt,
-  ]);
 
   return (
     <div className="flex h-full min-h-0 flex-col px-8 mb-6">
@@ -309,6 +189,7 @@ function SettingsForm({
                 />
               )}
             </Section>
+            {activeTab === "all" && <hr className="border-[#E4E2DD]" />}
           </>
         )}
 
@@ -372,33 +253,6 @@ function Section({
   );
 }
 
-function SessionDataInfo({
-  label,
-  fields,
-}: {
-  label: string;
-  fields: string[];
-}) {
-  return (
-    <div className="rounded-md border border-[#E4E2DD] bg-[#F8F7F4] px-3 py-2.5">
-      <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-        {label}
-      </p>
-      <ul className="flex flex-col gap-0.5">
-        {fields.map((field) => (
-          <li
-            key={field}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground"
-          >
-            <span className="size-1 shrink-0 rounded-full bg-muted-foreground/40" />
-            {field}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function SaveBar({
   saving,
   saved,
@@ -434,8 +288,4 @@ function decodeSlug(raw: string | null): string {
   } catch {
     return raw;
   }
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
 }
