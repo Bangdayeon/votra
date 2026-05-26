@@ -29,9 +29,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "summary가 필요해요." }, { status: 400 });
   }
   const aiTool = typeof body.aiTool === "string" && body.aiTool ? body.aiTool : "unknown";
+  const sessionId = typeof body.sessionId === "string" && body.sessionId ? body.sessionId : undefined;
+  const createOnly = body.createOnly === true;
 
   const result = await logSession(
-    { summary: body.summary, aiTool, projectId: body.projectId, userId: user.id },
+    { summary: body.summary, aiTool, projectId: body.projectId, userId: user.id, sessionId, createOnly },
     deps,
   );
 

@@ -9,9 +9,11 @@ export type TaskStatusValue = "PENDING" | "IN_PROGRESS" | "DONE" | "CANCELLED";
 
 export type SessionLogRecord = {
   id: string;
+  sessionId: string | null;
   summary: string;
   aiTool: string;
   createdAt: Date;
+  updatedAt: Date;
 };
 
 export type TaskRecord = {

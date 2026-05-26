@@ -8,6 +8,8 @@ export type LogSessionInput = {
   aiTool: string;
   projectId: string;
   userId: string;
+  sessionId?: string;
+  createOnly?: boolean;
 };
 
 export async function logSession(
@@ -15,7 +17,7 @@ export async function logSession(
   deps: { sessionLogs: SessionLogRepository },
 ): Promise<Result<SessionLogRecord, string>> {
   try {
-    const log = await deps.sessionLogs.create(input);
+    const log = await deps.sessionLogs.save(input);
     return ok(log);
   } catch (e) {
     return err(e instanceof Error ? e.message : "세션 로그 저장에 실패했어요.");
