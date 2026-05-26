@@ -65,7 +65,7 @@ export function AccountSettingsPage() {
               type="button"
               onClick={() => setActive(m.key)}
               className={cn(
-                "flex items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors",
+                "flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors",
                 selected
                   ? "bg-foreground text-background"
                   : "text-foreground hover:bg-[#EBE9E4]",
