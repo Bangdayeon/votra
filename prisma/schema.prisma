@@ -64,6 +64,7 @@ model User {
   acceptedInvites    ProjectInvite[] @relation("AcceptedByUser")
   thoughts           Thought[]
   tasks              Task[]
+  sessionLogs        SessionLog[]
 }
 
 // ────────────────────────────────────────────
@@ -133,6 +134,7 @@ model Project {
   invites              ProjectInvite[]
   thoughts             Thought[]
   tasks                Task[]
+  sessionLogs          SessionLog[]
 
   @@unique([ownerId, cwd])
   @@index([ownerId])
@@ -575,5 +577,26 @@ model Task {
 
   @@index([projectId, status])
   @@index([projectId, module])
+  @@index([userId])
+}
+
+// ────────────────────────────────────────────
+// SESSION LOG (AI가 세션 종료 시 저장하는 작업 요약)
+// ────────────────────────────────────────────
+
+model SessionLog {
+  id        String   @id @default(cuid())
+  /// AI가 생성한 세션 요약
+  summary   String   @db.Text
+  /// 작업에 사용한 AI 도구 ("claude" | "cursor" | "gemini" | "codex")
+  aiTool    String
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt(sort: Desc)])
   @@index([userId])
 }

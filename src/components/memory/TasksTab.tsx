@@ -16,28 +16,34 @@ const STATUS_LABELS: Record<TaskStatusValue, string> = {
   CANCELLED: "취소됨",
 };
 
-const STATUS_COLORS: Record<TaskStatusValue, string> = {
+const STATUS_STYLES: Record<TaskStatusValue, string> = {
   PENDING: "bg-muted text-muted-foreground",
   IN_PROGRESS: "bg-blue-100 text-blue-700",
   DONE: "bg-green-100 text-green-700",
   CANCELLED: "bg-red-100 text-red-600",
 };
 
+const NEXT_STATUS: Partial<Record<TaskStatusValue, TaskStatusValue>> = {
+  PENDING: "IN_PROGRESS",
+  IN_PROGRESS: "DONE",
+  DONE: "PENDING",
+};
+
 const FILTERS: { label: string; value: TaskStatusValue | "ALL" }[] = [
   { label: "전체", value: "ALL" },
-  { label: "대기", value: "PENDING" },
   { label: "진행 중", value: "IN_PROGRESS" },
+  { label: "대기", value: "PENDING" },
   { label: "완료", value: "DONE" },
 ];
 
-function StatusIcon({ status }: { status: TaskStatusValue }) {
-  if (status === "DONE") return <CheckSquare className="size-4 text-green-600 shrink-0" />;
-  if (status === "IN_PROGRESS") return <Clock className="size-4 text-blue-600 shrink-0" />;
-  if (status === "CANCELLED") return <XCircle className="size-4 text-red-500 shrink-0" />;
-  return <Circle className="size-4 text-muted-foreground shrink-0" />;
+function StatusIcon({ status, className }: { status: TaskStatusValue; className?: string }) {
+  if (status === "DONE") return <CheckSquare className={cn("size-4 text-green-600", className)} />;
+  if (status === "IN_PROGRESS") return <Clock className={cn("size-4 text-blue-600", className)} />;
+  if (status === "CANCELLED") return <XCircle className={cn("size-4 text-red-500", className)} />;
+  return <Circle className={cn("size-4 text-muted-foreground", className)} />;
 }
 
-function TaskRow({
+function TaskCard({
   task,
   projectId,
   onUpdated,
@@ -47,17 +53,13 @@ function TaskRow({
   onUpdated: (updated: TaskRecord) => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const nextStatus = NEXT_STATUS[task.status];
 
-  async function cycleStatus() {
-    const next: TaskStatusValue =
-      task.status === "PENDING"
-        ? "IN_PROGRESS"
-        : task.status === "IN_PROGRESS"
-          ? "DONE"
-          : "PENDING";
+  async function handleStatusClick() {
+    if (!nextStatus || loading) return;
     setLoading(true);
     try {
-      const updated = await updateTaskStatusAction(projectId, task.seq, next);
+      const updated = await updateTaskStatusAction(projectId, task.seq, nextStatus);
       onUpdated(updated);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "상태 변경에 실패했어요.");
@@ -67,42 +69,62 @@ function TaskRow({
   }
 
   return (
-    <li className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-      <button
-        onClick={cycleStatus}
-        disabled={loading || task.status === "CANCELLED"}
-        className="mt-0.5 rounded transition-opacity hover:opacity-70 disabled:opacity-40"
-        aria-label="상태 변경"
-      >
-        {loading ? (
-          <Loader2 className="size-4 animate-spin text-muted-foreground shrink-0" />
-        ) : (
-          <StatusIcon status={task.status} />
-        )}
-      </button>
+    <div
+      className={cn(
+        "group flex flex-col gap-3 rounded-xl border border-border bg-white p-4 transition-shadow hover:shadow-sm",
+        task.status === "DONE" && "opacity-60",
+      )}
+    >
+      {/* 상단: 상태 + seq */}
+      <div className="flex items-center justify-between gap-2">
+        <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", STATUS_STYLES[task.status])}>
+          {STATUS_LABELS[task.status]}
+        </span>
+        <span className="text-xs text-muted-foreground">#{task.seq}</span>
+      </div>
 
-      <div className="flex-1 min-w-0">
-        <p className={cn("text-sm font-medium", task.status === "DONE" && "line-through text-muted-foreground")}>
-          #{task.seq} {task.title}
+      {/* 제목 */}
+      <p className={cn("text-sm font-semibold leading-snug", task.status === "DONE" && "line-through")}>
+        {task.title}
+      </p>
+
+      {/* 설명 */}
+      {task.description && (
+        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+          {task.description}
         </p>
-        {task.description && (
-          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{task.description}</p>
-        )}
-        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[task.status])}>
-            {STATUS_LABELS[task.status]}
-          </span>
+      )}
+
+      {/* 하단: 모듈 + 우선순위 + 상태 변경 버튼 */}
+      <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-1.5">
           {task.module && (
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
               {task.module}
             </span>
           )}
           {task.priority > 0 && (
-            <span className="text-xs text-muted-foreground">P{task.priority}</span>
+            <span className="text-xs font-medium text-muted-foreground">P{task.priority}</span>
           )}
         </div>
+
+        {nextStatus && (
+          <button
+            onClick={handleStatusClick}
+            disabled={loading}
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+            title={`${STATUS_LABELS[nextStatus]}으로 변경`}
+          >
+            {loading ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <StatusIcon status={nextStatus} className="size-3.5" />
+            )}
+            {STATUS_LABELS[nextStatus]}
+          </button>
+        )}
       </div>
-    </li>
+    </div>
   );
 }
 
@@ -131,57 +153,74 @@ export function TasksTab({ selected }: { selected: Project }) {
 
   const filtered = filter === "ALL" ? tasks : tasks.filter((t) => t.status === filter);
 
+  const inProgressCount = tasks.filter((t) => t.status === "IN_PROGRESS").length;
+  const pendingCount = tasks.filter((t) => t.status === "PENDING").length;
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-xl border border-border bg-white p-6">
-        <div className="mb-4 flex items-center justify-between pb-4 border-b border-border">
-          <div>
-            <h2 className="text-base font-semibold">태스크</h2>
-            {!loading && (
-              <p className="text-xs text-muted-foreground">{tasks.length}개</p>
-            )}
-          </div>
-          <div className="flex gap-1">
-            {FILTERS.map(({ label, value }) => (
-              <button
-                key={value}
-                onClick={() => setFilter(value)}
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                  filter === value
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+      {/* 헤더 + 필터 */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-base font-semibold">태스크</h2>
+          {!loading && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {inProgressCount > 0 && (
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-700 font-medium">
+                  진행 중 {inProgressCount}
+                </span>
+              )}
+              {pendingCount > 0 && (
+                <span className="rounded-full bg-muted px-2 py-0.5 font-medium">
+                  대기 {pendingCount}
+                </span>
+              )}
+            </div>
+          )}
         </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-10 text-sm text-muted-foreground">
-            <CheckSquare className="size-8 opacity-40" strokeWidth={1.5} />
-            <p>{filter === "ALL" ? "AI가 등록한 태스크가 없어요." : "해당 상태의 태스크가 없어요."}</p>
-            <p className="text-xs">AI 도구에서 <code className="rounded bg-muted px-1 py-0.5">add_task</code> 툴로 등록하세요.</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-border">
-            {filtered.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                projectId={selected.id}
-                onUpdated={handleUpdated}
-              />
-            ))}
-          </ul>
-        )}
+        <div className="flex gap-1">
+          {FILTERS.map(({ label, value }) => (
+            <button
+              key={value}
+              onClick={() => setFilter(value)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                filter === value
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* 카드 그리드 */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
+          <CheckSquare className="size-8 opacity-30" strokeWidth={1.5} />
+          <p>{filter === "ALL" ? "AI가 등록한 태스크가 없어요." : "해당 상태의 태스크가 없어요."}</p>
+          <p className="text-xs">
+            AI 도구에서 <code className="rounded bg-muted px-1 py-0.5">add_task</code> 또는{" "}
+            <code className="rounded bg-muted px-1 py-0.5">brief</code> 툴로 등록하세요.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              projectId={selected.id}
+              onUpdated={handleUpdated}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

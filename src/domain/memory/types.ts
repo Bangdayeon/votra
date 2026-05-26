@@ -7,6 +7,13 @@ export type ThoughtRecord = {
 
 export type TaskStatusValue = "PENDING" | "IN_PROGRESS" | "DONE" | "CANCELLED";
 
+export type SessionLogRecord = {
+  id: string;
+  summary: string;
+  aiTool: string;
+  createdAt: Date;
+};
+
 export type TaskRecord = {
   id: string;
   seq: number;

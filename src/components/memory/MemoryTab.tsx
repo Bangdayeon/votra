@@ -1,12 +1,44 @@
 "use client";
 
-import { Brain, Loader2, Tag } from "lucide-react";
+import { Brain, Cpu, Loader2, Tag } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { getProjectSessionLogsAction, type SessionLogRecord } from "@/app/actions/getProjectSessionLogs";
 import { getProjectThoughtsAction, type ThoughtRecord } from "@/app/actions/getProjectThoughts";
 import type { Project } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
+
+const AI_TOOL_LABELS: Record<string, string> = {
+  claude: "Claude",
+  cursor: "Cursor",
+  gemini: "Gemini",
+  codex: "Codex",
+  unknown: "AI",
+};
+
+function SessionCard({ log }: { log: SessionLogRecord }) {
+  const label = AI_TOOL_LABELS[log.aiTool] ?? log.aiTool;
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-border bg-white p-4">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <Cpu className="size-3" />
+          {label}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {new Date(log.createdAt).toLocaleDateString("ko-KR", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </div>
+      <p className="text-sm leading-relaxed">{log.summary}</p>
+    </div>
+  );
+}
 
 function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString("ko-KR", {
@@ -39,14 +71,23 @@ function ThoughtCard({ thought }: { thought: ThoughtRecord }) {
 
 export function MemoryTab({ selected }: { selected: Project }) {
   const [thoughts, setThoughts] = useState<ThoughtRecord[]>([]);
+  const [sessionLogs, setSessionLogs] = useState<SessionLogRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
 
   const loadThoughts = useCallback(() => {
     let cancelled = false;
     setLoading(true);
-    getProjectThoughtsAction(selected.id, 50)
-      .then((t) => { if (!cancelled) setThoughts(t); })
+    Promise.all([
+      getProjectThoughtsAction(selected.id, 50),
+      getProjectSessionLogsAction(selected.id, 20),
+    ])
+      .then(([t, s]) => {
+        if (!cancelled) {
+          setThoughts(t);
+          setSessionLogs(s);
+        }
+      })
       .catch((e: unknown) => {
         if (!cancelled) toast.error(e instanceof Error ? e.message : "메모리를 불러오지 못했어요.");
       })
@@ -61,6 +102,30 @@ export function MemoryTab({ selected }: { selected: Project }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 세션 로그 */}
+      {(loading || sessionLogs.length > 0) && (
+        <div className="rounded-xl border border-border bg-white p-6">
+          <div className="mb-4 border-b border-border pb-4">
+            <h2 className="text-base font-semibold">세션 로그</h2>
+            {!loading && (
+              <p className="text-xs text-muted-foreground">{sessionLogs.length}개의 세션</p>
+            )}
+          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {sessionLogs.map((log) => (
+                <SessionCard key={log.id} log={log} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 메모리 (thoughts) */}
       <div className="rounded-xl border border-border bg-white p-6">
         <div className="mb-4 flex items-start justify-between pb-4 border-b border-border">
           <div>
