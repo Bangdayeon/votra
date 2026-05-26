@@ -26,4 +26,10 @@ export type ThoughtRepository = {
     userId: string;
     limit: number;
   }) => Promise<ThoughtRecord[]>;
+  listByTags: (args: {
+    projectId: string;
+    userId: string;
+    tags: string[];
+    limit: number;
+  }) => Promise<ThoughtRecord[]>;
 };

@@ -4,6 +4,7 @@ import { getProjectBrief } from "@/application/getProjectBrief";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
+import { prismaSessionLogRepository } from "@/infrastructure/repositories/prismaSessionLogRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 import { prismaThoughtRepository } from "@/infrastructure/repositories/prismaThoughtRepository";
 
@@ -38,6 +39,7 @@ export async function GET(req: Request) {
       tasks: prismaTaskRepository,
       thoughts: prismaThoughtRepository,
       claudeFiles: prismaClaudeFileRepository,
+      sessionLogs: prismaSessionLogRepository,
     },
   );
 

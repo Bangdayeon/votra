@@ -76,4 +76,14 @@ export const prismaThoughtRepository: ThoughtRepository = {
     });
     return rows as ThoughtRecord[];
   },
+
+  async listByTags({ projectId, userId, tags, limit }) {
+    const rows = await prisma.thought.findMany({
+      where: { projectId, userId, tags: { hasSome: tags } },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: { id: true, content: true, tags: true, createdAt: true },
+    });
+    return rows as ThoughtRecord[];
+  },
 };
