@@ -96,21 +96,28 @@ export function OverviewTab({ selected }: { selected: Project }) {
 
   // 캐시가 없는 경우(= 프로젝트 첫 추가)에만 자동 분석. localStorage로 추적해
   // 탭 전환·페이지 새로고침 시 재실행되지 않게 한다.
+  // 두 호출을 순차 실행해서 동시 LLM 연결로 인한 HTTP 연결 풀 포화를 방지한다.
   useEffect(() => {
-    const key = `votra-ai-init-${selected.id}`;
-    if (!aiLoading && aiSummary === null && !isInitialized(key)) {
-      markInitialized(key);
-      void onRefreshAi();
-    }
-  }, [aiLoading, aiSummary, selected.id, onRefreshAi]);
+    const summaryKey = `votra-ai-init-${selected.id}`;
+    const tasksKey = `votra-tasks-init-${selected.id}`;
+    if (aiLoading || nextTasksLoading) return;
 
-  useEffect(() => {
-    const key = `votra-tasks-init-${selected.id}`;
-    if (!nextTasksLoading && (nextTasks === null || nextTasks.tasks.length === 0) && !isInitialized(key)) {
-      markInitialized(key);
+    const needsSummary = aiSummary === null && !isInitialized(summaryKey);
+    const needsTasks = (nextTasks === null || nextTasks.tasks.length === 0) && !isInitialized(tasksKey);
+
+    if (needsSummary) {
+      markInitialized(summaryKey);
+      void onRefreshAi().then(() => {
+        if (needsTasks) {
+          markInitialized(tasksKey);
+          void onRefreshNextTasks();
+        }
+      });
+    } else if (needsTasks) {
+      markInitialized(tasksKey);
       void onRefreshNextTasks();
     }
-  }, [nextTasksLoading, nextTasks, selected.id, onRefreshNextTasks]);
+  }, [aiLoading, nextTasksLoading, aiSummary, nextTasks, selected.id, onRefreshAi, onRefreshNextTasks]);
 
   return (
     <div className="flex pb-6 flex-col gap-6">

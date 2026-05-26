@@ -48,27 +48,17 @@ export function ProjectPageClient() {
 
   return (
     <div className="px-8 py-6">
-      <div className={tab === "main" ? undefined : "hidden"}>
-        <OverviewTab selected={project} />
-      </div>
-      <div className={tab === "manage" ? undefined : "hidden"}>
+      {tab === "main" && <OverviewTab selected={project} />}
+      {tab === "manage" && (
         <div className="flex flex-col gap-4 md:flex-row md:items-start">
           <ClaudeFilesCard selected={project} />
           <AgentContextFlowCard selected={project} />
         </div>
-      </div>
-      <div className={tab === "tasks" ? undefined : "hidden"}>
-        <TasksTab selected={project} />
-      </div>
-      <div className={tab === "memory" ? undefined : "hidden"}>
-        <MemoryTab selected={project} />
-      </div>
-      <div className={tab === "history" ? undefined : "hidden"}>
-        <HistoryTab selected={project} />
-      </div>
-      <div className={tab === "team" ? undefined : "hidden"}>
-        <TeamTab selected={project} />
-      </div>
+      )}
+      {tab === "tasks" && <TasksTab selected={project} />}
+      {tab === "memory" && <MemoryTab selected={project} />}
+      {tab === "history" && <HistoryTab selected={project} />}
+      {tab === "team" && <TeamTab selected={project} />}
     </div>
   );
 }
