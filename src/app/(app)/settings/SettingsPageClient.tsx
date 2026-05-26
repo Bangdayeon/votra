@@ -23,10 +23,7 @@ import { cn } from "@/lib/utils";
 
 type SettingsTab = "all" | "overview" | "ai-management";
 
-type SaveState =
-  | { kind: "idle" }
-  | { kind: "saving" }
-  | { kind: "error"; message: string };
+type SaveState = { kind: "idle" } | { kind: "saving" };
 
 export function SettingsPageClient({ slug: slugProp }: { slug?: string } = {}) {
   const router = useRouter();
@@ -206,10 +203,7 @@ function SettingsForm({
       const file = e.target.files?.[0];
       if (!file) return;
       if (file.size > 1024 * 1024) {
-        setBasicSaveState({
-          kind: "error",
-          message: "이미지는 1MB 이하여야 해요.",
-        });
+        toast.error("이미지는 1MB 이하여야 해요.");
         return;
       }
       const reader = new FileReader();
@@ -242,7 +236,7 @@ function SettingsForm({
   const onSaveBasicInfo = useCallback(async () => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      setBasicSaveState({ kind: "error", message: "이름을 입력해주세요." });
+      toast.error("이름을 입력해주세요.");
       return;
     }
     setBasicSaveState({ kind: "saving" });
@@ -257,7 +251,8 @@ function SettingsForm({
       toast.success("저장됐어요.");
       refresh();
     } else {
-      setBasicSaveState({ kind: "error", message: result.error });
+      setBasicSaveState({ kind: "idle" });
+      toast.error(result.error);
     }
   }, [projectId, title, description, thumbnailDataUrl, refresh]);
 
@@ -284,7 +279,8 @@ function SettingsForm({
           isRecord(data) && typeof data.error === "string"
             ? data.error
             : "저장에 실패했어요.";
-        setSaveState({ kind: "error", message: msg });
+        setSaveState({ kind: "idle" });
+        toast.error(msg);
         return;
       }
       setExistingFileName(
@@ -299,10 +295,8 @@ function SettingsForm({
       setSaveState({ kind: "idle" });
       toast.success("저장됐어요.");
     } catch (err) {
-      setSaveState({
-        kind: "error",
-        message: err instanceof Error ? err.message : "저장에 실패했어요.",
-      });
+      setSaveState({ kind: "idle" });
+      toast.error(err instanceof Error ? err.message : "저장에 실패했어요.");
     }
   }, [
     projectId,
@@ -423,11 +417,6 @@ function SettingsForm({
               {isOwner && (
                 <SaveBar
                   saving={basicSaveState.kind === "saving"}
-                  error={
-                    basicSaveState.kind === "error"
-                      ? basicSaveState.message
-                      : null
-                  }
                   disabled={false}
                   onSave={onSaveBasicInfo}
                 />
@@ -510,7 +499,6 @@ function SettingsForm({
             {isOwner && (
               <SaveBar
                 saving={saveState.kind === "saving"}
-                error={saveState.kind === "error" ? saveState.message : null}
                 disabled={loading}
                 onSave={onSave}
               />
@@ -569,7 +557,6 @@ function SettingsForm({
             {isOwner && (
               <SaveBar
                 saving={saveState.kind === "saving"}
-                error={saveState.kind === "error" ? saveState.message : null}
                 disabled={loading}
                 onSave={onSave}
               />
@@ -672,17 +659,15 @@ function SessionDataInfo({
 
 function SaveBar({
   saving,
-  error,
   disabled,
   onSave,
 }: {
   saving: boolean;
-  error: string | null;
   disabled: boolean;
   onSave: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 mb-6">
+    <div className="mb-6">
       <Button
         type="button"
         onClick={onSave}
@@ -690,7 +675,6 @@ function SaveBar({
       >
         {saving ? "저장 중…" : "저장"}
       </Button>
-      {error && <span className="text-sm text-destructive">{error}</span>}
     </div>
   );
 }
