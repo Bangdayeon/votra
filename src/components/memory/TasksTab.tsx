@@ -8,7 +8,11 @@ import {
   ChevronRight,
   Circle,
   Clock,
+  Folder,
+  FolderPlus,
+  LayoutList,
   Loader2,
+  MoreHorizontal,
   RotateCcw,
   Search,
   XCircle,
@@ -16,8 +20,13 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { createFolderAction } from "@/app/actions/createFolderAction";
+import { deleteFolderAction } from "@/app/actions/deleteFolderAction";
 import { deleteTaskAction } from "@/app/actions/deleteTask";
+import { getProjectFoldersAction } from "@/app/actions/getProjectFolders";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
+import { moveTaskToFolderAction } from "@/app/actions/moveTaskToFolderAction";
+import { updateFolderAction } from "@/app/actions/updateFolderAction";
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,13 +43,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { filterTasks } from "@/domain/memory/filterTasks";
 import { getTaskPriorityLevel } from "@/domain/memory/getTaskPriorityLevel";
 import { sortTasks } from "@/domain/memory/sortTasks";
-import type { TaskSortBy } from "@/domain/memory/types";
+import type { FolderRecord, TaskSortBy } from "@/domain/memory/types";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
@@ -129,6 +139,74 @@ function FilterDropdown<T extends string>({
   );
 }
 
+// ── CreateFolderDialog ────────────────────────────────────────────────────────
+
+function CreateFolderDialog({
+  open,
+  projectId,
+  onClose,
+  onCreated,
+}: {
+  open: boolean;
+  projectId: string;
+  onClose: () => void;
+  onCreated: (folder: FolderRecord) => void;
+}) {
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) setName("");
+  }, [open]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setLoading(true);
+    try {
+      const folder = await createFolderAction(projectId, name.trim());
+      onCreated(folder);
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "폴더 생성에 실패했어요.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>새 폴더</DialogTitle>
+            <DialogDescription>폴더 이름을 입력하세요.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <input
+              autoFocus
+              type="text"
+              placeholder="폴더 이름"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              취소
+            </Button>
+            <Button type="submit" disabled={!name.trim() || loading}>
+              {loading && <Loader2 className="size-3.5 animate-spin" />}
+              만들기
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── TaskRow ───────────────────────────────────────────────────────────────────
 
 function TaskRow({
@@ -138,6 +216,8 @@ function TaskRow({
   onToggle,
   onUpdated,
   onDeleted,
+  folders,
+  onMoved,
 }: {
   task: TaskRecord;
   projectId: string;
@@ -145,10 +225,13 @@ function TaskRow({
   onToggle: () => void;
   onUpdated: (updated: TaskRecord) => void;
   onDeleted: (id: string) => void;
+  folders?: FolderRecord[];
+  onMoved?: (task: TaskRecord) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [moveLoading, setMoveLoading] = useState(false);
   const nextStatus = NEXT_STATUS[task.status];
   const priorityLevel = getTaskPriorityLevel(task.priority);
 
@@ -192,6 +275,24 @@ function TaskRow({
       setLoading(false);
     }
   }
+
+  async function handleMoveToFolder(folderId: string | null) {
+    if (task.folderId === folderId) return;
+    setMoveLoading(true);
+    try {
+      const updated = await moveTaskToFolderAction(projectId, task.seq, folderId);
+      onUpdated(updated);
+      onMoved?.(updated);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "폴더 이동에 실패했어요.");
+    } finally {
+      setMoveLoading(false);
+    }
+  }
+
+  const currentFolderName = task.folderId
+    ? (folders?.find((f) => f.id === task.folderId)?.name ?? "알 수 없음")
+    : "미분류";
 
   return (
     <div
@@ -283,6 +384,48 @@ function TaskRow({
             </ul>
           )}
 
+          {/* folder move */}
+          {folders && folders.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">폴더</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    disabled={moveLoading}
+                    className="flex cursor-pointer items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+                  >
+                    {moveLoading ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Folder className="size-3" />
+                    )}
+                    {currentFolderName}
+                    <ChevronDown className="size-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuItem
+                    onClick={() => handleMoveToFolder(null)}
+                    className={cn(!task.folderId && "font-medium")}
+                  >
+                    미분류
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {folders.map((f) => (
+                    <DropdownMenuItem
+                      key={f.id}
+                      onClick={() => handleMoveToFolder(f.id)}
+                      className={cn(task.folderId === f.id && "font-medium")}
+                    >
+                      {f.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+
           <div className="flex items-center justify-between pt-1">
             <div>
               {nextStatus && (
@@ -336,6 +479,191 @@ function TaskRow({
   );
 }
 
+// ── FolderSection ─────────────────────────────────────────────────────────────
+
+function FolderSection({
+  folder,
+  tasks,
+  projectId,
+  expandedId,
+  onToggleTask,
+  onUpdated,
+  onDeleted,
+  allFolders,
+  onFolderRenamed,
+  onFolderDeleted,
+  onTaskMoved,
+}: {
+  folder: FolderRecord | null;
+  tasks: TaskRecord[];
+  projectId: string;
+  expandedId: string | null;
+  onToggleTask: (id: string) => void;
+  onUpdated: (task: TaskRecord) => void;
+  onDeleted: (id: string) => void;
+  allFolders: FolderRecord[];
+  onFolderRenamed: (updated: FolderRecord) => void;
+  onFolderDeleted: (id: string) => void;
+  onTaskMoved: (task: TaskRecord) => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(folder?.name ?? "");
+  const [renameLoading, setRenameLoading] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  async function handleRename(e: React.FormEvent) {
+    e.preventDefault();
+    if (!folder || !renameValue.trim()) return;
+    setRenameLoading(true);
+    try {
+      const updated = await updateFolderAction(projectId, folder.id, renameValue.trim());
+      onFolderRenamed(updated);
+      setRenaming(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "폴더 이름 변경에 실패했어요.");
+    } finally {
+      setRenameLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!folder) return;
+    setDeleteLoading(true);
+    try {
+      await deleteFolderAction(projectId, folder.id);
+      onFolderDeleted(folder.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "폴더 삭제에 실패했어요.");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteOpen(false);
+    }
+  }
+
+  function startRename() {
+    setRenameValue(folder?.name ?? "");
+    setRenaming(true);
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* folder header */}
+      <div className="flex items-center gap-2 group">
+        <button
+          onClick={() => setCollapsed((p) => !p)}
+          className="flex cursor-pointer items-center justify-center rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {collapsed ? (
+            <ChevronRight className="size-3.5" />
+          ) : (
+            <ChevronDown className="size-3.5" />
+          )}
+        </button>
+
+        <Folder className="size-3.5 shrink-0 text-muted-foreground" />
+
+        {renaming && folder ? (
+          <form onSubmit={handleRename} className="flex items-center gap-1.5">
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              className="rounded border border-ring bg-background px-2 py-0.5 text-sm font-medium focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={renameLoading || !renameValue.trim()}
+              className="rounded px-2 py-0.5 text-xs font-medium text-primary hover:underline disabled:opacity-40"
+            >
+              {renameLoading ? <Loader2 className="size-3 animate-spin" /> : "저장"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRenaming(false)}
+              className="rounded px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              취소
+            </button>
+          </form>
+        ) : (
+          <span className="text-sm font-medium">{folder?.name ?? "미분류"}</span>
+        )}
+
+        <span className="text-xs text-muted-foreground">({tasks.length})</span>
+
+        {folder && !renaming && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="ml-1 flex cursor-pointer items-center justify-center rounded p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground">
+                <MoreHorizontal className="size-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={startRename}>이름 변경</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setDeleteOpen(true)}
+                className="text-red-600 focus:text-red-600"
+              >
+                삭제
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+
+      {/* tasks */}
+      {!collapsed && (
+        tasks.length === 0 ? (
+          <p className="pl-6 text-xs text-muted-foreground">태스크가 없어요.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {tasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                projectId={projectId}
+                expanded={expandedId === task.id}
+                onToggle={() => onToggleTask(task.id)}
+                onUpdated={onUpdated}
+                onDeleted={onDeleted}
+                folders={allFolders}
+                onMoved={onTaskMoved}
+              />
+            ))}
+          </div>
+        )
+      )}
+
+      {/* delete confirm */}
+      {folder && (
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>폴더 삭제</DialogTitle>
+              <DialogDescription>
+                <span className="font-medium text-foreground">{folder.name}</span>
+                을(를) 삭제할까요? 폴더 안의 태스크는 미분류로 이동돼요.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+                취소
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
+                {deleteLoading && <Loader2 className="size-3.5 animate-spin" />}
+                삭제
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
 // ── date helpers ─────────────────────────────────────────────────────────────
 
 function fmtDate(d: Date) {
@@ -369,15 +697,18 @@ export function TasksTab({
 }) {
   const [tasks, setTasks] = useState<TaskRecord[]>(initialTasks ?? []);
   const [loading, setLoading] = useState(!initialTasks);
+  const [folders, setFolders] = useState<FolderRecord[]>([]);
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"flat" | "grouped">("flat");
+  const [createFolderOpen, setCreateFolderOpen] = useState(false);
 
   const [filterUser, setFilterUser] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("ALL");
   const [filterPriority, setFilterPriority] = useState<string>("ALL");
   const [hideDone, setHideDone] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<TaskSortBy>("updatedAt");
+  const [sortBy, setSortBy] = useState<TaskSortBy>("priority");
 
   // 기간 필터 (적용된 값)
   const [dateField, setDateField] = useState<"createdAt" | "updatedAt">("createdAt");
@@ -424,12 +755,23 @@ export function TasksTab({
     return () => { cancelled = true; };
   }, [selected.id]);
 
+  const loadFolders = useCallback(() => {
+    getProjectFoldersAction(selected.id)
+      .then(setFolders)
+      .catch(() => { /* non-critical */ });
+  }, [selected.id]);
+
   const skipFirstFetch = useRef(!!initialTasks);
   useEffect(() => {
     if (skipFirstFetch.current) { skipFirstFetch.current = false; return; }
     return loadTasks();
   }, [loadTasks]);
-  useProjectEvents(selected.id, () => loadTasks(true));
+
+  useEffect(() => {
+    loadFolders();
+  }, [loadFolders]);
+
+  useProjectEvents(selected.id, () => { loadTasks(true); loadFolders(); });
 
   function handleUpdated(updated: TaskRecord) {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
@@ -437,6 +779,15 @@ export function TasksTab({
 
   function handleDeleted(id: string) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function handleFolderRenamed(updated: FolderRecord) {
+    setFolders((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
+  }
+
+  function handleFolderDeleted(id: string) {
+    setFolders((prev) => prev.filter((f) => f.id !== id));
+    loadTasks(true);
   }
 
   const creators = useMemo(() => {
@@ -510,6 +861,24 @@ export function TasksTab({
 
   useEffect(() => { setPage(1); }, [filterUser, filterStatus, filterPriority, hideDone, searchQuery, dateFrom, dateTo, dateField, sortBy]);
 
+  // grouped view data
+  const groupedByFolder = useMemo(() => {
+    if (viewMode !== "grouped") return null;
+    const map = new Map<string | null, TaskRecord[]>();
+    map.set(null, []);
+    folders.forEach((f) => map.set(f.id, []));
+    sorted.forEach((t) => {
+      const key = t.folderId ?? null;
+      const bucket = map.get(key);
+      if (bucket) {
+        bucket.push(t);
+      } else {
+        map.get(null)!.push(t);
+      }
+    });
+    return map;
+  }, [viewMode, sorted, folders]);
+
   const inProgressCount = tasks.filter((t) => t.status === "IN_PROGRESS").length;
   const pendingCount = tasks.filter((t) => t.status === "PENDING").length;
 
@@ -532,6 +901,27 @@ export function TasksTab({
             )}
           </div>
         )}
+        <div className="ml-auto flex items-center gap-1">
+          {viewMode === "grouped" && (
+            <button
+              onClick={() => setCreateFolderOpen(true)}
+              className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <FolderPlus className="size-3.5" />
+              새 폴더
+            </button>
+          )}
+          <button
+            onClick={() => setViewMode((p) => (p === "flat" ? "grouped" : "flat"))}
+            title={viewMode === "flat" ? "폴더 보기" : "목록 보기"}
+            className={cn(
+              "flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              viewMode === "grouped" && "bg-muted text-foreground",
+            )}
+          >
+            {viewMode === "flat" ? <Folder className="size-4" /> : <LayoutList className="size-4" />}
+          </button>
+        </div>
       </div>
 
       {/* 검색 */}
@@ -684,6 +1074,49 @@ export function TasksTab({
             <code className="rounded bg-muted px-1 py-0.5">brief</code> 툴로 등록하세요.
           </p>
         </div>
+      ) : viewMode === "grouped" && groupedByFolder ? (
+        <div className="flex flex-col gap-6">
+          {folders.map((folder) => {
+            const folderTasks = groupedByFolder.get(folder.id) ?? [];
+            if (folderTasks.length === 0) return null;
+            return (
+              <FolderSection
+                key={folder.id}
+                folder={folder}
+                tasks={folderTasks}
+                projectId={selected.id}
+                expandedId={expandedId}
+                onToggleTask={(id) => setExpandedId((prev) => (prev === id ? null : id))}
+                onUpdated={handleUpdated}
+                onDeleted={handleDeleted}
+                allFolders={folders}
+                onFolderRenamed={handleFolderRenamed}
+                onFolderDeleted={handleFolderDeleted}
+                onTaskMoved={handleUpdated}
+              />
+            );
+          })}
+          {(() => {
+            const unclassified = groupedByFolder.get(null) ?? [];
+            if (unclassified.length === 0) return null;
+            return (
+              <FolderSection
+                key="__unclassified__"
+                folder={null}
+                tasks={unclassified}
+                projectId={selected.id}
+                expandedId={expandedId}
+                onToggleTask={(id) => setExpandedId((prev) => (prev === id ? null : id))}
+                onUpdated={handleUpdated}
+                onDeleted={handleDeleted}
+                allFolders={folders}
+                onFolderRenamed={handleFolderRenamed}
+                onFolderDeleted={handleFolderDeleted}
+                onTaskMoved={handleUpdated}
+              />
+            );
+          })()}
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           {paged.map((task) => (
@@ -695,6 +1128,8 @@ export function TasksTab({
               onToggle={() => setExpandedId((prev) => (prev === task.id ? null : task.id))}
               onUpdated={handleUpdated}
               onDeleted={handleDeleted}
+              folders={folders}
+              onMoved={handleUpdated}
             />
           ))}
           {totalPages > 1 && (
@@ -731,6 +1166,13 @@ export function TasksTab({
           )}
         </div>
       )}
+
+      <CreateFolderDialog
+        open={createFolderOpen}
+        projectId={selected.id}
+        onClose={() => setCreateFolderOpen(false)}
+        onCreated={(folder) => setFolders((prev) => [...prev, folder])}
+      />
     </div>
   );
 }
