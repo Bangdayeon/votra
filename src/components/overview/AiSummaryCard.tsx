@@ -47,7 +47,7 @@ export function AiSummaryCard({
         ) : summaryLines.length > 0 ? (
           <ul className="flex list-disc flex-col gap-3 pl-4">
             {summaryLines.map((line, i) => (
-              <li key={i} className="text-sm leading-relaxed text-foreground">
+              <li key={i} className="min-w-0 break-words text-sm leading-relaxed text-foreground">
                 <InlineMarkdown text={line} />
               </li>
             ))}
