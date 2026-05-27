@@ -15,7 +15,7 @@ export function InlineMarkdown({ text }: { text: string }) {
       parts.push(
         <code
           key={key++}
-          className="rounded bg-muted px-1 py-0.5 font-mono text-[0.8em]"
+          className="rounded bg-muted px-1 py-0.5 font-mono text-[0.8em] break-words"
         >
           {m[3]}
         </code>,

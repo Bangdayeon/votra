@@ -21,7 +21,7 @@ export function AgentCommandBox({ command, className }: { command: string; class
   return (
     <div className={cn("group relative pr-8", className)}>
       <div className="rounded-md border border-border bg-muted p-3">
-        <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground">
+        <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-foreground">
           {command}
         </pre>
       </div>

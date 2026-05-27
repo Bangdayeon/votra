@@ -44,6 +44,7 @@ next-env.d.ts
 # claude code / agent metadata
 .claude/
 .agents/
+.antigravitycli/
 skills-lock.json
 
 # alt package manager artifacts (project uses npm)
