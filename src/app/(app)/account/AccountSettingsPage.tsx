@@ -208,7 +208,11 @@ function AccountPane() {
               variant="outline"
               onClick={() => setTheme(value)}
               className={cn(
-                theme === value && "border-foreground bg-foreground text-background hover:bg-foreground hover:text-background",
+                theme === value && value === "dark"
+                  ? "border-foreground !bg-white !text-black hover:!bg-white hover:!text-black"
+                  : theme === value
+                    ? "border-foreground bg-foreground text-background hover:bg-foreground hover:text-background"
+                    : "",
               )}
             >
               <Icon className="size-4" />
