@@ -1,29 +1,11 @@
 "use client";
 
 import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
   CheckSquare,
   ChevronDown,
   ChevronRight,
   Circle,
   Clock,
-  GripVertical,
   Loader2,
   Search,
   XCircle,
@@ -31,9 +13,18 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { deleteTaskAction } from "@/app/actions/deleteTask";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
-import { updateTaskOrderAction } from "@/app/actions/updateTaskOrder";
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { Project } from "@/components/project/ProjectsContext";
 import {
   DropdownMenu,
@@ -109,7 +100,7 @@ function FilterDropdown<T extends string>({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap">
+        <button className="flex cursor-pointer items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap">
           {current?.label}
           <ChevronDown className="size-3" />
         </button>
@@ -137,20 +128,33 @@ function TaskRow({
   expanded,
   onToggle,
   onUpdated,
-  dragHandleProps,
-  isDragging,
+  onDeleted,
 }: {
   task: TaskRecord;
   projectId: string;
   expanded: boolean;
   onToggle: () => void;
   onUpdated: (updated: TaskRecord) => void;
-  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
-  isDragging?: boolean;
+  onDeleted: (id: string) => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const nextStatus = NEXT_STATUS[task.status];
   const priorityLevel = getPriorityLevel(task.priority);
+
+  async function handleDelete() {
+    setDeleteLoading(true);
+    try {
+      await deleteTaskAction(projectId, task.id);
+      onDeleted(task.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "삭제에 실패했어요.");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteOpen(false);
+    }
+  }
 
   async function handleStatusClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -171,24 +175,12 @@ function TaskRow({
       className={cn(
         "rounded-lg border border-border bg-card transition-shadow",
         task.status === "DONE" && "opacity-60",
-        isDragging && "shadow-lg opacity-80",
       )}
     >
-      {/* 접힌 행 */}
       <div
         onClick={onToggle}
         className="flex w-full cursor-pointer items-center gap-3 px-4 py-3"
       >
-        {dragHandleProps && (
-          <button
-            {...dragHandleProps}
-            onClick={(e) => e.stopPropagation()}
-            className="shrink-0 cursor-grab touch-none text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
-          >
-            <GripVertical className="size-4" />
-          </button>
-        )}
-
         <StatusIcon status={task.status} className="shrink-0" />
 
         <p
@@ -229,7 +221,6 @@ function TaskRow({
         )}
       </div>
 
-      {/* 펼친 상세 */}
       {expanded && (
         <div className="border-t border-border px-4 pb-4 pt-3 flex flex-col gap-3">
           {task.description && (
@@ -269,57 +260,67 @@ function TaskRow({
             </ul>
           )}
 
-          {nextStatus && (
-            <div className="pt-1">
-              <button
-                onClick={handleStatusClick}
-                disabled={loading}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-              >
-                {loading ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <StatusIcon status={nextStatus} className="size-3.5" />
-                )}
-                {STATUS_ACTION_LABELS[nextStatus]}
-              </button>
+          <div className="flex items-center justify-between pt-1">
+            <div>
+              {nextStatus && (
+                <button
+                  onClick={handleStatusClick}
+                  disabled={loading}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+                >
+                  {loading ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <StatusIcon status={nextStatus} className="size-3.5" />
+                  )}
+                  {STATUS_ACTION_LABELS[nextStatus]}
+                </button>
+              )}
             </div>
-          )}
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}
+              className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+            >
+              삭제
+            </Button>
+          </div>
+
+          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>태스크 삭제</DialogTitle>
+                <DialogDescription>
+                  <span className="font-medium text-foreground">{task.title}</span>
+                  을(를) 완전히 삭제할까요? 되돌릴 수 없어요.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+                  취소
+                </Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
+                  {deleteLoading && <Loader2 className="size-3.5 animate-spin" />}
+                  삭제
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>
   );
 }
 
-// ── SortableTaskRow ───────────────────────────────────────────────────────────
-
-function SortableTaskRow(props: Omit<React.ComponentProps<typeof TaskRow>, "dragHandleProps" | "isDragging"> & { id: string }) {
-  const { id, ...rest } = props;
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-    >
-      <TaskRow
-        {...rest}
-        dragHandleProps={{ ...(attributes as React.HTMLAttributes<HTMLButtonElement>), ...(listeners as React.HTMLAttributes<HTMLButtonElement>) }}
-        isDragging={isDragging}
-      />
-    </div>
-  );
-}
-
 // ── sort ──────────────────────────────────────────────────────────────────────
 
-type SortBy = "priority" | "createdAt" | "updatedAt" | "manual";
+type SortBy = "priority" | "createdAt" | "updatedAt";
 
 const SORT_OPTIONS: { label: string; value: SortBy }[] = [
   { label: "중요도순", value: "priority" },
   { label: "등록일순", value: "createdAt" },
   { label: "수정일순", value: "updatedAt" },
-  { label: "수동 순서", value: "manual" },
 ];
 
 function sortTasks(list: TaskRecord[], sortBy: SortBy): TaskRecord[] {
@@ -329,16 +330,8 @@ function sortTasks(list: TaskRecord[], sortBy: SortBy): TaskRecord[] {
       return copy.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     case "updatedAt":
       return copy.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    case "manual":
-      return copy.sort((a, b) => {
-        if (a.sortOrder === 0 && b.sortOrder === 0) return a.seq - b.seq;
-        if (a.sortOrder === 0) return 1;
-        if (b.sortOrder === 0) return -1;
-        return a.sortOrder - b.sortOrder;
-      });
-    case "priority":
     default:
-      return copy; // DB가 priority desc, seq asc 로 이미 정렬
+      return copy;
   }
 }
 
@@ -356,7 +349,6 @@ export function TasksTab({
   const [tasks, setTasks] = useState<TaskRecord[]>(initialTasks ?? []);
   const [loading, setLoading] = useState(!initialTasks);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
 
   const [filterUser, setFilterUser] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("ALL");
@@ -365,15 +357,15 @@ export function TasksTab({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("priority");
 
-  const loadTasks = useCallback(() => {
+  const loadTasks = useCallback((silent = false) => {
     let cancelled = false;
-    setLoading(true);
+    if (!silent) setLoading(true);
     getProjectTasksAction(selected.id)
       .then((t) => { if (!cancelled) setTasks(t); })
       .catch((e: unknown) => {
-        if (!cancelled) toast.error(e instanceof Error ? e.message : "태스크를 불러오지 못했어요.");
+        if (!cancelled && !silent) toast.error(e instanceof Error ? e.message : "태스크를 불러오지 못했어요.");
       })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .finally(() => { if (!cancelled && !silent) setLoading(false); });
     return () => { cancelled = true; };
   }, [selected.id]);
 
@@ -382,10 +374,14 @@ export function TasksTab({
     if (skipFirstFetch.current) { skipFirstFetch.current = false; return; }
     return loadTasks();
   }, [loadTasks]);
-  useProjectEvents(selected.id, loadTasks);
+  useProjectEvents(selected.id, () => loadTasks(true));
 
   function handleUpdated(updated: TaskRecord) {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+  }
+
+  function handleDeleted(id: string) {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
   }
 
   const creators = useMemo(() => {
@@ -439,39 +435,6 @@ export function TasksTab({
 
   const inProgressCount = tasks.filter((t) => t.status === "IN_PROGRESS").length;
   const pendingCount = tasks.filter((t) => t.status === "PENDING").length;
-
-  // ── DnD ──────────────────────────────────────────────────────────────────
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  );
-
-  function handleDragStart({ active }: DragStartEvent) {
-    setActiveId(active.id as string);
-  }
-
-  function handleDragEnd({ active, over }: DragEndEvent) {
-    setActiveId(null);
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = sorted.findIndex((t) => t.id === active.id);
-    const newIndex = sorted.findIndex((t) => t.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(sorted, oldIndex, newIndex);
-    const newOrders = reordered.map((t, i) => ({ id: t.id, sortOrder: (i + 1) * 1000 }));
-    const orderMap = new Map(newOrders.map((o) => [o.id, o.sortOrder]));
-
-    setTasks((prev) =>
-      prev.map((t) => (orderMap.has(t.id) ? { ...t, sortOrder: orderMap.get(t.id)! } : t)),
-    );
-
-    updateTaskOrderAction(selected.id, newOrders).catch(() => {
-      toast.error("순서 저장에 실패했어요.");
-    });
-  }
-
-  const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -541,41 +504,6 @@ export function TasksTab({
             <code className="rounded bg-muted px-1 py-0.5">brief</code> 툴로 등록하세요.
           </p>
         </div>
-      ) : sortBy === "manual" ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={sorted.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-            <div className="flex flex-col gap-2">
-              {sorted.map((task) => (
-                <SortableTaskRow
-                  key={task.id}
-                  id={task.id}
-                  task={task}
-                  projectId={selected.id}
-                  expanded={expandedId === task.id}
-                  onToggle={() => setExpandedId((prev) => (prev === task.id ? null : task.id))}
-                  onUpdated={handleUpdated}
-                />
-              ))}
-            </div>
-          </SortableContext>
-          <DragOverlay>
-            {activeTask && (
-              <TaskRow
-                task={activeTask}
-                projectId={selected.id}
-                expanded={false}
-                onToggle={() => {}}
-                onUpdated={() => {}}
-                isDragging
-              />
-            )}
-          </DragOverlay>
-        </DndContext>
       ) : (
         <div className="flex flex-col gap-2">
           {sorted.map((task) => (
@@ -586,6 +514,7 @@ export function TasksTab({
               expanded={expandedId === task.id}
               onToggle={() => setExpandedId((prev) => (prev === task.id ? null : task.id))}
               onUpdated={handleUpdated}
+              onDeleted={handleDeleted}
             />
           ))}
         </div>
