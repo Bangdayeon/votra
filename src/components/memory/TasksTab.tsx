@@ -66,6 +66,13 @@ const NEXT_STATUS: Partial<Record<TaskStatusValue, TaskStatusValue>> = {
   DONE: "PENDING",
 };
 
+const STATUS_ACTION_LABELS: Record<TaskStatusValue, string> = {
+  PENDING: "대기 상태로 변경",
+  IN_PROGRESS: "진행 중으로 변경",
+  DONE: "완료로 변경",
+  CANCELLED: "취소로 변경",
+};
+
 // ── StatusIcon ────────────────────────────────────────────────────────────────
 
 function StatusIcon({ status, className }: { status: TaskStatusValue; className?: string }) {
@@ -146,7 +153,7 @@ function TaskRow({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-white transition-shadow",
+        "rounded-lg border border-border bg-card transition-shadow",
         task.status === "DONE" && "opacity-60",
       )}
     >
@@ -247,7 +254,7 @@ function TaskRow({
                 ) : (
                   <StatusIcon status={nextStatus} className="size-3.5" />
                 )}
-                {STATUS_LABELS[nextStatus]}으로 변경
+                {STATUS_ACTION_LABELS[nextStatus]}
               </button>
             </div>
           )}
@@ -381,7 +388,7 @@ export function TasksTab({
             placeholder="제목, 내용, 생성자 검색"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-full border border-border bg-white py-1 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            className="w-full rounded-full border border-border bg-muted py-1 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
 
