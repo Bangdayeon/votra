@@ -1,5 +1,20 @@
 export type TaskStatusValue = "PENDING" | "IN_PROGRESS" | "DONE" | "CANCELLED";
 
+export type TaskSortBy = "priority" | "createdAt" | "updatedAt";
+
+export type TaskListDateField = "createdAt" | "updatedAt";
+
+export type TaskFilterOptions = {
+  hideDone: boolean;
+  status: "ALL" | TaskStatusValue;
+  userId: string;
+  priorityLevel: number | null;
+  searchQuery: string;
+  dateField: TaskListDateField;
+  dateFrom?: Date;
+  dateTo?: Date;
+};
+
 export type SessionLogRecord = {
   id: string;
   sessionId: string | null;

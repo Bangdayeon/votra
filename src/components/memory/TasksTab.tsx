@@ -36,20 +36,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { filterTasks } from "@/domain/memory/filterTasks";
+import { getTaskPriorityLevel } from "@/domain/memory/getTaskPriorityLevel";
+import { sortTasks } from "@/domain/memory/sortTasks";
+import type { TaskSortBy } from "@/domain/memory/types";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
 // ── priority ──────────────────────────────────────────────────────────────────
 
 type PriorityLevel = 0 | 1 | 2 | 3 | 4;
-
-function getPriorityLevel(p: number): PriorityLevel {
-  if (p <= 0) return 0;
-  if (p === 1) return 1;
-  if (p <= 3) return 2;
-  if (p <= 6) return 3;
-  return 4;
-}
 
 const PRIORITY_LABELS: Record<1 | 2 | 3 | 4, string> = {
   4: "Critical",
@@ -153,7 +149,7 @@ function TaskRow({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const nextStatus = NEXT_STATUS[task.status];
-  const priorityLevel = getPriorityLevel(task.priority);
+  const priorityLevel = getTaskPriorityLevel(task.priority);
 
   async function handleDelete() {
     setDeleteLoading(true);
@@ -351,25 +347,11 @@ function fmtDateLong(d: Date) {
 
 // ── sort ──────────────────────────────────────────────────────────────────────
 
-type SortBy = "priority" | "createdAt" | "updatedAt";
-
-const SORT_OPTIONS: { label: string; value: SortBy }[] = [
+const SORT_OPTIONS: { label: string; value: TaskSortBy }[] = [
   { label: "중요도순", value: "priority" },
   { label: "등록일순", value: "createdAt" },
   { label: "수정일순", value: "updatedAt" },
 ];
-
-function sortTasks(list: TaskRecord[], sortBy: SortBy): TaskRecord[] {
-  const copy = [...list];
-  switch (sortBy) {
-    case "createdAt":
-      return copy.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    case "updatedAt":
-      return copy.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    default:
-      return copy;
-  }
-}
 
 // ── TasksTab ──────────────────────────────────────────────────────────────────
 
@@ -391,7 +373,7 @@ export function TasksTab({
   const [filterPriority, setFilterPriority] = useState<string>("ALL");
   const [hideDone, setHideDone] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<SortBy>("priority");
+  const [sortBy, setSortBy] = useState<TaskSortBy>("priority");
 
   // 기간 필터 (적용된 값)
   const [dateField, setDateField] = useState<"createdAt" | "updatedAt">("createdAt");
@@ -501,27 +483,16 @@ export function TasksTab({
   ];
 
   const filtered = useMemo(() => {
-    const q = searchQuery.toLowerCase();
     const priorityNum = filterPriority === "ALL" ? null : Number(filterPriority) as PriorityLevel;
-    const fromMs = dateFrom ? new Date(dateFrom).setHours(0, 0, 0, 0) : null;
-    const toMs = dateTo ? new Date(dateTo).setHours(23, 59, 59, 999) : null;
-    return tasks.filter((t) => {
-      if (hideDone && (t.status === "DONE" || t.status === "CANCELLED")) return false;
-      if (filterStatus !== "ALL" && t.status !== filterStatus) return false;
-      if (filterUser !== "ALL" && t.userId !== filterUser) return false;
-      if (priorityNum !== null && getPriorityLevel(t.priority) !== priorityNum) return false;
-      if (fromMs !== null || toMs !== null) {
-        const fieldMs = new Date(t[dateField]).getTime();
-        if (fromMs !== null && fieldMs < fromMs) return false;
-        if (toMs !== null && fieldMs > toMs) return false;
-      }
-      if (q) {
-        const inTitle = t.title.toLowerCase().includes(q);
-        const inDesc = t.description?.toLowerCase().includes(q) ?? false;
-        const inUser = (t.userName ?? "").toLowerCase().includes(q);
-        if (!inTitle && !inDesc && !inUser) return false;
-      }
-      return true;
+    return filterTasks(tasks, {
+      hideDone,
+      status: filterStatus,
+      userId: filterUser,
+      priorityLevel: priorityNum,
+      searchQuery,
+      dateField,
+      dateFrom,
+      dateTo,
     });
   }, [tasks, hideDone, filterStatus, filterUser, filterPriority, searchQuery, dateFrom, dateTo, dateField]);
 
