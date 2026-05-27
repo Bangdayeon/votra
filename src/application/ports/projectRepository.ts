@@ -31,6 +31,7 @@ export type ProjectListRow = {
   cwd: string | null;
   firstAgentSource: string | null;
   memberRole: string | null;
+  lastCliSyncAt: Date | null;
 };
 
 export type SessionErrorCreate = {

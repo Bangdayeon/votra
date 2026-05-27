@@ -40,6 +40,7 @@ export const prismaProjectRepository: ProjectRepository = {
       include: {
         agents: { take: 1 },
         members: { where: { userId }, select: { role: true } },
+        sessions: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
       },
     });
     return rows.map(
@@ -52,6 +53,7 @@ export const prismaProjectRepository: ProjectRepository = {
         cwd: r.cwd,
         firstAgentSource: r.agents[0]?.source ?? null,
         memberRole: r.members[0]?.role ?? null,
+        lastCliSyncAt: r.sessions[0]?.createdAt ?? null,
       }),
     );
   },

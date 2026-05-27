@@ -39,6 +39,18 @@ function parseSettingsTab(value: string | null): SettingsTab {
   return "all";
 }
 
+function formatCliSyncDate(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const time = date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  if (diffDays === 0) return `오늘 ${time} 업데이트`;
+  if (diffDays === 1) return `어제 ${time} 업데이트`;
+  if (diffDays < 7) return `${diffDays}일 전 업데이트`;
+  return `${date.toLocaleDateString("ko-KR", { month: "long", day: "numeric" })} 업데이트`;
+}
+
 const PALETTE = [
   "#F38B7B",
   "#7BC67E",
@@ -145,6 +157,11 @@ export function ProjectHeader() {
         >
           {title}
         </Link>
+        {!isSettings && project?.lastCliSyncAt && (
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {formatCliSyncDate(project.lastCliSyncAt)}
+          </span>
+        )}
         {isSettings && (
           <>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

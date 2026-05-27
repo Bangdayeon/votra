@@ -54,13 +54,11 @@ function formatRefreshedAt(
   if (value === null || value === undefined || value === "") return "없음";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "없음";
-  const yy = String(d.getFullYear() % 100).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const time = d.toLocaleString("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  return `${yy}.${mm}.${dd}, ${time}`;
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  const time = d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  if (diffDays === 0) return `오늘 ${time}`;
+  if (diffDays === 1) return `어제 ${time}`;
+  if (diffDays < 7) return `${diffDays}일 전`;
+  return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
 }

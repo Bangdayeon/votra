@@ -10,6 +10,8 @@ export type ProjectListItem = {
   structure?: FolderNode[];
   cwd?: string;
   isOwner: boolean;
+  /** ISO 8601 — CLI 가 마지막으로 세션을 업로드한 시각 */
+  lastCliSyncAt?: string;
 };
 
 export async function listProjects(
@@ -26,6 +28,7 @@ export async function listProjects(
     structure: extractTree(r.structure),
     cwd: r.cwd ?? undefined,
     isOwner: r.memberRole === "OWNER",
+    lastCliSyncAt: r.lastCliSyncAt?.toISOString(),
   }));
 }
 
