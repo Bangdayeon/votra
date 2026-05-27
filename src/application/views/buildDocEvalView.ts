@@ -25,7 +25,7 @@ export type DocEvalResult = {
 };
 
 /**
- * AI 지시 문서 평가 기능용 뷰.
+ * AI 프롬프트 평가 기능용 뷰.
  * 문서 섹션 구조와 최근 5개 세션의 패턴(intentHint, filesModified, errors)을 반환한다.
  */
 export function buildDocEvalView(

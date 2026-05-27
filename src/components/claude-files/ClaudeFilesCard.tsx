@@ -90,7 +90,7 @@ export function ClaudeFilesCard({
               criteria: files.criteria,
               rules,
             }),
-          successMessage: "AI 지시 문서 평가가 완료됐어요.",
+          successMessage: "AI 프롬프트 평가가 완료됐어요.",
           defaultErrorMessage: "파일 평가에 실패했어요.",
         },
       ),
@@ -103,7 +103,7 @@ export function ClaudeFilesCard({
   return (
     <Card className="custom-scrollbar flex min-h-120 flex-1 flex-col overflow-y-auto">
       <CardRefreshHeader
-        title="AI 지시 문서"
+        title="AI 프롬프트"
         refreshedAt={lastEvaluatedAt}
         loading={state.kind === "loading"}
         refreshing={refreshing}

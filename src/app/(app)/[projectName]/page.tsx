@@ -68,7 +68,7 @@ export default async function ProjectPage({
         rules: rulesResult.status === "fulfilled" ? rulesResult.value : [],
         diagnosis: diagnosis.status === "fulfilled" ? diagnosis.value : null,
       },
-      tasks: tasks.status === "fulfilled" ? tasks.value : [],
+      tasks: tasks.status === "fulfilled" ? tasks.value : undefined,
       team:
         members.status === "fulfilled"
           ? members.value

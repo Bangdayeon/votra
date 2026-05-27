@@ -392,17 +392,17 @@ const SERVICE_FEATURES: {
     name: "AI 작업 관리",
     icon: Bot,
     screenshot: "/assets/images/guide/tab-manage.png",
-    desc: "프로젝트에 업로드된 AI 지시 문서를 정책 기준으로 평가하고, 컨텍스트 흐름을 진단해요.",
+    desc: "프로젝트에 업로드된 AI 프롬프트를 정책 기준으로 평가하고, 컨텍스트 흐름을 진단해요.",
     features: [
       {
-        title: "AI 지시 문서",
+        title: "AI 프롬프트",
         lines: [
           "CLAUDE.md·AGENTS.md·SKILL.md를 파일 트리로 보여줘요.",
           "파일마다 정책 적합도를 평가하고, 개별 재평가도 할 수 있어요.",
         ],
       },
       {
-        title: "🩺 AI 지시 문서 흐름 진단",
+        title: "🩺 AI 프롬프트 흐름 진단",
         lines: [
           "전체 정책과 프로젝트 정책이 AI 에이전트에 올바르게 전달되는지 진단해요.",
           "문제가 있으면 개선 방법도 함께 알려줘요.",

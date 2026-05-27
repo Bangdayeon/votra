@@ -29,7 +29,7 @@ export type ProjectPageInitialData = {
     rules: PolicyRule[];
     diagnosis: CachedAgentContextFlowDiagnosis;
   };
-  tasks: TaskRecord[];
+  tasks: TaskRecord[] | undefined;
   team: {
     members: ProjectMemberRow[];
     currentUserId: string;

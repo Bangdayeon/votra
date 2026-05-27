@@ -64,7 +64,7 @@ export function AgentContextFlowCard({
   return (
     <Card className="flex flex-1 flex-col gap-0">
       <CardRefreshHeader
-        title="🩺 AI 지시 문서 흐름 진단"
+        title="🩺 AI 프롬프트 흐름 진단"
         refreshedAt={refreshedAt}
         loading={state.kind === "loading"}
         refreshing={refreshing}
@@ -72,7 +72,7 @@ export function AgentContextFlowCard({
       />
 
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-        팀·프로젝트 정책 기준으로 지시 문서 구조와 정책 준수 여부를 진단해요.
+        팀·프로젝트 정책 기준으로 프롬프트 구조와 정책 준수 여부를 진단해요.
       </p>
 
       <div className="mt-4">

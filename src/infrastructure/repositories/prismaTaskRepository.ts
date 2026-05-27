@@ -13,7 +13,7 @@ const SELECT = {
   id: true, seq: true, projectId: true, title: true, description: true,
   status: true, module: true, priority: true, sortOrder: true, keyDecisions: true, outcome: true,
   createdAt: true, updatedAt: true, doneAt: true,
-  user: { select: { id: true, name: true } },
+  user: { select: { id: true, name: true, profileImage: true, profileColor: true } },
 } as const;
 
 function toRecord(row: {
@@ -31,7 +31,7 @@ function toRecord(row: {
   createdAt: Date;
   updatedAt: Date;
   doneAt: Date | null;
-  user: { id: string; name: string | null };
+  user: { id: string; name: string | null; profileImage: string | null; profileColor: string | null };
 }): TaskRecord {
   return {
     id: row.id,
@@ -39,6 +39,8 @@ function toRecord(row: {
     projectId: row.projectId,
     userId: row.user.id,
     userName: row.user.name,
+    userProfileImage: row.user.profileImage,
+    userProfileColor: row.user.profileColor,
     title: row.title,
     description: row.description,
     status: row.status as TaskRecord["status"],
@@ -124,12 +126,12 @@ export const prismaTaskRepository: TaskRepository = {
       id: string; seq: number; projectId: string; title: string; description: string | null;
       status: string; module: string | null; priority: number; sortOrder: number; keyDecisions: string[];
       outcome: string | null; createdAt: Date; updatedAt: Date; doneAt: Date | null;
-      userId: string; userName: string | null;
+      userId: string; userName: string | null; userProfileImage: string | null; userProfileColor: string | null;
     };
     const rows = await prisma.$queryRaw<RawRow[]>`
       SELECT t.id, t.seq, t."projectId", t.title, t.description, t.status, t.module, t.priority, t."sortOrder",
              t."keyDecisions", t.outcome, t."createdAt", t."updatedAt", t."doneAt",
-             t."userId", u.name AS "userName"
+             t."userId", u.name AS "userName", u."profileImage" AS "userProfileImage", u."profileColor" AS "userProfileColor"
       FROM "Task" t
       LEFT JOIN "User" u ON u.id = t."userId"
       WHERE t."projectId" = ${projectId}
@@ -142,6 +144,10 @@ export const prismaTaskRepository: TaskRepository = {
       ORDER BY t."doneAt" DESC NULLS LAST, t."createdAt" DESC
       LIMIT ${limit}
     `;
-    return rows.map((r) => toRecord({ ...r, sortOrder: Number(r.sortOrder), user: { id: r.userId, name: r.userName } }));
+    return rows.map((r) => toRecord({
+      ...r,
+      sortOrder: Number(r.sortOrder),
+      user: { id: r.userId, name: r.userName, profileImage: r.userProfileImage, profileColor: r.userProfileColor },
+    }));
   },
 };

@@ -533,8 +533,8 @@ function SettingsForm({
             </Section>
 
             <Section
-              title="AI 지시 문서 흐름 진단 프롬프트"
-              description="팀·프로젝트 정책과 비교해 지시 문서 플로우를 진단할 때 고려해야 할 사항을 작성해주세요."
+              title="AI 프롬프트 흐름 진단 프롬프트"
+              description="팀·프로젝트 정책과 비교해 프롬프트 플로우를 진단할 때 고려해야 할 사항을 작성해주세요."
             >
               <textarea
                 value={agentContextFlowPrompt}

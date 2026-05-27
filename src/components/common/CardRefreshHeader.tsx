@@ -28,7 +28,7 @@ export function CardRefreshHeader({
         {onRefresh && (
           <Button
             type="button"
-            size="sm"
+            size="xs"
             variant="outline"
             disabled={busy}
             onClick={onRefresh}

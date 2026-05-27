@@ -15,6 +15,8 @@ export type TaskRecord = {
   projectId: string;
   userId: string;
   userName: string | null;
+  userProfileImage: string | null;
+  userProfileColor: string | null;
   title: string;
   description: string | null;
   status: TaskStatusValue;

@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  CalendarDays,
   CheckSquare,
   ChevronDown,
   ChevronRight,
   Circle,
   Clock,
   Loader2,
+  RotateCcw,
   Search,
   XCircle,
 } from "lucide-react";
@@ -26,12 +28,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Project } from "@/components/project/ProjectsContext";
+import { Calendar } from "@/components/ui/calendar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +80,12 @@ const STATUS_ACTION_LABELS: Record<TaskStatusValue, string> = {
   CANCELLED: "취소로 변경",
 };
 
+const STATUS_TOAST_MESSAGES: Partial<Record<TaskStatusValue, string>> = {
+  IN_PROGRESS: "진행 중으로 변경됐어요.",
+  DONE: "완료로 변경됐어요.",
+  PENDING: "대기로 변경됐어요.",
+};
+
 // ── StatusIcon ────────────────────────────────────────────────────────────────
 
 function StatusIcon({ status, className }: { status: TaskStatusValue; className?: string }) {
@@ -93,14 +103,15 @@ function FilterDropdown<T extends string>({
   onChange,
 }: {
   value: T;
-  options: { label: string; value: T }[];
+  options: { label: string; value: T; icon?: React.ReactNode }[];
   onChange: (v: T) => void;
 }) {
   const current = options.find((o) => o.value === value);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex cursor-pointer items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap">
+        <button className="flex cursor-pointer items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap">
+          {current?.icon && <span className="shrink-0">{current.icon}</span>}
           {current?.label}
           <ChevronDown className="size-3" />
         </button>
@@ -110,8 +121,9 @@ function FilterDropdown<T extends string>({
           <DropdownMenuItem
             key={o.value}
             onClick={() => onChange(o.value)}
-            className={cn(value === o.value && "font-medium")}
+            className={cn("gap-2", value === o.value && "font-medium")}
           >
+            {o.icon && <span className="shrink-0">{o.icon}</span>}
             {o.label}
           </DropdownMenuItem>
         ))}
@@ -160,9 +172,23 @@ function TaskRow({
     e.stopPropagation();
     if (!nextStatus || loading) return;
     setLoading(true);
+    const prevStatus = task.status;
     try {
       const updated = await updateTaskStatusAction(projectId, task.seq, nextStatus);
       onUpdated(updated);
+      const message = STATUS_TOAST_MESSAGES[nextStatus];
+      if (message) {
+        toast.success(message, {
+          action: {
+            label: <RotateCcw className="size-3.5" />,
+            onClick: () => {
+              void updateTaskStatusAction(projectId, task.seq, prevStatus)
+                .then((reverted) => onUpdated(reverted))
+                .catch((err) => toast.error(err instanceof Error ? err.message : "되돌리기에 실패했어요."));
+            },
+          },
+        });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "상태 변경에 실패했어요.");
     } finally {
@@ -313,6 +339,16 @@ function TaskRow({
   );
 }
 
+// ── date helpers ─────────────────────────────────────────────────────────────
+
+function fmtDate(d: Date) {
+  return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function fmtDateLong(d: Date) {
+  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+}
+
 // ── sort ──────────────────────────────────────────────────────────────────────
 
 type SortBy = "priority" | "createdAt" | "updatedAt";
@@ -357,6 +393,39 @@ export function TasksTab({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("priority");
 
+  // 기간 필터 (적용된 값)
+  const [dateField, setDateField] = useState<"createdAt" | "updatedAt">("createdAt");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+
+  // 기간 팝오버 임시 값
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+  const [tempDateField, setTempDateField] = useState<"createdAt" | "updatedAt">("createdAt");
+  const [tempDateFrom, setTempDateFrom] = useState<Date | undefined>();
+  const [tempDateTo, setTempDateTo] = useState<Date | undefined>();
+  const [activeCalendar, setActiveCalendar] = useState<"from" | "to" | null>(null);
+
+  function openDatePopover() {
+    setTempDateField(dateField);
+    setTempDateFrom(dateFrom);
+    setTempDateTo(dateTo);
+    setActiveCalendar(null);
+    setDatePopoverOpen(true);
+  }
+
+  function applyDateFilter() {
+    setDateField(tempDateField);
+    setDateFrom(tempDateFrom);
+    setDateTo(tempDateTo);
+    setDatePopoverOpen(false);
+  }
+
+  function cancelDateFilter() {
+    setDatePopoverOpen(false);
+  }
+
+  const hasDateFilter = !!(dateFrom ?? dateTo);
+
   const loadTasks = useCallback((silent = false) => {
     let cancelled = false;
     if (!silent) setLoading(true);
@@ -385,42 +454,67 @@ export function TasksTab({
   }
 
   const creators = useMemo(() => {
-    const seen = new Map<string, string | null>();
-    tasks.forEach((t) => seen.set(t.userId, t.userName));
-    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
+    const seen = new Map<string, { name: string | null; image: string | null; color: string | null }>();
+    tasks.forEach((t) => {
+      if (!seen.has(t.userId)) {
+        seen.set(t.userId, { name: t.userName, image: t.userProfileImage, color: t.userProfileColor });
+      }
+    });
+    return Array.from(seen.entries()).map(([id, info]) => ({ id, ...info }));
   }, [tasks]);
 
-  const creatorOptions = useMemo<{ label: string; value: string }[]>(
+  const creatorOptions = useMemo<{ label: string; value: string; icon?: React.ReactNode }[]>(
     () => [
       { label: "전체 팀원", value: "ALL" },
-      ...creators.map(({ id, name }) => ({ label: name ?? id, value: id })),
+      ...creators.map(({ id, name, image, color }) => ({
+        label: name ?? id,
+        value: id,
+        icon: (
+          <span
+            className="size-4 shrink-0 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-bold text-white"
+            style={{ backgroundColor: image ? undefined : color ? `#${color}` : "#6b7280" }}
+          >
+            {image
+              ? <img src={image} alt="" className="size-full object-cover" />
+              : (name ?? id)[0].toUpperCase()
+            }
+          </span>
+        ),
+      })),
     ],
     [creators],
   );
 
-  const statusOptions: { label: string; value: StatusFilter }[] = [
+  const statusOptions: { label: string; value: StatusFilter; icon?: React.ReactNode }[] = [
     { label: "전체 상태", value: "ALL" },
-    { label: "진행 중", value: "IN_PROGRESS" },
-    { label: "대기", value: "PENDING" },
-    ...(!hideDone ? [{ label: "완료", value: "DONE" as StatusFilter }] : []),
+    { label: "진행 중", value: "IN_PROGRESS", icon: <StatusIcon status="IN_PROGRESS" className="size-3" /> },
+    { label: "대기", value: "PENDING", icon: <StatusIcon status="PENDING" className="size-3" /> },
+    ...(!hideDone ? [{ label: "완료", value: "DONE" as StatusFilter, icon: <StatusIcon status="DONE" className="size-3" /> }] : []),
   ];
 
-  const priorityOptions: { label: string; value: string }[] = [
+  const priorityOptions: { label: string; value: string; icon?: React.ReactNode }[] = [
     { label: "전체 중요도", value: "ALL" },
-    { label: "Critical", value: "4" },
-    { label: "High", value: "3" },
-    { label: "Medium", value: "2" },
-    { label: "Low", value: "1" },
+    { label: "Critical", value: "4", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-red-500" /> },
+    { label: "High", value: "3", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-orange-400" /> },
+    { label: "Medium", value: "2", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-yellow-400" /> },
+    { label: "Low", value: "1", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-green-500" /> },
   ];
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase();
     const priorityNum = filterPriority === "ALL" ? null : Number(filterPriority) as PriorityLevel;
+    const fromMs = dateFrom ? new Date(dateFrom).setHours(0, 0, 0, 0) : null;
+    const toMs = dateTo ? new Date(dateTo).setHours(23, 59, 59, 999) : null;
     return tasks.filter((t) => {
       if (hideDone && (t.status === "DONE" || t.status === "CANCELLED")) return false;
       if (filterStatus !== "ALL" && t.status !== filterStatus) return false;
       if (filterUser !== "ALL" && t.userId !== filterUser) return false;
       if (priorityNum !== null && getPriorityLevel(t.priority) !== priorityNum) return false;
+      if (fromMs !== null || toMs !== null) {
+        const fieldMs = new Date(t[dateField]).getTime();
+        if (fromMs !== null && fieldMs < fromMs) return false;
+        if (toMs !== null && fieldMs > toMs) return false;
+      }
       if (q) {
         const inTitle = t.title.toLowerCase().includes(q);
         const inDesc = t.description?.toLowerCase().includes(q) ?? false;
@@ -429,7 +523,7 @@ export function TasksTab({
       }
       return true;
     });
-  }, [tasks, hideDone, filterStatus, filterUser, filterPriority, searchQuery]);
+  }, [tasks, hideDone, filterStatus, filterUser, filterPriority, searchQuery, dateFrom, dateTo, dateField]);
 
   const sorted = useMemo(() => sortTasks(filtered, sortBy), [filtered, sortBy]);
 
@@ -475,6 +569,109 @@ export function TasksTab({
         <FilterDropdown value={filterStatus} options={statusOptions} onChange={setFilterStatus} />
         <FilterDropdown value={filterPriority} options={priorityOptions} onChange={setFilterPriority} />
         <FilterDropdown value={sortBy} options={SORT_OPTIONS} onChange={setSortBy} />
+
+        {/* 기간 지정 */}
+        <Popover open={datePopoverOpen} onOpenChange={(open) => { if (open) openDatePopover(); else setDatePopoverOpen(false); }}>
+          <PopoverTrigger asChild>
+            <button className={cn(
+              "flex cursor-pointer items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap",
+              hasDateFilter
+                ? "bg-primary/10 text-primary hover:bg-primary/20"
+                : "bg-muted text-muted-foreground hover:text-foreground",
+            )}>
+              <CalendarDays className="size-3" />
+              {hasDateFilter
+                ? [
+                    dateFrom ? fmtDate(dateFrom) : "시작",
+                    dateTo ? fmtDate(dateTo) : "종료",
+                  ].join(" – ")
+                : "기간 지정"}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-auto p-4 cursor-default">
+            <div className="flex flex-col gap-3 w-[240px]">
+              {/* 기준 토글 */}
+              <div className="flex rounded-md border border-border overflow-hidden text-xs font-medium">
+                {(["createdAt", "updatedAt"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setTempDateField(f)}
+                    className={cn(
+                      "flex-1 py-1.5 transition-colors cursor-pointer",
+                      tempDateField === f
+                        ? "bg-foreground text-background"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {f === "createdAt" ? "등록일" : "수정일"}
+                  </button>
+                ))}
+              </div>
+
+              {/* 시작일 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">시작일</span>
+                <button
+                  onClick={() => setActiveCalendar((p) => p === "from" ? null : "from")}
+                  className={cn(
+                    "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
+                    activeCalendar === "from" ? "border-ring" : "border-border hover:border-ring/50",
+                    tempDateFrom ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {tempDateFrom ? fmtDateLong(tempDateFrom) : "날짜 선택"}
+                </button>
+                {activeCalendar === "from" && (
+                  <Calendar
+                    mode="single"
+                    selected={tempDateFrom}
+                    onSelect={(d) => { setTempDateFrom(d); setActiveCalendar(null); }}
+                    disabled={tempDateTo ? { after: tempDateTo } : undefined}
+                  />
+                )}
+              </div>
+
+              {/* 종료일 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">종료일</span>
+                <button
+                  onClick={() => setActiveCalendar((p) => p === "to" ? null : "to")}
+                  className={cn(
+                    "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
+                    activeCalendar === "to" ? "border-ring" : "border-border hover:border-ring/50",
+                    tempDateTo ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {tempDateTo ? fmtDateLong(tempDateTo) : "날짜 선택"}
+                </button>
+                {activeCalendar === "to" && (
+                  <Calendar
+                    mode="single"
+                    selected={tempDateTo}
+                    onSelect={(d) => { setTempDateTo(d); setActiveCalendar(null); }}
+                    disabled={tempDateFrom ? { before: tempDateFrom } : undefined}
+                  />
+                )}
+              </div>
+
+              {/* 버튼 */}
+              <div className="flex items-center justify-between pt-1">
+                {hasDateFilter || tempDateFrom || tempDateTo ? (
+                  <button
+                    onClick={() => { setTempDateFrom(undefined); setTempDateTo(undefined); }}
+                    className="text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                  >
+                    초기화
+                  </button>
+                ) : <span />}
+                <div className="flex gap-2">
+                  <Button variant="outline" size="xs" onClick={cancelDateFilter}>취소</Button>
+                  <Button size="xs" onClick={applyDateFilter}>완료</Button>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
           <input

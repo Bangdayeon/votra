@@ -2,7 +2,6 @@ import type { ClaudeFileRow } from "@/application/ports/claudeFileRepository";
 import type { LlmClient } from "@/application/ports/llmClient";
 import { buildDocFlowView } from "@/application/views/buildDocFlowView";
 import { DEFAULT_AGENT_CONTEXT_FLOW_PROMPT } from "@/domain/project/settings/defaultAgentContextFlowPrompt";
-import { parseDoc } from "@/domain/doc/parseDoc";
 import type { ParsedSession } from "@/domain/session/types";
 
 const DOC_CONTENT_MAX = 3_000;
@@ -28,23 +27,20 @@ export async function runAgentContextFlowDiagnosis(
     system:
       "주어진 형식에 맞춰 한국어로만 응답하세요. 형식 이외의 텍스트는 출력하지 마세요.",
     prompt,
-    maxTokens: 8192,
+    maxTokens: 2048,
     responseFormat: "text",
   });
 }
 
 function fillTemplate(template: string, input: RunInput): string {
-  const docs = input.contextFiles.map((f) =>
-    parseDoc({ filePath: f.displayPath, content: f.content, lastModified: new Date() }),
-  );
-  const flowView = buildDocFlowView(docs, input.parsedSessions);
+  const flowView = buildDocFlowView([], input.parsedSessions);
 
   return template
     .replace("{{team_policy}}", formatPolicy(input.teamPolicy))
     .replace("{{project_policy}}", formatPolicy(input.projectPolicy))
     .replace("{{context_files}}", formatContextFiles(input.contextFiles, input.parsedSessions))
     .replace("{{session_stats}}", formatSessionStats(input.parsedSessions))
-    .replace("{{conversation_patterns}}", JSON.stringify(flowView, null, 2));
+    .replace("{{conversation_patterns}}", JSON.stringify(flowView.sessionTimeline, null, 2));
 }
 
 function formatPolicy(text: string): string {

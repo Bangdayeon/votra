@@ -113,7 +113,7 @@ model Project {
   /// 업로드 파일의 텍스트 본문. 텍스트 파일을 가정하고 그대로 보관 (~512KB cap).
   aiSpecFileContent String? @db.Text
 
-  /// AI 지시 문서 흐름 진단에 사용할 기본 프롬프트. 비워두면 시스템 기본 프롬프트 사용.
+  /// AI 프롬프트 흐름 진단에 사용할 기본 프롬프트. 비워두면 시스템 기본 프롬프트 사용.
   agentContextFlowPrompt String? @db.Text
 
   createdAt DateTime @default(now())
