@@ -15,12 +15,20 @@ export type ProjectAiSummary = {
   suggestions: ProjectAiInsight[];
 };
 
+export type TaskSummaryItem = {
+  seq: number;
+  title: string;
+  status: string;
+  updatedAt: Date;
+};
+
 export async function getProjectAiSummary(
   sessions: ParsedSession[],
   settings: ProjectSettings,
   deps: { llm: LlmClient },
+  tasks: TaskSummaryItem[] = [],
 ): Promise<ProjectAiSummary> {
-  const prompt = buildPrompt(settings, sessions);
+  const prompt = buildPrompt(settings, sessions, tasks);
 
   const text = await deps.llm.complete({
     system: "출력은 반드시 지정된 JSON 형식만 반환하세요. 다른 텍스트 금지.",
@@ -31,16 +39,34 @@ export async function getProjectAiSummary(
   return parseAiSummary(text);
 }
 
-function buildPrompt(settings: ProjectSettings, sessions: ParsedSession[]): string {
+function buildPrompt(settings: ProjectSettings, sessions: ParsedSession[], tasks: TaskSummaryItem[]): string {
   const customInstructions = settings.ai.analysisInstruction.trim();
   const sessionData = JSON.stringify(buildStatusView(sessions), null, 2);
   const customPart = customInstructions
     ? `\n[추가 지침]\n${customInstructions}\n`
     : "\n";
 
+  const pendingCount = tasks.filter((t) => t.status === "PENDING").length;
+  const inProgressCount = tasks.filter((t) => t.status === "IN_PROGRESS").length;
+  const taskData = JSON.stringify(
+    {
+      recentlyModified: tasks.map((t) => ({
+        seq: t.seq,
+        title: t.title,
+        status: t.status,
+        updatedAt: t.updatedAt.toISOString().slice(0, 10),
+      })),
+      pendingCount,
+      inProgressCount,
+    },
+    null,
+    2,
+  );
+
   return DEFAULT_ANALYSIS_INSTRUCTION
     .replace(/\{customInstructions\}/g, customPart)
-    .replace(/\{sessionData\}/g, sessionData);
+    .replace(/\{sessionData\}/g, sessionData)
+    .replace(/\{taskData\}/g, taskData);
 }
 
 function parseAiSummary(text: string): ProjectAiSummary {

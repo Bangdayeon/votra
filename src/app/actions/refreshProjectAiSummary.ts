@@ -12,6 +12,7 @@ import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 import { prismaSessionRepository } from "@/infrastructure/repositories/prismaSessionRepository";
+import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function refreshProjectAiSummaryAction(
   projectId: string,
@@ -23,6 +24,7 @@ export async function refreshProjectAiSummaryAction(
     sessions: prismaSessionRepository,
     projects: prismaProjectRepository,
     aiSummaries: prismaProjectAiSummaryRepository,
+    tasks: prismaTaskRepository,
     llm: geminiLlmClient,
   });
 

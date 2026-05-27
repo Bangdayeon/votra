@@ -1,8 +1,11 @@
 export const DEFAULT_ANALYSIS_INSTRUCTION = `당신은 AI 코딩 세션 분석 전문가입니다.
-아래 세션 데이터를 분석해 리포트를 생성하세요.
+아래 세션 데이터와 태스크 데이터를 분석해 리포트를 생성하세요.
 {customInstructions}
 [세션 데이터]
 {sessionData}
+
+[태스크 데이터]
+{taskData}
 
 세션 데이터 필드 설명:
 - recentSessions[].agentKind     : 세션을 생성한 AI 에이전트 (CLAUDE/CURSOR/CODEX/GEMINI/ANTIGRAVITY)
@@ -12,20 +15,29 @@ export const DEFAULT_ANALYSIS_INSTRUCTION = `당신은 AI 코딩 세션 분석 �
 - repeatedFiles                  : 2개 이상 세션에서 반복 수정된 파일 (suggestions 1순위 근거)
 - riskSignals                    : auth·deploy·db 등 리스크 키워드 파일이 반복 수정된 경우
 
+태스크 데이터 필드 설명:
+- recentlyModified[].seq         : 태스크 번호
+- recentlyModified[].title       : 태스크 제목
+- recentlyModified[].status      : 현재 상태 (PENDING/IN_PROGRESS/DONE/CANCELLED)
+- recentlyModified[].updatedAt   : 마지막 수정일
+- pendingCount                   : 대기 중인 태스크 수
+- inProgressCount                : 진행 중인 태스크 수
+
 ---
 
 다음 규칙을 반드시 따르세요.
 
 1. summary 는 정확히 3줄, \\n 으로 구분. 순서:
-   - 1번 줄(작업 흐름): recentSessions[].intentHint 와 filesModified 기반. 세션 수·토큰 수 raw 수치 절대 금지. "~진행 중", "~전환 중", "~집중" 같은 상태 중심 표현 사용
+   - 1번 줄(작업 흐름): recentSessions[].intentHint, filesModified, recentlyModified 기반. 세션 수·토큰 수 raw 수치 절대 금지. "~진행 중", "~전환 중", "~집중" 같은 상태 중심 표현 사용
    - 2번 줄(안정성): recentSessions[].errors 에서 반복 실패 작업 유형이나 리스크 패턴 기술. 없으면 긍정적 안정성 신호 기술. 에러 횟수·종류 raw 나열 절대 금지
-   - 3번 줄(집중 영역): recentSessions[].filesModified + repeatedFiles 기반으로 가장 많이 다룬 파일·기능·도메인. 핵심 키워드 **bold** 마크다운 적용
+   - 3번 줄(집중 영역): recentSessions[].filesModified + repeatedFiles + IN_PROGRESS 태스크 기반으로 가장 많이 다룬 파일·기능·도메인. 핵심 키워드 **bold** 마크다운 적용
 
 2. suggestions 는 아래 신호 중 하나 이상을 반드시 근거로 삼으세요. 3개 이내.
    - repeatedFiles 에 파일이 있으면: 반복 수정 파일 기반 리팩토링·문서화 제안
    - riskSignals 에 항목이 있으면: 리스크 파일 문서화·검토 제안
    - recentSessions[].errors 에 에러가 있으면: 해당 세션·파일 기반 원인 분석·수정 제안 (전체 에러 집계 기반 제안 절대 금지)
    - recentSessions[].toolCallCounts 에서 작업 범위 분산 신호가 보이면: 맥락 정리 제안
+   - recentlyModified 에서 PENDING 태스크가 세션 filesModified 와 관련성이 높으면: 해당 태스크 착수 제안
    실용적이고 즉시 행동 가능한 것만. 모호한 조언 금지.
 
 3. agentCommand 는 Claude Code, Cursor, Codex, Gemini CLI, Antigravity 등 AI 에이전트에 바로 붙여넣을 수 있는 자연어 명령문.

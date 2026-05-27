@@ -6,6 +6,7 @@ import type {
 } from "@/application/ports/projectAiSummaryRepository";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
 import type { SessionRepository } from "@/application/ports/sessionRepository";
+import type { TaskRepository } from "@/application/ports/taskRepository";
 import { buildParsedSession } from "@/domain/session/buildParsedSession";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 
@@ -22,19 +23,24 @@ export async function refreshProjectAiSummary(
     sessions: SessionRepository;
     projects: ProjectRepository;
     aiSummaries: ProjectAiSummaryRepository;
+    tasks: TaskRepository;
     llm: LlmClient;
   },
 ): Promise<RefreshedProjectAiSummary> {
-  const [sessionRows, settingsRow] = await Promise.all([
+  const [sessionRows, settingsRow, recentTasks] = await Promise.all([
     deps.sessions.findRecentSessionsWithEvents(projectId, 10),
     deps.projects.findSettings(projectId),
+    deps.tasks.findRecentByUpdatedAt({ projectId, limit: 10 }),
   ]);
   const settings = parseProjectSettings(settingsRow.settings);
   const parsedSessions = sessionRows.map(buildParsedSession);
 
-  const generated = await getProjectAiSummary(parsedSessions, settings, {
-    llm: deps.llm,
-  });
+  const generated = await getProjectAiSummary(
+    parsedSessions,
+    settings,
+    { llm: deps.llm },
+    recentTasks,
+  );
 
   const saved = await deps.aiSummaries.upsert({
     projectId,

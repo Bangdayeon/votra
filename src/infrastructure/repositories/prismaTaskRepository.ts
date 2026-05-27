@@ -129,7 +129,7 @@ export const prismaTaskRepository: TaskRepository = {
 
   async findRecentByUpdatedAt({ projectId, userId, limit }) {
     const rows = await prisma.task.findMany({
-      where: { projectId, userId },
+      where: { projectId, ...(userId ? { userId } : {}) },
       orderBy: { updatedAt: "desc" },
       take: limit,
       select: SELECT,

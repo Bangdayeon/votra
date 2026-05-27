@@ -43,7 +43,7 @@ export type TaskRepository = {
   }) => Promise<TaskRecord[]>;
   findRecentByUpdatedAt: (args: {
     projectId: string;
-    userId: string;
+    userId?: string;
     limit: number;
   }) => Promise<TaskRecord[]>;
   search: (args: {
