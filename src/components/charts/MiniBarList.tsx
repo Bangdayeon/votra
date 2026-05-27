@@ -28,7 +28,7 @@ export function MiniBarList({ items, formatValue, renderValue, emptyText }: Prop
 
   return (
     <>
-      <div className="flex h-3 w-full overflow-hidden rounded-full bg-[#EEEEEE]">
+      <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
         {items.map((it) => {
           const pct = total > 0 ? (it.value / total) * 100 : 0;
           return (

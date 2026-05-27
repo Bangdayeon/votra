@@ -84,7 +84,7 @@ function ProjectPicker() {
               onClick={() =>
                 router.push(`/settings?project=${encodeURIComponent(p.name)}`)
               }
-              className="w-full rounded-md border border-[#E4E2DD] bg-white px-4 py-3 text-left text-sm hover:bg-[#F2F0EB]"
+              className="w-full rounded-md border border-border bg-muted px-4 py-3 text-left text-sm hover:bg-muted"
             >
               {p.name}
             </button>
@@ -324,7 +324,7 @@ function SettingsForm({
                     썸네일
                   </label>
                   <div className="flex items-center gap-4">
-                    <div className="size-16 shrink-0 overflow-hidden rounded-md border border-[#E4E2DD] bg-[#F2F0EB]">
+                    <div className="size-16 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
                       {displayThumbnail ? (
                         <img
                           src={displayThumbnail}
@@ -386,7 +386,7 @@ function SettingsForm({
                       setBasicSaveState({ kind: "idle" });
                     }}
                     className={cn(
-                      "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+                      "w-full rounded-md border border-border bg-muted px-3 py-2 text-sm",
                       "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
                       "disabled:cursor-not-allowed disabled:opacity-50",
                     )}
@@ -407,7 +407,7 @@ function SettingsForm({
                       setBasicSaveState({ kind: "idle" });
                     }}
                     className={cn(
-                      "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+                      "w-full rounded-md border border-border bg-muted px-3 py-2 text-sm",
                       "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
                       "disabled:cursor-not-allowed disabled:opacity-50",
                     )}
@@ -453,7 +453,7 @@ function SettingsForm({
                   markDirty();
                 }}
                 className={cn(
-                  "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+                  "w-full rounded-md border border-border bg-muted px-3 py-2 text-sm",
                   "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
                   "disabled:cursor-not-allowed disabled:opacity-50",
                 )}
@@ -486,7 +486,7 @@ function SettingsForm({
                   markDirty();
                 }}
                 className={cn(
-                  "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+                  "w-full rounded-md border border-border bg-muted px-3 py-2 text-sm",
                   "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
                   "disabled:cursor-not-allowed disabled:opacity-50",
                 )}
@@ -544,7 +544,7 @@ function SettingsForm({
                   markDirty();
                 }}
                 className={cn(
-                  "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 font-mono text-xs",
+                  "w-full rounded-md border border-border bg-muted px-3 py-2 font-mono text-xs",
                   "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
                   "disabled:cursor-not-allowed disabled:opacity-50",
                 )}
@@ -638,7 +638,7 @@ function SessionDataInfo({
   fields: string[];
 }) {
   return (
-    <div className="rounded-md border border-[#E4E2DD] bg-[#F8F7F4] px-3 py-2.5">
+    <div className="rounded-md border border-border bg-muted px-3 py-2.5">
       <p className="mb-1.5 text-xs font-medium text-muted-foreground">
         {label}
       </p>

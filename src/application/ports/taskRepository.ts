@@ -23,7 +23,7 @@ export type TaskUpdateInput = {
 
 export type TaskListFilter = {
   projectId: string;
-  userId: string;
+  userId?: string;
   status?: TaskStatusValue;
   module?: string;
 };

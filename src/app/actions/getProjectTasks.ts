@@ -15,7 +15,7 @@ export async function getProjectTasksAction(
   if (!guard.ok) throw new Error(guard.error);
 
   const result = await listTasks(
-    { projectId, userId: guard.userId, status },
+    { projectId, status },
     { tasks: prismaTaskRepository },
   );
   if (!result.ok) throw new Error(result.error);

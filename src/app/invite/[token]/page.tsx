@@ -20,7 +20,7 @@ export default async function InvitePage({
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F7F6F3] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <InviteAcceptClient token={token} invite={invite} userEmail={user.email} />
     </div>
   );

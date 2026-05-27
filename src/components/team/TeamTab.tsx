@@ -262,7 +262,7 @@ export function TeamTab({
   return (
     <>
       <div className="flex flex-col gap-4">
-        <div className="rounded-xl border border-border bg-white p-6">
+        <div className="rounded-xl border border-border bg-card p-6">
           <div className="mb-4 flex items-center justify-between pb-4 border-b border-border">
             <div>
               <h2 className="text-base font-semibold">팀 멤버</h2>

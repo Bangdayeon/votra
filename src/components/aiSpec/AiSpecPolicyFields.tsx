@@ -65,7 +65,7 @@ export function AiSpecPolicyFields({
           placeholder={guidelinePlaceholder}
           onChange={(e) => onGuidelineChange(e.target.value)}
           className={cn(
-            "w-full rounded-md border border-[#E4E2DD] bg-white px-3 py-2 text-sm",
+            "w-full rounded-md border border-border bg-muted px-3 py-2 text-sm",
             "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}
@@ -82,7 +82,7 @@ export function AiSpecPolicyFields({
         <div className="flex flex-wrap items-center gap-2">
           <label
             className={cn(
-              "inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-[#E4E2DD] bg-white px-3 text-sm hover:bg-[#F2F0EB]",
+              "inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-border bg-muted px-3 text-sm hover:bg-muted",
               disabled && "pointer-events-none opacity-50",
             )}
           >
@@ -101,7 +101,7 @@ export function AiSpecPolicyFields({
             />
           </label>
           {display && (
-            <span className="inline-flex items-center gap-2 rounded-md border border-[#E4E2DD] bg-white px-2 py-1 text-xs">
+            <span className="inline-flex items-center gap-2 rounded-md border border-border bg-muted px-2 py-1 text-xs">
               <span className="max-w-[16rem] truncate">{display.name}</span>
               <span className="text-muted-foreground">· {display.note}</span>
               <button

@@ -118,7 +118,7 @@ export function ProjectHeader() {
   }, [currentActiveKey]);
 
   return (
-    <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-[#F7F6F3] px-6 pt-4">
+    <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background px-6 pt-4">
       {/* 프로젝트 아바타 + 이름 + 설정 */}
       <div className="flex items-center gap-3 mb-3">
         <Link href={`/${params.projectName}`} className="flex shrink-0">

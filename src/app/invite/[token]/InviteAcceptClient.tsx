@@ -168,7 +168,7 @@ function AccountSwitcher({ email, token }: { email: string; token: string }) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-sm rounded-2xl border border-border bg-white px-8 py-10 text-center shadow-sm">
+    <div className="w-full max-w-sm rounded-2xl border border-border bg-card px-8 py-10 text-center shadow-sm">
       {children}
     </div>
   );

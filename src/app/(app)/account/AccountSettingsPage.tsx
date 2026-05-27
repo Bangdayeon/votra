@@ -7,11 +7,14 @@ import {
   LayoutGrid,
   ListChecks,
   LogOut,
+  Monitor,
+  Moon,
+  Plug,
   RotateCcw,
+  Sun,
   Terminal,
   UserCog,
   Users,
-  Plug,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -24,6 +27,7 @@ import { updateUserAiPolicyAction } from "@/app/actions/updateUserAiPolicy";
 import { updateUserNameAction } from "@/app/actions/updateUserName";
 import { AiSpecPolicyFields } from "@/components/aiSpec/AiSpecPolicyFields";
 import { useCurrentUser } from "@/components/project/shell/CurrentUserContext";
+import { useTheme, type ThemeSetting } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import {
   buildAiSpecPolicyPatch,
@@ -56,7 +60,7 @@ export function AccountSettingsPage({
 
   return (
     <div className="flex h-full min-h-0">
-      <nav className="flex w-[220px] shrink-0 flex-col gap-1 border-r border-border bg-[#F7F6F3] p-3">
+      <nav className="flex w-[220px] shrink-0 flex-col gap-1 border-r border-border bg-sidebar p-3">
         <h2 className="px-2 pb-2 text-sm font-medium text-muted-foreground">
           설정
         </h2>
@@ -72,7 +76,7 @@ export function AccountSettingsPage({
                 "flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors",
                 selected
                   ? "bg-foreground text-background"
-                  : "text-foreground hover:bg-[#EBE9E4]",
+                  : "text-foreground hover:bg-sidebar-accent",
               )}
             >
               <Icon className="size-4" />
@@ -100,6 +104,7 @@ export function AccountSettingsPage({
 function AccountPane() {
   const router = useRouter();
   const user = useCurrentUser();
+  const { theme, setTheme } = useTheme();
   const [name, setName] = useState(user.name ?? "");
   const [namePending, startNameUpdate] = useTransition();
   const [signOutPending, startSignOut] = useTransition();
@@ -167,7 +172,7 @@ function AccountPane() {
             maxLength={32}
             onChange={(e) => setName(e.target.value)}
             className={cn(
-              "h-10 flex-1 rounded-md border border-[#E4E2DD] bg-white px-3 text-sm",
+              "h-10 flex-1 rounded-md border border-input bg-muted px-3 text-sm",
               "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
               "disabled:cursor-not-allowed disabled:opacity-50",
             )}
@@ -179,6 +184,37 @@ function AccountPane() {
           >
             {namePending ? "변경 중…" : "변경"}
           </Button>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div>
+          <h3 className="text-base font-medium">화면 테마</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            라이트 모드와 다크 모드 중 선택해요.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {(
+            [
+              { value: "light", label: "라이트", Icon: Sun },
+              { value: "dark", label: "다크", Icon: Moon },
+              { value: "system", label: "시스템", Icon: Monitor },
+            ] as { value: ThemeSetting; label: string; Icon: React.ElementType }[]
+          ).map(({ value, label, Icon }) => (
+            <Button
+              key={value}
+              type="button"
+              variant="outline"
+              onClick={() => setTheme(value)}
+              className={cn(
+                theme === value && "border-foreground bg-foreground text-background hover:bg-foreground hover:text-background",
+              )}
+            >
+              <Icon className="size-4" />
+              {label}
+            </Button>
+          ))}
         </div>
       </section>
 
@@ -545,7 +581,7 @@ function GuidePane() {
                 {step}
               </span>
               <span className="w-28 shrink-0 text-sm font-medium">{title}</span>
-              <code className="flex-1 rounded bg-[#F0EDE8] px-3 py-1.5 font-mono text-sm text-foreground">
+              <code className="flex-1 rounded bg-muted px-3 py-1.5 font-mono text-sm text-foreground">
                 {code}
               </code>
             </li>
@@ -602,7 +638,7 @@ function GuidePane() {
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="text-sm font-medium">{title}</span>
-                  <code className="break-all rounded bg-[#F0EDE8] px-3 py-1.5 font-mono text-xs text-foreground">
+                  <code className="break-all rounded bg-muted px-3 py-1.5 font-mono text-xs text-foreground">
                     {code}
                   </code>
                 </div>

@@ -13,6 +13,7 @@ const SELECT = {
   id: true, seq: true, projectId: true, title: true, description: true,
   status: true, module: true, priority: true, keyDecisions: true, outcome: true,
   createdAt: true, updatedAt: true, doneAt: true,
+  user: { select: { id: true, name: true } },
 } as const;
 
 function toRecord(row: {
@@ -29,11 +30,14 @@ function toRecord(row: {
   createdAt: Date;
   updatedAt: Date;
   doneAt: Date | null;
+  user: { id: string; name: string | null };
 }): TaskRecord {
   return {
     id: row.id,
     seq: row.seq,
     projectId: row.projectId,
+    userId: row.user.id,
+    userName: row.user.name,
     title: row.title,
     description: row.description,
     status: row.status as TaskRecord["status"],
@@ -89,7 +93,7 @@ export const prismaTaskRepository: TaskRepository = {
     const rows = await prisma.task.findMany({
       where: {
         projectId,
-        userId,
+        ...(userId !== undefined && { userId }),
         ...(status !== undefined && { status }),
         ...(module !== undefined && { module }),
       },
@@ -114,20 +118,28 @@ export const prismaTaskRepository: TaskRepository = {
   },
 
   async search({ query, projectId, userId, limit }) {
-    const rows = await prisma.$queryRaw<typeof SELECT[]>`
-      SELECT id, seq, "projectId", title, description, status, module, priority,
-             "keyDecisions", outcome, "createdAt", "updatedAt", "doneAt"
-      FROM "Task"
-      WHERE "projectId" = ${projectId}
-        AND "userId" = ${userId}
+    type RawRow = {
+      id: string; seq: number; projectId: string; title: string; description: string | null;
+      status: string; module: string | null; priority: number; keyDecisions: string[];
+      outcome: string | null; createdAt: Date; updatedAt: Date; doneAt: Date | null;
+      userId: string; userName: string | null;
+    };
+    const rows = await prisma.$queryRaw<RawRow[]>`
+      SELECT t.id, t.seq, t."projectId", t.title, t.description, t.status, t.module, t.priority,
+             t."keyDecisions", t.outcome, t."createdAt", t."updatedAt", t."doneAt",
+             t."userId", u.name AS "userName"
+      FROM "Task" t
+      LEFT JOIN "User" u ON u.id = t."userId"
+      WHERE t."projectId" = ${projectId}
+        AND t."userId" = ${userId}
         AND (
-          title ILIKE ${'%' + query + '%'}
-          OR description ILIKE ${'%' + query + '%'}
-          OR EXISTS (SELECT 1 FROM unnest("keyDecisions") kd WHERE kd ILIKE ${'%' + query + '%'})
+          t.title ILIKE ${'%' + query + '%'}
+          OR t.description ILIKE ${'%' + query + '%'}
+          OR EXISTS (SELECT 1 FROM unnest(t."keyDecisions") kd WHERE kd ILIKE ${'%' + query + '%'})
         )
-      ORDER BY "doneAt" DESC NULLS LAST, "createdAt" DESC
+      ORDER BY t."doneAt" DESC NULLS LAST, t."createdAt" DESC
       LIMIT ${limit}
     `;
-    return (rows as unknown as Parameters<typeof toRecord>[0][]).map(toRecord);
+    return rows.map((r) => toRecord({ ...r, user: { id: r.userId, name: r.userName } }));
   },
 };

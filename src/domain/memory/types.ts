@@ -13,6 +13,8 @@ export type TaskRecord = {
   id: string;
   seq: number;
   projectId: string;
+  userId: string;
+  userName: string | null;
   title: string;
   description: string | null;
   status: TaskStatusValue;
