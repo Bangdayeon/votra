@@ -1,14 +1,11 @@
 "use client";
 
-import type { ProjectAiInsightRow } from "@/application/ports/projectAiSummaryRepository";
-import { AgentCommandBox } from "@/components/common/AgentCommandBox";
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
 import { InlineMarkdown } from "@/components/common/InlineMarkdown";
 
 type Props = {
   summary?: string;
-  suggestions?: ProjectAiInsightRow[];
   refreshedAt?: string | null;
   loading?: boolean;
   refreshing?: boolean;
@@ -18,7 +15,6 @@ type Props = {
 
 export function AiSummaryCard({
   summary,
-  suggestions = [],
   refreshedAt,
   loading,
   refreshing,
@@ -30,7 +26,7 @@ export function AiSummaryCard({
   return (
     <Card className={`w-full ${className ?? ""}`}>
       <CardRefreshHeader
-        title="💡 AI 요약 & 솔루션"
+        title="💡 최근 상태 및 작업 요약"
         refreshedAt={refreshedAt}
         loading={loading}
         refreshing={refreshing}
@@ -38,10 +34,6 @@ export function AiSummaryCard({
       />
 
       <section className="mt-4">
-        <h4 className="mb-2 flex items-center gap-1.5 font-semibold">
-          <span>👍</span>
-          <span>프로젝트 상태 요약</span>
-        </h4>
         {loading ? (
           <p className="text-sm text-muted-foreground">불러오는 중…</p>
         ) : summaryLines.length > 0 ? (
@@ -59,42 +51,6 @@ export function AiSummaryCard({
         )}
       </section>
 
-      <section className="mt-5">
-        <h4 className="mb-2 flex items-center gap-1.5 font-semibold">
-          <span>💬</span>
-          <span>제안</span>
-        </h4>
-        {loading ? (
-          <p className="text-sm text-muted-foreground">불러오는 중…</p>
-        ) : suggestions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">표시할 제안이 없어요.</p>
-        ) : (
-          <ul className="flex flex-col gap-4">
-            {suggestions.map((s, i) => (
-              <SuggestionItem key={`s-${i}`} insight={s} />
-            ))}
-          </ul>
-        )}
-      </section>
     </Card>
-  );
-}
-
-function SuggestionItem({ insight }: { insight: ProjectAiInsightRow }) {
-  return (
-    <li className="flex flex-col gap-2">
-      {insight.message && (
-        <ul className="list-disc pl-4">
-          <li className="text-sm leading-relaxed text-foreground">
-            <InlineMarkdown text={insight.message} />
-          </li>
-        </ul>
-      )}
-      {insight.agentCommand && (
-        <div className="ml-4">
-          <AgentCommandBox command={insight.agentCommand} />
-        </div>
-      )}
-    </li>
   );
 }

@@ -4,7 +4,7 @@ import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
 import { AgentCommandBox } from "@/components/common/AgentCommandBox";
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
-import { cn } from "@/lib/utils";
+import { PriorityBadge } from "@/components/common/PriorityBadge";
 
 type Props = {
   tasks?: NextTask[];
@@ -13,18 +13,6 @@ type Props = {
   refreshing?: boolean;
   onRefresh?: () => void;
   className?: string;
-};
-
-const PRIORITY_LABEL: Record<NextTask["priority"], string> = {
-  high: "P1",
-  medium: "P2",
-  low: "P3",
-};
-
-const PRIORITY_CLASS: Record<NextTask["priority"], string> = {
-  high: "bg-rose-100 text-rose-700",
-  medium: "bg-amber-100 text-amber-700",
-  low: "bg-slate-100 text-slate-600",
 };
 
 export function RecommendedNextTaskCard({
@@ -38,7 +26,7 @@ export function RecommendedNextTaskCard({
   return (
     <Card className={`w-full ${className ?? ""}`}>
       <CardRefreshHeader
-        title="💬 추천 다음 작업"
+        title="💬 제안 작업"
         refreshedAt={refreshedAt}
         loading={loading}
         refreshing={refreshing}
@@ -67,15 +55,10 @@ export function RecommendedNextTaskCard({
 function NextTaskItem({ task }: { task: NextTask }) {
   return (
     <li className="flex flex-col items-start gap-1.5">
-      <span
-        className={cn(
-          "rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide",
-          PRIORITY_CLASS[task.priority],
-        )}
-      >
-        {PRIORITY_LABEL[task.priority]}
-      </span>
-      <span className="text-sm font-medium text-foreground">{task.title}</span>
+      <div className="flex gap-1.5">
+        <PriorityBadge priority={task.priority} />
+        <span className="text-sm font-medium text-foreground">{task.title}</span>
+      </div>
       {task.reason && (
         <p className="text-xs text-muted-foreground leading-snug">{task.reason}</p>
       )}

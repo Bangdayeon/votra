@@ -140,7 +140,6 @@ export function OverviewTab({
     <div className="flex pb-6 flex-col gap-6">
       <AiSummaryCard
         summary={aiSummary?.summary}
-        suggestions={aiSummary?.suggestions}
         refreshedAt={aiSummary?.refreshedAt}
         loading={aiLoading}
         refreshing={aiRefreshing}

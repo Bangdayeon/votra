@@ -1,7 +1,7 @@
 export type NextTask = {
   title: string;
   reason: string;
-  priority: "high" | "medium" | "low";
+  priority: "critical" | "high" | "medium" | "low";
   agentCommand: string;
 };
 

@@ -389,7 +389,7 @@ const SERVICE_FEATURES: {
     ],
   },
   {
-    name: "AI 작업 관리",
+    name: "AI 프롬프트 관리",
     icon: Bot,
     screenshot: "/assets/images/guide/tab-manage.png",
     desc: "프로젝트에 업로드된 AI 프롬프트를 정책 기준으로 평가하고, 컨텍스트 흐름을 진단해요.",

@@ -53,7 +53,7 @@ function isNextTask(v: unknown): v is NextTask {
   return (
     typeof r.title === "string" &&
     typeof r.reason === "string" &&
-    (r.priority === "high" || r.priority === "medium" || r.priority === "low") &&
+    (r.priority === "critical" || r.priority === "high" || r.priority === "medium" || r.priority === "low") &&
     typeof r.agentCommand === "string"
   );
 }

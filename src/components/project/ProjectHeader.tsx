@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { label: "개요", key: "overview", icon: LayoutGrid },
-  { label: "AI 작업 관리", key: "manage", icon: Bot },
   { label: "태스크", key: "tasks", icon: CheckSquare },
+  { label: "AI 프롬프트 관리", key: "manage", icon: Bot },
   { label: "팀작업", key: "team", icon: Users },
 ] as const;
 
@@ -21,7 +21,7 @@ type Tab = "overview" | "manage" | "tasks" | "team";
 const SETTINGS_TABS = [
   { label: "전체", key: "all", icon: Layers },
   { label: "개요", key: "overview", icon: LayoutGrid },
-  { label: "AI 작업 관리", key: "ai-management", icon: Bot },
+  { label: "AI 프롬프트 관리", key: "ai-management", icon: Bot },
 ] as const;
 
 type SettingsTab = "all" | "overview" | "ai-management";

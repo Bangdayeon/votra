@@ -36,7 +36,7 @@ ${customPrompt ? `\n## 추가 지침\n${customPrompt}` : ""}
     {
       "title": "작업 제목 (간결하게)",
       "reason": "이 작업을 추천하는 이유 (세션 데이터 근거)",
-      "priority": "high" | "medium" | "low",
+      "priority": "critical" | "high" | "medium" | "low",
       "agentCommand": "AI 에이전트에게 전달할 구체적인 실행 지시 프롬프트"
     }
   ]
@@ -64,7 +64,7 @@ function isNextTask(v: unknown): v is NextTask {
   return (
     typeof v.title === "string" &&
     typeof v.reason === "string" &&
-    (v.priority === "high" || v.priority === "medium" || v.priority === "low") &&
+    (v.priority === "critical" || v.priority === "high" || v.priority === "medium" || v.priority === "low") &&
     typeof v.agentCommand === "string"
   );
 }

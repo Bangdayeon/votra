@@ -22,8 +22,8 @@ export function CardRefreshHeader({
 }: Props) {
   const busy = Boolean(loading || refreshing);
   return (
-    <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
-      <div className="flex w-full items-center justify-between gap-3 mb-1 lg:w-auto lg:justify-start">
+    <div className="flex flex-col lg:flex-row items-center justify-between gap-1">
+      <div className="flex w-full items-center justify-between gap-3 lg:w-auto lg:justify-start">
         <h3 className="text-xl font-semibold">{title}</h3>
         {onRefresh && (
           <Button
@@ -62,5 +62,5 @@ function formatRefreshedAt(
     minute: "2-digit",
     hour12: false,
   });
-  return `${yy}.${mm}.${dd}. ${time}`;
+  return `${yy}.${mm}.${dd}, ${time}`;
 }
