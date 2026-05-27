@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       description: typeof body.description === "string" ? body.description : undefined,
       module: typeof body.module === "string" ? body.module : undefined,
       priority: typeof body.priority === "number" ? body.priority : undefined,
+      folderId: typeof body.folderId === "string" ? body.folderId : undefined,
       projectId: body.projectId,
       userId: user.id,
     },

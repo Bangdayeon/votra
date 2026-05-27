@@ -5,6 +5,7 @@ export type TaskCreateInput = {
   description?: string;
   module?: string;
   priority?: number;
+  folderId?: string;
   projectId: string;
   userId: string;
 };
@@ -17,6 +18,7 @@ export type TaskUpdateInput = {
   status?: TaskStatusValue;
   module?: string | null;
   priority?: number;
+  folderId?: string | null;
   keyDecisions?: string[];
   outcome?: string;
 };
@@ -26,6 +28,8 @@ export type TaskListFilter = {
   userId?: string;
   status?: TaskStatusValue;
   module?: string;
+  limit?: number;
+  offset?: number;
 };
 
 export type TaskRepository = {
@@ -33,6 +37,11 @@ export type TaskRepository = {
   update: (input: TaskUpdateInput) => Promise<TaskRecord | null>;
   listByFilter: (filter: TaskListFilter) => Promise<TaskRecord[]>;
   findRecentDone: (args: {
+    projectId: string;
+    userId: string;
+    limit: number;
+  }) => Promise<TaskRecord[]>;
+  findRecentByUpdatedAt: (args: {
     projectId: string;
     userId: string;
     limit: number;

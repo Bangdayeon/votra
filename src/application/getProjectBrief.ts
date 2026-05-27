@@ -12,6 +12,7 @@ export type ProjectBrief = {
   inProgressTasks: TaskRecord[];
   recentDecisions: TaskRecord[];
   recentlyDone: TaskRecord[];
+  recentlyModified: TaskRecord[];
   rules: string[];
   lastSessionSummary: SessionLogRecord | null;
 };
@@ -32,13 +33,14 @@ export async function getProjectBrief(
   },
 ): Promise<Result<ProjectBrief, string>> {
   try {
-    const [pendingTasks, inProgressTasks, recentlyDone, claudeFiles, recentSessions] =
+    const [pendingTasks, inProgressTasks, recentlyDone, claudeFiles, recentSessions, recentlyModified] =
       await Promise.all([
         deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "PENDING" }),
         deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "IN_PROGRESS" }),
         deps.tasks.findRecentDone({ projectId: input.projectId, userId: input.userId, limit: 5 }),
         deps.claudeFiles.findByProject(input.projectId),
         deps.sessionLogs.listRecent({ projectId: input.projectId, userId: input.userId, limit: 1 }),
+        deps.tasks.findRecentByUpdatedAt({ projectId: input.projectId, userId: input.userId, limit: 10 }),
       ]);
 
     const recentDecisions = recentlyDone.filter((t) => t.keyDecisions.length > 0);
@@ -57,6 +59,7 @@ export async function getProjectBrief(
       inProgressTasks,
       recentDecisions,
       recentlyDone,
+      recentlyModified,
       rules,
       lastSessionSummary: recentSessions[0] ?? null,
     });

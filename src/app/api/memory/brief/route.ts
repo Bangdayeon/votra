@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 
 import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
 import { getProjectBrief } from "@/application/getProjectBrief";
+import { listFolders } from "@/application/listFolders";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 import { prismaSessionLogRepository } from "@/infrastructure/repositories/prismaSessionLogRepository";
+import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function GET(req: Request) {
@@ -20,7 +22,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const [project, aiNextTask, aiSummary, briefSkillRow] = await Promise.all([
+  const [project, aiNextTask, aiSummary, briefSkillRow, foldersResult] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       select: { title: true, cwd: true },
@@ -34,6 +36,7 @@ export async function GET(req: Request) {
       where: { slug: "brief" },
       select: { content: true, isActive: true },
     }),
+    listFolders(projectId, { folders: prismaTaskFolderRepository }),
   ]);
 
   if (!project) {
@@ -66,10 +69,13 @@ export async function GET(req: Request) {
     }
   }
 
+  const folders = foldersResult.ok ? foldersResult.value : [];
+
   return NextResponse.json({
     ok: true,
     brief: {
       ...result.value,
+      folders,
       recommendedNextTasks: aiNextTask ? (aiNextTask.tasks as NextTask[]) : undefined,
       aiSummary: aiSummary ?? undefined,
       briefSkillContent,

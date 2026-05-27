@@ -40,7 +40,19 @@ export type TaskRecord = {
   sortOrder: number;
   keyDecisions: string[];
   outcome: string | null;
+  folderId: string | null;
   createdAt: Date;
   updatedAt: Date;
   doneAt: Date | null;
+};
+
+export type FolderRecord = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  projectId: string;
+  userId: string;
+  taskCount: number;
+  createdAt: Date;
+  updatedAt: Date;
 };

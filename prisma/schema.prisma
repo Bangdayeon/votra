@@ -63,6 +63,7 @@ model User {
   sentInvites        ProjectInvite[] @relation("InvitedByUser")
   acceptedInvites    ProjectInvite[] @relation("AcceptedByUser")
   tasks              Task[]
+  taskFolders        TaskFolder[]
   sessionLogs        SessionLog[]
 }
 
@@ -132,6 +133,7 @@ model Project {
   agentContextFlowDiagnosis ProjectAgentContextFlowDiagnosis?
   invites              ProjectInvite[]
   tasks                Task[]
+  taskFolders          TaskFolder[]
   sessionLogs          SessionLog[]
   skillConfigs         ProjectSkillConfig[]
 
@@ -527,6 +529,30 @@ model PolicyRule {
 }
 
 // ────────────────────────────────────────────
+// TASK FOLDER (태스크 그루핑용 폴더)
+// folderId가 null인 태스크는 기본 그룹(미분류)으로 표시
+// ────────────────────────────────────────────
+
+model TaskFolder {
+  id        String   @id @default(cuid())
+  name      String
+  /// 폴더 내 정렬 순서 (작을수록 위, 0=미설정)
+  sortOrder Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@index([projectId])
+  @@index([userId])
+}
+
+// ────────────────────────────────────────────
 // TASK (세션 간 태스크 관리 + 핵심 결정 저장)
 // ────────────────────────────────────────────
 
@@ -555,9 +581,12 @@ model Task {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   userId    String
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId  String?
+  folder    TaskFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
   @@index([projectId, status])
   @@index([projectId, module])
+  @@index([projectId, folderId])
   @@index([userId])
 }
 

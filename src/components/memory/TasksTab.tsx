@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CheckSquare,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Circle,
   Clock,
@@ -357,6 +358,8 @@ const SORT_OPTIONS: { label: string; value: TaskSortBy }[] = [
 
 type StatusFilter = "ALL" | TaskStatusValue;
 
+const PAGE_SIZE = 20;
+
 export function TasksTab({
   selected,
   initialTasks,
@@ -366,6 +369,7 @@ export function TasksTab({
 }) {
   const [tasks, setTasks] = useState<TaskRecord[]>(initialTasks ?? []);
   const [loading, setLoading] = useState(!initialTasks);
+  const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const [filterUser, setFilterUser] = useState<string>("ALL");
@@ -373,7 +377,7 @@ export function TasksTab({
   const [filterPriority, setFilterPriority] = useState<string>("ALL");
   const [hideDone, setHideDone] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<TaskSortBy>("priority");
+  const [sortBy, setSortBy] = useState<TaskSortBy>("updatedAt");
 
   // 기간 필터 (적용된 값)
   const [dateField, setDateField] = useState<"createdAt" | "updatedAt">("createdAt");
@@ -412,7 +416,7 @@ export function TasksTab({
     let cancelled = false;
     if (!silent) setLoading(true);
     getProjectTasksAction(selected.id)
-      .then((t) => { if (!cancelled) setTasks(t); })
+      .then((t) => { if (!cancelled) { setTasks(t); setPage(1); } })
       .catch((e: unknown) => {
         if (!cancelled && !silent) toast.error(e instanceof Error ? e.message : "태스크를 불러오지 못했어요.");
       })
@@ -497,6 +501,14 @@ export function TasksTab({
   }, [tasks, hideDone, filterStatus, filterUser, filterPriority, searchQuery, dateFrom, dateTo, dateField]);
 
   const sorted = useMemo(() => sortTasks(filtered, sortBy), [filtered, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paged = useMemo(
+    () => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [sorted, page],
+  );
+
+  useEffect(() => { setPage(1); }, [filterUser, filterStatus, filterPriority, hideDone, searchQuery, dateFrom, dateTo, dateField, sortBy]);
 
   const inProgressCount = tasks.filter((t) => t.status === "IN_PROGRESS").length;
   const pendingCount = tasks.filter((t) => t.status === "PENDING").length;
@@ -674,7 +686,7 @@ export function TasksTab({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {sorted.map((task) => (
+          {paged.map((task) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -685,6 +697,38 @@ export function TasksTab({
               onDeleted={handleDeleted}
             />
           ))}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-1 pt-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={cn(
+                    "flex size-7 cursor-pointer items-center justify-center rounded-md text-xs transition-colors",
+                    p === page
+                      ? "bg-foreground text-background font-medium"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

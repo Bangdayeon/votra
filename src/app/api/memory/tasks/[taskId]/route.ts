@@ -61,6 +61,12 @@ export async function PATCH(
             ? body.module
             : undefined,
       priority: typeof body.priority === "number" ? body.priority : undefined,
+      folderId:
+        body.folderId === null
+          ? null
+          : typeof body.folderId === "string"
+            ? body.folderId
+            : undefined,
     },
     { tasks: prismaTaskRepository },
   );
