@@ -1,11 +1,29 @@
 "use client";
 
 import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   CheckSquare,
   ChevronDown,
   ChevronRight,
   Circle,
   Clock,
+  GripVertical,
   Loader2,
   Search,
   XCircle,
@@ -14,6 +32,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
+import { updateTaskOrderAction } from "@/app/actions/updateTaskOrder";
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
 import type { Project } from "@/components/project/ProjectsContext";
 import {
@@ -52,13 +71,6 @@ const PRIORITY_STYLES: Record<1 | 2 | 3 | 4, string> = {
 };
 
 // ── status ────────────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<TaskStatusValue, string> = {
-  PENDING: "대기",
-  IN_PROGRESS: "진행 중",
-  DONE: "완료",
-  CANCELLED: "취소됨",
-};
 
 const NEXT_STATUS: Partial<Record<TaskStatusValue, TaskStatusValue>> = {
   PENDING: "IN_PROGRESS",
@@ -125,12 +137,16 @@ function TaskRow({
   expanded,
   onToggle,
   onUpdated,
+  dragHandleProps,
+  isDragging,
 }: {
   task: TaskRecord;
   projectId: string;
   expanded: boolean;
   onToggle: () => void;
   onUpdated: (updated: TaskRecord) => void;
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
+  isDragging?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const nextStatus = NEXT_STATUS[task.status];
@@ -155,6 +171,7 @@ function TaskRow({
       className={cn(
         "rounded-lg border border-border bg-card transition-shadow",
         task.status === "DONE" && "opacity-60",
+        isDragging && "shadow-lg opacity-80",
       )}
     >
       {/* 접힌 행 */}
@@ -162,6 +179,16 @@ function TaskRow({
         onClick={onToggle}
         className="flex w-full cursor-pointer items-center gap-3 px-4 py-3"
       >
+        {dragHandleProps && (
+          <button
+            {...dragHandleProps}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 cursor-grab touch-none text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
+          >
+            <GripVertical className="size-4" />
+          </button>
+        )}
+
         <StatusIcon status={task.status} className="shrink-0" />
 
         <p
@@ -264,6 +291,57 @@ function TaskRow({
   );
 }
 
+// ── SortableTaskRow ───────────────────────────────────────────────────────────
+
+function SortableTaskRow(props: Omit<React.ComponentProps<typeof TaskRow>, "dragHandleProps" | "isDragging"> & { id: string }) {
+  const { id, ...rest } = props;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+    >
+      <TaskRow
+        {...rest}
+        dragHandleProps={{ ...(attributes as React.HTMLAttributes<HTMLButtonElement>), ...(listeners as React.HTMLAttributes<HTMLButtonElement>) }}
+        isDragging={isDragging}
+      />
+    </div>
+  );
+}
+
+// ── sort ──────────────────────────────────────────────────────────────────────
+
+type SortBy = "priority" | "createdAt" | "updatedAt" | "manual";
+
+const SORT_OPTIONS: { label: string; value: SortBy }[] = [
+  { label: "중요도순", value: "priority" },
+  { label: "등록일순", value: "createdAt" },
+  { label: "수정일순", value: "updatedAt" },
+  { label: "수동 순서", value: "manual" },
+];
+
+function sortTasks(list: TaskRecord[], sortBy: SortBy): TaskRecord[] {
+  const copy = [...list];
+  switch (sortBy) {
+    case "createdAt":
+      return copy.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    case "updatedAt":
+      return copy.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    case "manual":
+      return copy.sort((a, b) => {
+        if (a.sortOrder === 0 && b.sortOrder === 0) return a.seq - b.seq;
+        if (a.sortOrder === 0) return 1;
+        if (b.sortOrder === 0) return -1;
+        return a.sortOrder - b.sortOrder;
+      });
+    case "priority":
+    default:
+      return copy; // DB가 priority desc, seq asc 로 이미 정렬
+  }
+}
+
 // ── TasksTab ──────────────────────────────────────────────────────────────────
 
 type StatusFilter = "ALL" | TaskStatusValue;
@@ -278,12 +356,14 @@ export function TasksTab({
   const [tasks, setTasks] = useState<TaskRecord[]>(initialTasks ?? []);
   const [loading, setLoading] = useState(!initialTasks);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const [filterUser, setFilterUser] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("ALL");
   const [filterPriority, setFilterPriority] = useState<string>("ALL");
   const [hideDone, setHideDone] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortBy>("priority");
 
   const loadTasks = useCallback(() => {
     let cancelled = false;
@@ -355,8 +435,43 @@ export function TasksTab({
     });
   }, [tasks, hideDone, filterStatus, filterUser, filterPriority, searchQuery]);
 
+  const sorted = useMemo(() => sortTasks(filtered, sortBy), [filtered, sortBy]);
+
   const inProgressCount = tasks.filter((t) => t.status === "IN_PROGRESS").length;
   const pendingCount = tasks.filter((t) => t.status === "PENDING").length;
+
+  // ── DnD ──────────────────────────────────────────────────────────────────
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+
+  function handleDragStart({ active }: DragStartEvent) {
+    setActiveId(active.id as string);
+  }
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    setActiveId(null);
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = sorted.findIndex((t) => t.id === active.id);
+    const newIndex = sorted.findIndex((t) => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(sorted, oldIndex, newIndex);
+    const newOrders = reordered.map((t, i) => ({ id: t.id, sortOrder: (i + 1) * 1000 }));
+    const orderMap = new Map(newOrders.map((o) => [o.id, o.sortOrder]));
+
+    setTasks((prev) =>
+      prev.map((t) => (orderMap.has(t.id) ? { ...t, sortOrder: orderMap.get(t.id)! } : t)),
+    );
+
+    updateTaskOrderAction(selected.id, newOrders).catch(() => {
+      toast.error("순서 저장에 실패했어요.");
+    });
+  }
+
+  const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -379,34 +494,24 @@ export function TasksTab({
         )}
       </div>
 
-      {/* 검색 + 필터 */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[160px]">
-          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="제목, 내용, 생성자 검색"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-full border border-border bg-muted py-1 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-        </div>
+      {/* 검색 */}
+      <div className="relative w-full">
+        <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <input
+          type="text"
+          placeholder="제목, 내용, 생성자 검색"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full rounded-full border border-border bg-muted py-1 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
 
-        <FilterDropdown
-          value={filterUser}
-          options={creatorOptions}
-          onChange={setFilterUser}
-        />
-        <FilterDropdown
-          value={filterStatus}
-          options={statusOptions}
-          onChange={setFilterStatus}
-        />
-        <FilterDropdown
-          value={filterPriority}
-          options={priorityOptions}
-          onChange={setFilterPriority}
-        />
+      {/* 필터 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <FilterDropdown value={filterUser} options={creatorOptions} onChange={setFilterUser} />
+        <FilterDropdown value={filterStatus} options={statusOptions} onChange={setFilterStatus} />
+        <FilterDropdown value={filterPriority} options={priorityOptions} onChange={setFilterPriority} />
+        <FilterDropdown value={sortBy} options={SORT_OPTIONS} onChange={setSortBy} />
 
         <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
           <input
@@ -427,7 +532,7 @@ export function TasksTab({
         <div className="flex items-center justify-center py-16">
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
           <CheckSquare className="size-8 opacity-30" strokeWidth={1.5} />
           <p>조건에 맞는 태스크가 없어요.</p>
@@ -436,9 +541,44 @@ export function TasksTab({
             <code className="rounded bg-muted px-1 py-0.5">brief</code> 툴로 등록하세요.
           </p>
         </div>
+      ) : sortBy === "manual" ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={sorted.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <div className="flex flex-col gap-2">
+              {sorted.map((task) => (
+                <SortableTaskRow
+                  key={task.id}
+                  id={task.id}
+                  task={task}
+                  projectId={selected.id}
+                  expanded={expandedId === task.id}
+                  onToggle={() => setExpandedId((prev) => (prev === task.id ? null : task.id))}
+                  onUpdated={handleUpdated}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeTask && (
+              <TaskRow
+                task={activeTask}
+                projectId={selected.id}
+                expanded={false}
+                onToggle={() => {}}
+                onUpdated={() => {}}
+                isDragging
+              />
+            )}
+          </DragOverlay>
+        </DndContext>
       ) : (
         <div className="flex flex-col gap-2">
-          {filtered.map((task) => (
+          {sorted.map((task) => (
             <TaskRow
               key={task.id}
               task={task}

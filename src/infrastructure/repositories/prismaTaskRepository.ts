@@ -11,7 +11,7 @@ import { prisma } from "@/infrastructure/db/prisma";
 
 const SELECT = {
   id: true, seq: true, projectId: true, title: true, description: true,
-  status: true, module: true, priority: true, keyDecisions: true, outcome: true,
+  status: true, module: true, priority: true, sortOrder: true, keyDecisions: true, outcome: true,
   createdAt: true, updatedAt: true, doneAt: true,
   user: { select: { id: true, name: true } },
 } as const;
@@ -25,6 +25,7 @@ function toRecord(row: {
   status: string;
   module: string | null;
   priority: number;
+  sortOrder: number;
   keyDecisions: string[];
   outcome: string | null;
   createdAt: Date;
@@ -43,6 +44,7 @@ function toRecord(row: {
     status: row.status as TaskRecord["status"],
     module: row.module,
     priority: row.priority,
+    sortOrder: row.sortOrder,
     keyDecisions: row.keyDecisions,
     outcome: row.outcome,
     createdAt: row.createdAt,
@@ -120,12 +122,12 @@ export const prismaTaskRepository: TaskRepository = {
   async search({ query, projectId, userId, limit }) {
     type RawRow = {
       id: string; seq: number; projectId: string; title: string; description: string | null;
-      status: string; module: string | null; priority: number; keyDecisions: string[];
+      status: string; module: string | null; priority: number; sortOrder: number; keyDecisions: string[];
       outcome: string | null; createdAt: Date; updatedAt: Date; doneAt: Date | null;
       userId: string; userName: string | null;
     };
     const rows = await prisma.$queryRaw<RawRow[]>`
-      SELECT t.id, t.seq, t."projectId", t.title, t.description, t.status, t.module, t.priority,
+      SELECT t.id, t.seq, t."projectId", t.title, t.description, t.status, t.module, t.priority, t."sortOrder",
              t."keyDecisions", t.outcome, t."createdAt", t."updatedAt", t."doneAt",
              t."userId", u.name AS "userName"
       FROM "Task" t
@@ -140,6 +142,6 @@ export const prismaTaskRepository: TaskRepository = {
       ORDER BY t."doneAt" DESC NULLS LAST, t."createdAt" DESC
       LIMIT ${limit}
     `;
-    return rows.map((r) => toRecord({ ...r, user: { id: r.userId, name: r.userName } }));
+    return rows.map((r) => toRecord({ ...r, sortOrder: Number(r.sortOrder), user: { id: r.userId, name: r.userName } }));
   },
 };

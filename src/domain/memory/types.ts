@@ -20,6 +20,7 @@ export type TaskRecord = {
   status: TaskStatusValue;
   module: string | null;
   priority: number;
+  sortOrder: number;
   keyDecisions: string[];
   outcome: string | null;
   createdAt: Date;

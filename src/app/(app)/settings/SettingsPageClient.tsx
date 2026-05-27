@@ -380,7 +380,8 @@ function SettingsForm({
                     type="text"
                     value={title}
                     disabled={!isOwner}
-                    maxLength={100}
+                    maxLength={20}
+                    placeholder="최대 20자"
                     onChange={(e) => {
                       setTitle(e.target.value);
                       setBasicSaveState({ kind: "idle" });
@@ -391,6 +392,7 @@ function SettingsForm({
                       "disabled:cursor-not-allowed disabled:opacity-50",
                     )}
                   />
+                  <p className="text-xs text-muted-foreground">{title.length} / 20</p>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-muted-foreground">
@@ -399,8 +401,8 @@ function SettingsForm({
                   <textarea
                     value={description}
                     disabled={!isOwner}
-                    maxLength={500}
-                    placeholder="프로젝트에 대한 짧은 설명을 입력해주세요."
+                    maxLength={100}
+                    placeholder="최대 100자 · 프로젝트에 대한 짧은 설명을 입력해주세요."
                     rows={2}
                     onChange={(e) => {
                       setDescription(e.target.value);
@@ -412,6 +414,7 @@ function SettingsForm({
                       "disabled:cursor-not-allowed disabled:opacity-50",
                     )}
                   />
+                  <p className="text-xs text-muted-foreground">{description.length} / 100</p>
                 </div>
               </div>
               {isOwner && (

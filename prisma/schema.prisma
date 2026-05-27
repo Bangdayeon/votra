@@ -540,6 +540,8 @@ model Task {
   /// 작업 모듈 (예: "auth", "api", "ui"). 필터링에 사용.
   module      String?
   priority    Int        @default(0)
+  /// UI 드래그앤드롭 수동 정렬 순서. 0=미설정(맨 뒤).
+  sortOrder   Float      @default(0)
   /// finish_task 시 AI가 추출한 핵심 결정/인사이트 목록. recall 검색 대상.
   keyDecisions String[]   @default([])
   /// finish_task 시 AI가 자유 서술로 기록한 "실제로 무엇을 했는지"
