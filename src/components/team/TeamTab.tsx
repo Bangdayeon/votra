@@ -15,6 +15,7 @@ import { removeMemberAction } from "@/app/actions/removeMember";
 import type { Project } from "@/components/project/ProjectsContext";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -284,9 +285,17 @@ export function TeamTab({
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            </div>
+            <ul className="divide-y divide-border">
+              {[0, 1, 2].map((i) => (
+                <li key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <Skeleton className="size-9 shrink-0 rounded-full" />
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-3 w-36" />
+                  </div>
+                </li>
+              ))}
+            </ul>
           ) : members.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-sm text-muted-foreground">
               <CircleUserRound className="size-8 opacity-40" strokeWidth={1.5} />
