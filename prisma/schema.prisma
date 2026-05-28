@@ -623,6 +623,8 @@ model PlatformSkill {
   slug        String   @id
   name        String
   description String
+  /// coding | process | analysis
+  category    String   @default("coding")
   /// 에이전트 활성화 힌트 — brief에 목록으로 노출
   contextHint String
   /// 전체 MD 본문 (사용자 수정 불가)

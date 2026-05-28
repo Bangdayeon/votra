@@ -56,3 +56,13 @@ export type FolderRecord = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type SkillRecord = {
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  contextHint: string;
+  isActive: boolean;
+  enabled: boolean;
+};

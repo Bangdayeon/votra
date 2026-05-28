@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
 import { getProjectBrief } from "@/application/getProjectBrief";
 import { listFolders } from "@/application/listFolders";
+import { listSkills } from "@/application/listSkills";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 import { prismaSessionLogRepository } from "@/infrastructure/repositories/prismaSessionLogRepository";
+import { prismaSkillRepository } from "@/infrastructure/repositories/prismaSkillRepository";
 import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
@@ -22,7 +24,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const [project, aiNextTask, aiSummary, briefSkillRow, foldersResult] = await Promise.all([
+  const [project, aiNextTask, aiSummary, briefSkillRow, foldersResult, skillsResult] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       select: { title: true, cwd: true },
@@ -37,6 +39,7 @@ export async function GET(req: Request) {
       select: { content: true, isActive: true },
     }),
     listFolders(projectId, { folders: prismaTaskFolderRepository }),
+    listSkills(projectId, { skills: prismaSkillRepository }),
   ]);
 
   if (!project) {
@@ -71,11 +74,17 @@ export async function GET(req: Request) {
 
   const folders = foldersResult.ok ? foldersResult.value : [];
 
+  // brief 스킬 자체는 목록에서 제외 (appendix로만 사용)
+  const availableSkills = (skillsResult.ok ? skillsResult.value : [])
+    .filter((s) => s.slug !== "brief" && s.enabled)
+    .map((s) => ({ slug: s.slug, name: s.name, contextHint: s.contextHint, category: s.category }));
+
   return NextResponse.json({
     ok: true,
     brief: {
       ...result.value,
       folders,
+      availableSkills,
       recommendedNextTasks: aiNextTask ? (aiNextTask.tasks as NextTask[]) : undefined,
       aiSummary: aiSummary ?? undefined,
       briefSkillContent,

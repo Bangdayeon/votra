@@ -17,6 +17,7 @@ import {
   Search,
   XCircle,
 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -488,6 +489,7 @@ function TaskRow({
         className="flex w-full cursor-pointer items-center gap-3 px-4 py-3"
       >
         <StatusIcon status={task.status} className="shrink-0" />
+        <span className="shrink-0 text-xs text-muted-foreground">#{task.seq}</span>
         <p className={cn(
           "min-w-0 flex-1 truncate text-sm font-medium",
           task.status === "DONE" && "line-through text-muted-foreground",
@@ -533,7 +535,6 @@ function TaskRow({
                 {new Date(task.updatedAt).toLocaleDateString("ko-KR")}
               </span>
             )}
-            <span>#{task.seq}</span>
           </div>
           {task.outcome && (
             <p className="text-xs text-muted-foreground">
@@ -666,14 +667,27 @@ const PAGE_SIZE = 20;
 export function TasksTab({
   selected,
   initialTasks,
+  isActive = true,
 }: {
   selected: Project;
   initialTasks?: TaskRecord[];
+  isActive?: boolean;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [tasks, setTasks] = useState<TaskRecord[]>(initialTasks ?? []);
   const [loading, setLoading] = useState(!initialTasks);
   const [folders, setFolders] = useState<FolderRecord[]>([]);
-  const [folderView, setFolderView] = useState<FolderView>({ kind: "list" });
+
+  const [folderView, setFolderView] = useState<FolderView>(() => {
+    const param = searchParams.get("folder");
+    if (!param || param === "list") return { kind: "list" };
+    if (param === "all") return { kind: "all" };
+    if (param === "unclassified") return { kind: "unclassified" };
+    return { kind: "list" }; // folder ID: resolved after folders load
+  });
+
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -730,6 +744,33 @@ export function TasksTab({
   }, [loadTasks]);
 
   useEffect(() => { loadFolders(); }, [loadFolders]);
+
+  // Resolve folder ID from URL once folders are loaded
+  const appliedInitialFolder = useRef(false);
+  useEffect(() => {
+    if (appliedInitialFolder.current || folders.length === 0) return;
+    const param = searchParams.get("folder");
+    if (!param || ["list", "all", "unclassified"].includes(param)) return;
+    appliedInitialFolder.current = true;
+    const folder = folders.find((f) => f.id === param);
+    if (folder) setFolderView({ kind: "folder", id: folder.id, name: folder.name });
+  }, [folders, searchParams]);
+
+  // Sync folderView → URL (only when tasks tab is active)
+  useEffect(() => {
+    if (!isActive) return;
+    const next =
+      folderView.kind === "list" ? null :
+      folderView.kind === "all" ? "all" :
+      folderView.kind === "unclassified" ? "unclassified" :
+      folderView.id;
+    const current = searchParams.get("folder");
+    if (current === next) return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === null) params.delete("folder");
+    else params.set("folder", next);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [folderView, isActive, router, searchParams]);
 
   useProjectEvents(selected.id, () => { loadTasks(true); loadFolders(); });
 

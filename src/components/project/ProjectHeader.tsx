@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, CheckSquare, ChevronRight, LayoutGrid, Layers, Settings, Users } from "lucide-react";
+import { Bot, CheckSquare, ChevronRight, LayoutGrid, Layers, Settings, Sparkles, Users } from "lucide-react";
 
 import { useProjects } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
@@ -12,11 +12,12 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { label: "개요", key: "overview", icon: LayoutGrid },
   { label: "태스크", key: "tasks", icon: CheckSquare },
+  { label: "스킬", key: "skills", icon: Sparkles },
   { label: "AI 프롬프트 관리", key: "manage", icon: Bot },
   { label: "팀작업", key: "team", icon: Users },
 ] as const;
 
-type Tab = "overview" | "manage" | "tasks" | "team";
+type Tab = "overview" | "manage" | "tasks" | "skills" | "team";
 
 const SETTINGS_TABS = [
   { label: "전체", key: "all", icon: Layers },
@@ -29,6 +30,7 @@ type SettingsTab = "all" | "overview" | "ai-management";
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "tasks") return "tasks";
+  if (value === "skills") return "skills";
   if (value === "team") return "team";
   return "overview";
 }
@@ -73,6 +75,7 @@ function tabHref(projectName: string, key: Tab): string {
   if (key === "overview") return `/${projectName}`;
   return `/${projectName}?tab=${key}`;
 }
+
 
 function settingsTabHref(projectName: string, key: SettingsTab): string {
   if (key === "all") return `/${projectName}/settings`;

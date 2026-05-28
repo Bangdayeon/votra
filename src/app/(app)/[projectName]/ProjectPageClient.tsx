@@ -11,6 +11,7 @@ import type { ProjectMemberRow } from "@/app/actions/getProjectMembers";
 import type { TaskRecord } from "@/app/actions/getProjectTasks";
 import { AgentContextFlowCard } from "@/components/claude-files/AgentContextFlowCard";
 import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
+import { SkillsTab } from "@/components/memory/SkillsTab";
 import { TasksTab } from "@/components/memory/TasksTab";
 import { OverviewTab } from "@/components/overview/OverviewTab";
 import { useProjects } from "@/components/project/ProjectsContext";
@@ -36,11 +37,12 @@ export type ProjectPageInitialData = {
   };
 };
 
-type Tab = "main" | "manage" | "tasks" | "team";
+type Tab = "main" | "manage" | "tasks" | "skills" | "team";
 
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "tasks") return "tasks";
+  if (value === "skills") return "skills";
   if (value === "team") return "team";
   return "main";
 }
@@ -104,7 +106,12 @@ export function ProjectPageClient({
       )}
       {visitedTabs.has("tasks") && (
         <div className={cn(tab !== "tasks" && "hidden")}>
-          <TasksTab selected={project} initialTasks={initialData?.tasks} />
+          <TasksTab selected={project} initialTasks={initialData?.tasks} isActive={tab === "tasks"} />
+        </div>
+      )}
+      {visitedTabs.has("skills") && (
+        <div className={cn(tab !== "skills" && "hidden")}>
+          <SkillsTab selected={project} />
         </div>
       )}
       {visitedTabs.has("team") && (
