@@ -433,6 +433,8 @@ model Task {
   outcome      String?    @db.Text
   /// status 가 DONE/CANCELLED 로 바뀐 시각
   doneAt      DateTime?
+  /// 휴지통 이동 시각. null 이면 활성 태스크. 12일 후 영구 삭제.
+  deletedAt   DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -446,6 +448,7 @@ model Task {
   @@index([projectId, status])
   @@index([projectId, module])
   @@index([projectId, folderId])
+  @@index([projectId, deletedAt])
   @@index([userId])
 }
 

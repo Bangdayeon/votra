@@ -35,6 +35,7 @@ export type TaskRecord = {
   createdAt: Date;
   updatedAt: Date;
   doneAt: Date | null;
+  deletedAt: Date | null;
 };
 
 export type FolderRecord = {

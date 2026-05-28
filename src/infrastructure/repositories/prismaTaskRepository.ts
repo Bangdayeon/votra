@@ -12,7 +12,7 @@ import { prisma } from "@/infrastructure/db/prisma";
 const SELECT = {
   id: true, seq: true, projectId: true, title: true, description: true,
   status: true, module: true, priority: true, sortOrder: true, keyDecisions: true, outcome: true,
-  folderId: true, createdAt: true, updatedAt: true, doneAt: true,
+  folderId: true, createdAt: true, updatedAt: true, doneAt: true, deletedAt: true,
   user: { select: { id: true, name: true, profileImage: true, profileColor: true } },
 } as const;
 
@@ -32,6 +32,7 @@ function toRecord(row: {
   createdAt: Date;
   updatedAt: Date;
   doneAt: Date | null;
+  deletedAt: Date | null;
   user: { id: string; name: string | null; profileImage: string | null; profileColor: string | null };
 }): TaskRecord {
   return {
@@ -54,6 +55,7 @@ function toRecord(row: {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     doneAt: row.doneAt,
+    deletedAt: row.deletedAt,
   };
 }
 
@@ -101,6 +103,7 @@ export const prismaTaskRepository: TaskRepository = {
     const rows = await prisma.task.findMany({
       where: {
         projectId,
+        deletedAt: null,
         ...(userId !== undefined && { userId }),
         ...(status !== undefined && { status }),
         ...(module !== undefined && { module }),
@@ -118,6 +121,7 @@ export const prismaTaskRepository: TaskRepository = {
       where: {
         projectId,
         userId,
+        deletedAt: null,
         status: { in: ["DONE", "CANCELLED"] },
       },
       orderBy: { doneAt: "desc" },
@@ -129,7 +133,7 @@ export const prismaTaskRepository: TaskRepository = {
 
   async findRecentByUpdatedAt({ projectId, userId, limit }) {
     const rows = await prisma.task.findMany({
-      where: { projectId, ...(userId ? { userId } : {}) },
+      where: { projectId, deletedAt: null, ...(userId ? { userId } : {}) },
       orderBy: { updatedAt: "desc" },
       take: limit,
       select: SELECT,
@@ -142,16 +146,18 @@ export const prismaTaskRepository: TaskRepository = {
       id: string; seq: number; projectId: string; title: string; description: string | null;
       status: string; module: string | null; priority: number; sortOrder: number; keyDecisions: string[];
       outcome: string | null; folderId: string | null; createdAt: Date; updatedAt: Date; doneAt: Date | null;
+      deletedAt: Date | null;
       userId: string; userName: string | null; userProfileImage: string | null; userProfileColor: string | null;
     };
     const rows = await prisma.$queryRaw<RawRow[]>`
       SELECT t.id, t.seq, t."projectId", t.title, t.description, t.status, t.module, t.priority, t."sortOrder",
-             t."keyDecisions", t.outcome, t."folderId", t."createdAt", t."updatedAt", t."doneAt",
+             t."keyDecisions", t.outcome, t."folderId", t."createdAt", t."updatedAt", t."doneAt", t."deletedAt",
              t."userId", u.name AS "userName", u."profileImage" AS "userProfileImage", u."profileColor" AS "userProfileColor"
       FROM "Task" t
       LEFT JOIN "User" u ON u.id = t."userId"
       WHERE t."projectId" = ${projectId}
         AND t."userId" = ${userId}
+        AND t."deletedAt" IS NULL
         AND (
           t.title ILIKE ${'%' + query + '%'}
           OR t.description ILIKE ${'%' + query + '%'}
@@ -164,6 +170,7 @@ export const prismaTaskRepository: TaskRepository = {
       ...r,
       sortOrder: Number(r.sortOrder),
       folderId: r.folderId ?? null,
+      deletedAt: r.deletedAt ?? null,
       user: { id: r.userId, name: r.userName, profileImage: r.userProfileImage, profileColor: r.userProfileColor },
     }));
   },

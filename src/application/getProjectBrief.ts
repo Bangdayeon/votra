@@ -32,8 +32,8 @@ export async function getProjectBrief(
   try {
     const [pendingTasks, inProgressTasks, recentlyDone, claudeFiles, recentlyModified] =
       await Promise.all([
-        deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "PENDING" }),
-        deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "IN_PROGRESS" }),
+        deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "PENDING", limit: 20 }),
+        deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "IN_PROGRESS", limit: 20 }),
         deps.tasks.findRecentDone({ projectId: input.projectId, userId: input.userId, limit: 5 }),
         deps.claudeFiles.findByProject(input.projectId),
         deps.tasks.findRecentByUpdatedAt({ projectId: input.projectId, userId: input.userId, limit: 10 }),

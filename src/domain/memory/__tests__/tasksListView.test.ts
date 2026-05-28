@@ -33,6 +33,7 @@ function makeTask(overrides: Partial<TaskRecord> & { id: string }): TaskRecord {
     createdAt: new Date("2026-05-01T10:00:00Z"),
     updatedAt: new Date("2026-05-01T10:00:00Z"),
     doneAt: null,
+    deletedAt: null,
     ...overrides,
   };
 }

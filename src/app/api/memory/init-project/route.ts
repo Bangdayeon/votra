@@ -27,9 +27,20 @@ export async function POST(req: Request) {
 
   const project = await prisma.project.upsert({
     where: { ownerId_cwd: { ownerId: user.id, cwd } },
-    create: { title, cwd, ownerId: user.id },
+    create: {
+      title,
+      cwd,
+      ownerId: user.id,
+      members: { create: [{ userId: user.id, role: "OWNER" }] },
+    },
     update: {},
     select: { id: true, title: true, cwd: true },
+  });
+
+  await prisma.projectMember.upsert({
+    where: { projectId_userId: { projectId: project.id, userId: user.id } },
+    create: { projectId: project.id, userId: user.id, role: "OWNER" },
+    update: {},
   });
 
   return NextResponse.json({ ok: true, projectId: project.id, title: project.title, cwd: project.cwd });
