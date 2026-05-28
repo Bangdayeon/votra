@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { listSessionLogs } from "@/application/listSessionLogs";
-import { logSession } from "@/application/logSession";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
-import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
-import { prismaSessionLogRepository } from "@/infrastructure/repositories/prismaSessionLogRepository";
-
-const deps = { sessionLogs: prismaSessionLogRepository };
+import { prisma } from "@/infrastructure/db/prisma";
 
 export async function POST(req: Request) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
@@ -21,42 +16,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "JSON 파싱 실패." }, { status: 400 });
   }
 
-  if (!isRecord(body)) return NextResponse.json({ ok: false, error: "body가 객체가 아니에요." }, { status: 400 });
-  if (typeof body.projectId !== "string" || !body.projectId) {
+  if (!isRecord(body)) {
+    return NextResponse.json({ ok: false, error: "body가 객체가 아니에요." }, { status: 400 });
+  }
+
+  const { projectId, summary, aiTool, sessionId } = body;
+  if (typeof projectId !== "string" || !projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
-  if (typeof body.summary !== "string" || !body.summary) {
+  if (typeof summary !== "string" || !summary) {
     return NextResponse.json({ ok: false, error: "summary가 필요해요." }, { status: 400 });
   }
-  const aiTool = typeof body.aiTool === "string" && body.aiTool ? body.aiTool : "unknown";
-  const sessionId = typeof body.sessionId === "string" && body.sessionId ? body.sessionId : undefined;
-  const createOnly = body.createOnly === true;
 
-  const result = await logSession(
-    { summary: body.summary, aiTool, projectId: body.projectId, userId: user.id, sessionId, createOnly },
-    deps,
-  );
-
-  if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
-  emitProjectUpdate(body.projectId);
-  return NextResponse.json({ ok: true, sessionLog: result.value });
-}
-
-export async function GET(req: Request) {
-  const user = await resolveUserFromApiKey(req.headers.get("authorization"));
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "인증이 필요해요." }, { status: 401 });
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
+    },
+    select: { id: true },
+  });
+  if (!project) {
+    return NextResponse.json({ ok: false, error: "프로젝트를 찾을 수 없어요." }, { status: 404 });
   }
 
-  const { searchParams } = new URL(req.url);
-  const projectId = searchParams.get("projectId");
-  if (!projectId) return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
+  const sessionLog = await prisma.sessionLog.upsert({
+    where: {
+      projectId_sessionId: {
+        projectId,
+        sessionId: typeof sessionId === "string" ? sessionId : "default",
+      },
+    },
+    create: {
+      projectId,
+      userId: user.id,
+      summary,
+      aiTool: typeof aiTool === "string" ? aiTool : "unknown",
+      sessionId: typeof sessionId === "string" ? sessionId : null,
+    },
+    update: {
+      summary,
+      aiTool: typeof aiTool === "string" ? aiTool : "unknown",
+    },
+    select: { id: true },
+  });
 
-  const limit = Number(searchParams.get("limit") ?? "20");
-
-  const result = await listSessionLogs({ projectId, userId: user.id, limit }, deps);
-  if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
-  return NextResponse.json({ ok: true, sessionLogs: result.value });
+  return NextResponse.json({ ok: true, sessionLog: { id: sessionLog.id } });
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {

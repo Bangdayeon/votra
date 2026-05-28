@@ -12,7 +12,6 @@ import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaAgentContextFlowDiagnosisRepository } from "@/infrastructure/repositories/prismaAgentContextFlowDiagnosisRepository";
 import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
-import { prismaSessionRepository } from "@/infrastructure/repositories/prismaSessionRepository";
 
 export async function refreshAgentContextFlowDiagnosisAction(
   projectId: string,
@@ -21,7 +20,6 @@ export async function refreshAgentContextFlowDiagnosisAction(
   if (!guard.ok) throw new Error(guard.error);
 
   const result = await refreshAgentContextFlowDiagnosis(projectId, {
-    sessions: prismaSessionRepository,
     projects: prismaProjectRepository,
     claudeFiles: prismaClaudeFileRepository,
     diagnoses: prismaAgentContextFlowDiagnosisRepository,

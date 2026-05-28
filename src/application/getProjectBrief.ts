@@ -1,7 +1,6 @@
 import type { ClaudeFileRepository } from "@/application/ports/claudeFileRepository";
-import type { SessionLogRepository } from "@/application/ports/sessionLogRepository";
 import type { TaskRepository } from "@/application/ports/taskRepository";
-import type { SessionLogRecord, TaskRecord } from "@/domain/memory/types";
+import type { TaskRecord } from "@/domain/memory/types";
 import { err, ok } from "@/shared/lib/result";
 import type { Result } from "@/shared/lib/result";
 
@@ -14,7 +13,6 @@ export type ProjectBrief = {
   recentlyDone: TaskRecord[];
   recentlyModified: TaskRecord[];
   rules: string[];
-  lastSessionSummary: SessionLogRecord | null;
 };
 
 export type GetProjectBriefInput = {
@@ -29,17 +27,15 @@ export async function getProjectBrief(
   deps: {
     tasks: TaskRepository;
     claudeFiles: ClaudeFileRepository;
-    sessionLogs: SessionLogRepository;
   },
 ): Promise<Result<ProjectBrief, string>> {
   try {
-    const [pendingTasks, inProgressTasks, recentlyDone, claudeFiles, recentSessions, recentlyModified] =
+    const [pendingTasks, inProgressTasks, recentlyDone, claudeFiles, recentlyModified] =
       await Promise.all([
         deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "PENDING" }),
         deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "IN_PROGRESS" }),
         deps.tasks.findRecentDone({ projectId: input.projectId, userId: input.userId, limit: 5 }),
         deps.claudeFiles.findByProject(input.projectId),
-        deps.sessionLogs.listRecent({ projectId: input.projectId, userId: input.userId, limit: 1 }),
         deps.tasks.findRecentByUpdatedAt({ projectId: input.projectId, userId: input.userId, limit: 10 }),
       ]);
 
@@ -61,7 +57,6 @@ export async function getProjectBrief(
       recentlyDone,
       recentlyModified,
       rules,
-      lastSessionSummary: recentSessions[0] ?? null,
     });
   } catch (e) {
     return err(e instanceof Error ? e.message : "브리핑 조회에 실패했어요.");

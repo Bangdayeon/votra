@@ -15,15 +15,6 @@ export type TaskFilterOptions = {
   dateTo?: Date;
 };
 
-export type SessionLogRecord = {
-  id: string;
-  sessionId: string | null;
-  summary: string;
-  aiTool: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 export type TaskRecord = {
   id: string;
   seq: number;

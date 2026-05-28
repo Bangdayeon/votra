@@ -50,11 +50,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 세션이 아직 들어오지 않은 cwd 로는 claude file 만 ingest 못 함 (세션 ingest 가 먼저).
-  //
-  // 매칭 우선순위 (sessions ingest 의 Project.cwd 는 extractCwd 결과 — 첫 이벤트의 cwd —
-  // 라서 CLI 가 보낸 source 와 정확히 일치하지 않을 수 있어요. 같은 user 의 같은
-  // 프로젝트 트리 안이라면 prefix 매칭으로 받아줘요):
+  // cwd prefix 매칭으로 프로젝트를 찾아요:
   //   1. exact match
   //   2. Project.cwd 가 source 의 ancestor (예: source=/Users/bibi/votra, Project.cwd=/Users/bibi)
   //   3. source 가 Project.cwd 의 ancestor (예: source=/Users/bibi/votra, Project.cwd=/Users/bibi/votra/src)
@@ -63,7 +59,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "프로젝트가 없어요. 세션을 먼저 ingest 해 주세요.",
+        error: "프로젝트가 없어요. `brief` MCP 툴을 먼저 실행해 프로젝트를 등록해 주세요.",
       },
       { status: 404 },
     );

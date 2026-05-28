@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { finishTask } from "@/application/finishTask";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
-import { prismaSessionLogRepository } from "@/infrastructure/repositories/prismaSessionLogRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function POST(
@@ -44,12 +43,12 @@ export async function POST(
 
   const result = await finishTask(
     { seq, userId: user.id, projectId: body.projectId, summary: body.summary, aiTool, keyDecisions, outcome },
-    { tasks: prismaTaskRepository, sessionLogs: prismaSessionLogRepository },
+    { tasks: prismaTaskRepository },
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
   emitProjectUpdate(body.projectId);
-  return NextResponse.json({ ok: true, task: result.value.task, sessionLog: result.value.sessionLog });
+  return NextResponse.json({ ok: true, task: result.value.task });
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {

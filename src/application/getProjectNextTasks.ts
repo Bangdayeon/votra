@@ -1,41 +1,25 @@
 import type { LlmClient } from "@/application/ports/llmClient";
 import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
-import { buildNextTaskView } from "@/application/views/buildNextTaskView";
 import type { ProjectSettings } from "@/domain/project/settings/types";
-import type { ParsedSession } from "@/domain/session/types";
 
 export async function getProjectNextTasks(
-  sessions: ParsedSession[],
   settings: ProjectSettings,
   deps: { llm: LlmClient },
 ): Promise<NextTask[]> {
-  const view = buildNextTaskView(sessions);
   const customPrompt = settings.ai.nextTaskPrompt.trim();
+  if (!customPrompt) return [];
 
   const prompt = `
 당신은 AI 코딩 에이전트 활동 분석 전문가예요.
-아래는 프로젝트의 최근 세션 데이터입니다.
+${customPrompt}
 
-세션 데이터 필드 설명:
-- recentWorkFlow[].agentKind : 세션을 생성한 AI 에이전트 (CLAUDE/CURSOR/CODEX/GEMINI/ANTIGRAVITY)
-- recentWorkFlow[].intentHint : 세션의 작업 의도
-- recentWorkFlow[].filesModified : 수정된 파일 목록
-- incompleteSignals[].agentKind : 미완료 세션의 AI 에이전트
-
-## 세션 데이터
-${JSON.stringify(view, null, 2)}
-${customPrompt ? `\n## 추가 지침\n${customPrompt}` : ""}
-
-위 데이터를 바탕으로 현재 작업 흐름을 파악하고, 가장 효율적인 다음 액션을 **1~3개** 제안해 주세요.
-- 한국어로 답변해 주세요.
-- agentCommand 는 해당 세션의 agentKind 에 맞는 AI 에이전트에 바로 붙여넣을 수 있는 자연어 명령문으로 작성해 주세요.
-
+위 지침을 바탕으로 다음 작업을 **1~3개** 제안해주세요.
 반드시 아래 JSON 형식만 반환하세요:
 {
   "tasks": [
     {
       "title": "작업 제목 (간결하게)",
-      "reason": "이 작업을 추천하는 이유 (세션 데이터 근거)",
+      "reason": "이 작업을 추천하는 이유",
       "priority": "critical" | "high" | "medium" | "low",
       "agentCommand": "AI 에이전트에게 전달할 구체적인 실행 지시 프롬프트"
     }

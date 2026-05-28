@@ -337,35 +337,34 @@ function FolderCard({
         </div>
       </div>
 
-      {/* folder actions (not for unclassified) */}
-      {folder && !renaming && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              onClick={(e) => e.stopPropagation()}
-              className="absolute right-3 top-1/2 -translate-y-1/2 flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
-            >
-              <MoreHorizontal className="size-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-            <DropdownMenuItem onClick={() => { setRenameValue(folder.name); setRenaming(true); }}>
-              이름 변경
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => setDeleteOpen(true)}
-              className="text-red-600 focus:text-red-600"
-            >
-              삭제
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-
-      {/* right chevron */}
+      {/* right side: menu + chevron */}
       {!renaming && (
-        <ChevronRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+        <div className="flex shrink-0 items-center">
+          {folder && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
+                >
+                  <MoreHorizontal className="size-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={() => { setRenameValue(folder.name); setRenaming(true); }}>
+                  이름 변경
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setDeleteOpen(true)}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  삭제
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       )}
 
       {/* delete confirm */}
@@ -403,6 +402,9 @@ function TaskRow({
   onUpdated,
   onDeleted,
   folders,
+  isSelectMode,
+  isSelected,
+  onSelect,
 }: {
   task: TaskRecord;
   projectId: string;
@@ -411,6 +413,9 @@ function TaskRow({
   onUpdated: (updated: TaskRecord) => void;
   onDeleted: (id: string) => void;
   folders: FolderRecord[];
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -485,10 +490,20 @@ function TaskRow({
       )}
     >
       <div
-        onClick={onToggle}
+        onClick={isSelectMode ? onSelect : onToggle}
         className="flex w-full cursor-pointer items-center gap-3 px-4 py-3"
       >
-        <StatusIcon status={task.status} className="shrink-0" />
+        {isSelectMode ? (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => {}}
+            onClick={(e) => e.stopPropagation()}
+            className="size-4 shrink-0 cursor-pointer accent-foreground"
+          />
+        ) : (
+          <StatusIcon status={task.status} className="shrink-0" />
+        )}
         <span className="shrink-0 text-xs text-muted-foreground">#{task.seq}</span>
         <p className={cn(
           "min-w-0 flex-1 truncate text-sm font-medium",
@@ -508,16 +523,32 @@ function TaskRow({
             </span>
           )}
         </div>
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {task.userName ?? "알 수 없음"}
+        <span
+          className="shrink-0 max-w-[80px] truncate text-xs text-muted-foreground"
+          title={task.userName ?? undefined}
+        >
+          {task.userName && task.userName.length > 10
+            ? `${task.userName.slice(0, 10)}…`
+            : (task.userName ?? "알 수 없음")}
         </span>
-        {expanded
+        {!isSelectMode && (expanded
           ? <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
           : <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-        }
+        )}
       </div>
 
-      {expanded && (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: expanded ? "1fr" : "0fr",
+          transition: "grid-template-rows 0.2s ease-in-out",
+        }}
+      >
+        <div
+          className={cn("overflow-hidden", !expanded && "pointer-events-none")}
+          style={{ minHeight: 0 }}
+          aria-hidden={!expanded}
+        >
         <div className="border-t border-border px-4 pb-4 pt-3 flex flex-col gap-3">
           {task.description && (
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
@@ -635,7 +666,8 @@ function TaskRow({
             </DialogContent>
           </Dialog>
         </div>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -691,6 +723,12 @@ export function TasksTab({
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [bulkCreateAndMove, setBulkCreateAndMove] = useState(false);
 
   // filters (used in task list view)
   const [filterUser, setFilterUser] = useState<string>("ALL");
@@ -698,7 +736,7 @@ export function TasksTab({
   const [filterPriority, setFilterPriority] = useState<string>("ALL");
   const [hideDone, setHideDone] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<TaskSortBy>("priority");
+  const [sortBy, setSortBy] = useState<TaskSortBy>("updatedAt");
 
   const [dateField, setDateField] = useState<"createdAt" | "updatedAt">("createdAt");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
@@ -796,6 +834,71 @@ export function TasksTab({
     loadTasks(true);
   }
 
+  async function handleBulkStatusChange(newStatus: TaskStatusValue) {
+    setBulkActionLoading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const updates = await Promise.all(
+        ids.map((id) => {
+          const task = tasks.find((t) => t.id === id);
+          if (!task) return Promise.resolve(null);
+          return updateTaskStatusAction(selected.id, task.seq, newStatus);
+        }),
+      );
+      updates.forEach((u) => u && handleUpdated(u));
+      setSelectedIds(new Set());
+      toast.success(`${updates.filter(Boolean).length}개 상태를 변경했어요.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "상태 변경에 실패했어요.");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  }
+
+  async function handleBulkMoveToFolder(folderId: string | null) {
+    setBulkActionLoading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const updates = await Promise.all(
+        ids.map((id) => {
+          const task = tasks.find((t) => t.id === id);
+          if (!task) return Promise.resolve(null);
+          return moveTaskToFolderAction(selected.id, task.seq, folderId);
+        }),
+      );
+      updates.forEach((u) => u && handleUpdated(u));
+      setSelectedIds(new Set());
+      toast.success("폴더를 변경했어요.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "폴더 이동에 실패했어요.");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  }
+
+  async function handleBulkDelete() {
+    setBulkDeleteLoading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      await Promise.all(
+        ids.map((id) => {
+          const task = tasks.find((t) => t.id === id);
+          if (!task) return Promise.resolve();
+          return deleteTaskAction(selected.id, task.id);
+        }),
+      );
+      ids.forEach((id) => handleDeleted(id));
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+      setIsSelectMode(false);
+      toast.success(`${ids.length}개 태스크를 삭제했어요.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "삭제에 실패했어요.");
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  }
+
   // per-folder stats from live tasks
   const folderStats = useMemo(() => {
     const map = new Map<string | null, { total: number; inProgress: number; pending: number }>();
@@ -817,6 +920,15 @@ export function TasksTab({
     if (folderView.kind === "unclassified") return tasks.filter((t) => t.folderId === null);
     return tasks.filter((t) => t.folderId === folderView.id);
   }, [tasks, folderView]);
+
+  const scopedInProgress = useMemo(
+    () => scopedTasks.filter((t) => t.status === "IN_PROGRESS").length,
+    [scopedTasks],
+  );
+  const scopedPending = useMemo(
+    () => scopedTasks.filter((t) => t.status === "PENDING").length,
+    [scopedTasks],
+  );
 
   const creators = useMemo(() => {
     const seen = new Map<string, { name: string | null; image: string | null; color: string | null }>();
@@ -940,7 +1052,6 @@ export function TasksTab({
 
             {folders.length > 0 && (
               <>
-                <div className="my-1 border-t border-border" />
                 {folders.map((folder) => {
                   const stats = folderStats.get(folder.id) ?? { total: 0, inProgress: 0, pending: 0 };
                   return (
@@ -962,7 +1073,6 @@ export function TasksTab({
 
             {unclassifiedStats.total > 0 && (
               <>
-                {folders.length > 0 && <div className="my-1 border-t border-border" />}
                 <FolderCard
                   folder={null}
                   total={unclassifiedStats.total}
@@ -990,7 +1100,13 @@ export function TasksTab({
           open={createFolderOpen}
           projectId={selected.id}
           onClose={() => setCreateFolderOpen(false)}
-          onCreated={(folder) => setFolders((prev) => [...prev, folder])}
+          onCreated={(folder) => {
+            setFolders((prev) => [...prev, folder]);
+            if (bulkCreateAndMove) {
+              setBulkCreateAndMove(false);
+              void handleBulkMoveToFolder(folder.id);
+            }
+          }}
         />
       </div>
     );
@@ -1010,7 +1126,7 @@ export function TasksTab({
       {/* header with back */}
       <div className="flex items-center gap-2">
         <button
-          onClick={() => setFolderView({ kind: "list" })}
+          onClick={() => { setFolderView({ kind: "list" }); setIsSelectMode(false); setSelectedIds(new Set()); }}
           className="flex cursor-pointer items-center gap-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <ChevronLeft className="size-4" />
@@ -1018,12 +1134,32 @@ export function TasksTab({
         <Folder className="size-4 shrink-0 text-muted-foreground" />
         <h2 className="text-base font-semibold">{viewTitle}</h2>
         <div className="flex items-center gap-1.5 ml-1">
-          {sorted.length > 0 && (
+          {scopedInProgress > 0 && (
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+              진행 중 {scopedInProgress}
+            </span>
+          )}
+          {scopedPending > 0 && (
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {sorted.length}
+              대기 {scopedPending}
             </span>
           )}
         </div>
+        <button
+          onClick={() => {
+            if (isSelectMode) {
+              setIsSelectMode(false);
+              setSelectedIds(new Set());
+            } else {
+              setIsSelectMode(true);
+              setExpandedId(null);
+            }
+          }}
+          className="ml-auto flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          {!isSelectMode && <CheckSquare className="size-3.5" />}
+          {isSelectMode ? "취소" : "선택하기"}
+        </button>
       </div>
 
       {/* 검색 */}
@@ -1162,11 +1298,21 @@ export function TasksTab({
               key={task.id}
               task={task}
               projectId={selected.id}
-              expanded={expandedId === task.id}
+              expanded={!isSelectMode && expandedId === task.id}
               onToggle={() => setExpandedId((prev) => (prev === task.id ? null : task.id))}
               onUpdated={handleUpdated}
               onDeleted={handleDeleted}
               folders={folders}
+              isSelectMode={isSelectMode}
+              isSelected={selectedIds.has(task.id)}
+              onSelect={() => {
+                setSelectedIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(task.id)) next.delete(task.id);
+                  else next.add(task.id);
+                  return next;
+                });
+              }}
             />
           ))}
           {totalPages > 1 && (
@@ -1201,6 +1347,107 @@ export function TasksTab({
           )}
         </div>
       )}
+
+      {/* bulk action bar */}
+      {isSelectMode && (
+        <div className={cn(
+          "sticky bottom-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg transition-opacity",
+          selectedIds.size === 0 && "opacity-60",
+        )}>
+          <span className="text-sm font-medium text-muted-foreground">
+            {selectedIds.size > 0 ? `${selectedIds.size}개 선택됨` : "태스크를 선택하세요"}
+          </span>
+          {selectedIds.size > 0 && (
+            <div className="ml-auto flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="xs" disabled={bulkActionLoading}>
+                    {bulkActionLoading && <Loader2 className="size-3 animate-spin" />}
+                    상태 변경
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {(["IN_PROGRESS", "PENDING", "DONE"] as TaskStatusValue[]).map((s) => (
+                    <DropdownMenuItem key={s} onClick={() => handleBulkStatusChange(s)} className="gap-2">
+                      <StatusIcon status={s} className="size-3.5" />
+                      {s === "IN_PROGRESS" ? "진행 중" : s === "PENDING" ? "대기" : "완료"}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="xs" disabled={bulkActionLoading}>
+                    폴더 변경
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleBulkMoveToFolder(null)} className="gap-2">
+                    <Folder className="size-3.5" />
+                    미분류
+                  </DropdownMenuItem>
+                  {folders.length > 0 && <DropdownMenuSeparator />}
+                  {folders.map((f) => (
+                    <DropdownMenuItem key={f.id} onClick={() => handleBulkMoveToFolder(f.id)} className="gap-2">
+                      <Folder className="size-3.5" />
+                      {f.name}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => { setBulkCreateAndMove(true); setCreateFolderOpen(true); }}
+                    className="gap-2"
+                  >
+                    <FolderPlus className="size-3.5" />
+                    새 폴더 생성
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => setBulkDeleteOpen(true)}
+                className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+                disabled={bulkActionLoading}
+              >
+                삭제
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* bulk delete dialog */}
+      <Dialog open={bulkDeleteOpen} onOpenChange={(v) => !v && setBulkDeleteOpen(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>태스크 삭제</DialogTitle>
+            <DialogDescription>
+              선택한 <span className="font-medium text-foreground">{selectedIds.size}개</span> 태스크를 삭제할까요? 되돌릴 수 없어요.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>취소</Button>
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleteLoading}>
+              {bulkDeleteLoading && <Loader2 className="size-3.5 animate-spin" />}
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <CreateFolderDialog
+        open={createFolderOpen}
+        projectId={selected.id}
+        onClose={() => { setCreateFolderOpen(false); setBulkCreateAndMove(false); }}
+        onCreated={(folder) => {
+          setFolders((prev) => [...prev, folder]);
+          if (bulkCreateAndMove) {
+            setBulkCreateAndMove(false);
+            void handleBulkMoveToFolder(folder.id);
+          }
+        }}
+      />
     </div>
   );
 }

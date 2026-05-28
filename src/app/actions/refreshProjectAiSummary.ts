@@ -11,7 +11,6 @@ import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
-import { prismaSessionRepository } from "@/infrastructure/repositories/prismaSessionRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function refreshProjectAiSummaryAction(
@@ -21,7 +20,6 @@ export async function refreshProjectAiSummaryAction(
   if (!guard.ok) throw new Error(guard.error);
 
   const result = await refreshProjectAiSummary(projectId, {
-    sessions: prismaSessionRepository,
     projects: prismaProjectRepository,
     aiSummaries: prismaProjectAiSummaryRepository,
     tasks: prismaTaskRepository,
