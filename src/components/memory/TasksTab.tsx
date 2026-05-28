@@ -1038,8 +1038,16 @@ export function TasksTab({
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          <div className="flex flex-col gap-2">
+            {[0, 1].map((i) => (
+              <div key={i} className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3.5">
+                <div className="size-9 shrink-0 rounded-lg bg-muted animate-pulse" />
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <div className="h-3.5 w-24 rounded bg-muted animate-pulse" />
+                  <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="flex flex-col gap-2">
