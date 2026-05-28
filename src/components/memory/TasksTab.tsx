@@ -1043,7 +1043,7 @@ export function TasksTab({
             {[0, 1].map((i) => (
               <div key={i} className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3.5">
                 <Skeleton className="size-9 shrink-0 rounded-lg" />
-                <div className="flex flex-col gap-1.5 flex-1">
+                <div className="flex flex-col gap-3 flex-1">
                   <Skeleton className="h-3.5 w-24" />
                   <Skeleton className="h-3 w-16" />
                 </div>
