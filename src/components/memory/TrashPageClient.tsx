@@ -126,12 +126,18 @@ export function TrashPageClient({
   }
 
   function handlePurgeOne(taskId: string) {
-    // 즉시 UI에서 제거
     const removed = tasks.find((t) => t.id === taskId);
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    setTotal((prev) => prev - 1);
+    const newTotal = total - 1;
+    const newTotalPages = Math.max(1, Math.ceil(newTotal / PAGE_SIZE));
+    const currentPage = page;
 
-    // 기존 타이머 있으면 취소
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setTotal(newTotal);
+
+    if (currentPage > newTotalPages) {
+      void loadPage(newTotalPages);
+    }
+
     const existing = purgeTimers.current.get(taskId);
     if (existing) clearTimeout(existing);
 
@@ -146,8 +152,12 @@ export function TrashPageClient({
           clearTimeout(purgeTimers.current.get(taskId));
           purgeTimers.current.delete(taskId);
           if (removed) {
-            setTasks((prev) => [removed, ...prev]);
-            setTotal((prev) => prev + 1);
+            if (currentPage > newTotalPages) {
+              void loadPage(currentPage);
+            } else {
+              setTasks((prev) => [removed, ...prev]);
+              setTotal((prev) => prev + 1);
+            }
           }
         },
       },
@@ -171,12 +181,19 @@ export function TrashPageClient({
     try {
       const ids = Array.from(selectedIds);
       const removed = tasks.filter((t) => ids.includes(t.id));
+      const newTotal = total - ids.length;
+      const newTotalPages = Math.max(1, Math.ceil(newTotal / PAGE_SIZE));
+      const currentPage = page;
 
       setTasks((prev) => prev.filter((t) => !ids.includes(t.id)));
-      setTotal((prev) => prev - ids.length);
+      setTotal(newTotal);
       setSelectedIds(new Set());
       setBulkPurgeOpen(false);
       setIsSelectMode(false);
+
+      if (currentPage > newTotalPages) {
+        void loadPage(newTotalPages);
+      }
 
       let undone = false;
 
@@ -187,8 +204,12 @@ export function TrashPageClient({
           onClick: () => {
             undone = true;
             if (removed.length > 0) {
-              setTasks((prev) => [...removed, ...prev]);
-              setTotal((prev) => prev + removed.length);
+              if (currentPage > newTotalPages) {
+                void loadPage(currentPage);
+              } else {
+                setTasks((prev) => [...removed, ...prev]);
+                setTotal((prev) => prev + removed.length);
+              }
             }
           },
         },
@@ -228,29 +249,49 @@ export function TrashPageClient({
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-6">
+    <div className="px-8 py-6">
       {/* 검색 + 툴바 */}
       <div className="mb-4 flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             placeholder="태스크 검색"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background py-2 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            className="w-full rounded-full border border-border bg-muted py-1 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
-        <p className="shrink-0 text-sm text-muted-foreground">{total}개</p>
-        <Button
-          variant="ghost"
-          size="sm"
+        <p className="shrink-0 text-xs text-muted-foreground">{total}개</p>
+        <button
           onClick={() => { setIsSelectMode((v) => !v); setSelectedIds(new Set()); }}
-          className="shrink-0 text-xs"
+          className="shrink-0 flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          {isSelectMode ? "선택 취소" : "선택"}
-        </Button>
+          {!isSelectMode && <CheckSquare className="size-3.5" />}
+          {isSelectMode ? "취소" : "선택하기"}
+        </button>
       </div>
+
+      {/* 전체 선택 바 */}
+      {isSelectMode && !loading && tasks.length > 0 && (
+        <div className="mb-2 flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={tasks.every((t) => selectedIds.has(t.id))}
+            readOnly
+            onClick={() => {
+              const allSelected = tasks.every((t) => selectedIds.has(t.id));
+              if (allSelected) {
+                setSelectedIds(new Set());
+              } else {
+                setSelectedIds(new Set(tasks.map((t) => t.id)));
+              }
+            }}
+            className="size-4 cursor-pointer accent-foreground"
+          />
+          <span className="text-xs text-muted-foreground">전체 선택</span>
+        </div>
+      )}
 
       {/* 태스크 리스트 */}
       {loading ? (
@@ -270,7 +311,7 @@ export function TrashPageClient({
                 key={task.id}
                 className={cn(
                   "flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors",
-                  isSelectMode && isSelected && "border-primary/40 bg-primary/5",
+                  isSelectMode && isSelected && "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20",
                 )}
                 onClick={isSelectMode ? () => toggleSelect(task.id) : undefined}
                 style={isSelectMode ? { cursor: "pointer" } : undefined}
@@ -281,11 +322,11 @@ export function TrashPageClient({
                     checked={isSelected}
                     readOnly
                     onClick={(e) => { e.stopPropagation(); toggleSelect(task.id); }}
-                    className="size-4 shrink-0 cursor-pointer accent-primary"
+                    className="size-4 shrink-0 cursor-pointer accent-foreground"
                   />
                 )}
                 <StatusIcon status={task.status} />
-                <p className="min-w-0 flex-1 truncate text-sm">{task.title}</p>
+                <p className="min-w-0 flex-1 truncate text-sm font-medium">{task.title}</p>
                 <div className="flex shrink-0 items-center gap-1.5">
                   {pl > 0 && (
                     <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", PRIORITY_STYLES[pl as 1 | 2 | 3 | 4])}>
@@ -333,24 +374,50 @@ export function TrashPageClient({
 
       {/* 페이지네이션 */}
       {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-center gap-3">
-          <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => void loadPage(page - 1)}>
-            <ChevronLeft className="size-4" />이전
-          </Button>
-          <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
-          <Button variant="outline" size="sm" disabled={page >= totalPages || loading} onClick={() => void loadPage(page + 1)}>
-            다음<ChevronRight className="size-4" />
-          </Button>
+        <div className="flex items-center justify-center gap-1 pt-4">
+          <button
+            onClick={() => void loadPage(page - 1)}
+            disabled={page <= 1 || loading}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              onClick={() => void loadPage(p)}
+              disabled={loading}
+              className={cn(
+                "flex size-7 cursor-pointer items-center justify-center rounded-md text-xs transition-colors disabled:pointer-events-none",
+                p === page ? "bg-foreground text-background font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            onClick={() => void loadPage(page + 1)}
+            disabled={page >= totalPages || loading}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+          >
+            <ChevronRight className="size-4" />
+          </button>
         </div>
       )}
 
       {/* 다중선택 하단 바 */}
       {isSelectMode && selectedIds.size > 0 && (
-        <div className="sticky bottom-4 mt-4 flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
-          <span className="text-sm text-muted-foreground">{selectedIds.size}개 선택됨</span>
-          <Button variant="destructive" size="sm" onClick={() => setBulkPurgeOpen(true)}>
-            <Trash2 className="size-3.5" />영구 삭제
-          </Button>
+        <div className={cn(
+          "sticky bottom-4 mt-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg",
+        )}>
+          <span className="text-sm font-medium text-muted-foreground">{selectedIds.size}개 선택됨</span>
+          <div className="ml-auto">
+            <Button variant="ghost" size="xs" onClick={() => setBulkPurgeOpen(true)}
+              className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+            >
+              <Trash2 className="size-3.5" />영구 삭제
+            </Button>
+          </div>
         </div>
       )}
 
@@ -360,7 +427,7 @@ export function TrashPageClient({
           <DialogHeader>
             <DialogTitle>영구 삭제</DialogTitle>
             <DialogDescription>
-              선택한 <span className="font-medium text-foreground">{selectedIds.size}개</span> 태스크를 영구 삭제할까요? 토스트 알림에서 실행취소할 수 있어요.
+              선택한 <span className="font-medium text-foreground">{selectedIds.size}개</span> 태스크를 영구 삭제할까요?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

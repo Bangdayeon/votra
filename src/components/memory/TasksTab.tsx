@@ -487,7 +487,8 @@ function TaskRow({
     <div
       className={cn(
         "rounded-lg border border-border bg-card transition-shadow",
-        task.status === "DONE" && "opacity-60",
+        !isSelectMode && task.status === "DONE" && "opacity-60",
+        isSelectMode && isSelected && "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20",
       )}
     >
       <div
@@ -1287,6 +1288,28 @@ export function TasksTab({
         </label>
       </div>
 
+      {/* 전체 선택 바 */}
+      {isSelectMode && sorted.length > 0 && (
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={paged.length > 0 && paged.every((t) => selectedIds.has(t.id))}
+            readOnly
+            onClick={() => {
+              const allSelected = paged.every((t) => selectedIds.has(t.id));
+              setSelectedIds((prev) => {
+                const next = new Set(prev);
+                if (allSelected) paged.forEach((t) => next.delete(t.id));
+                else paged.forEach((t) => next.add(t.id));
+                return next;
+              });
+            }}
+            className="size-4 cursor-pointer accent-foreground"
+          />
+          <span className="text-xs text-muted-foreground">전체 선택</span>
+        </div>
+      )}
+
       {/* task list */}
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
@@ -1351,71 +1374,64 @@ export function TasksTab({
       )}
 
       {/* bulk action bar */}
-      {isSelectMode && (
-        <div className={cn(
-          "sticky bottom-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg transition-opacity",
-          selectedIds.size === 0 && "opacity-60",
-        )}>
-          <span className="text-sm font-medium text-muted-foreground">
-            {selectedIds.size > 0 ? `${selectedIds.size}개 선택됨` : "태스크를 선택하세요"}
-          </span>
-          {selectedIds.size > 0 && (
-            <div className="ml-auto flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="xs" disabled={bulkActionLoading}>
-                    {bulkActionLoading && <Loader2 className="size-3 animate-spin" />}
-                    상태 변경
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {(["IN_PROGRESS", "PENDING", "DONE"] as TaskStatusValue[]).map((s) => (
-                    <DropdownMenuItem key={s} onClick={() => handleBulkStatusChange(s)} className="gap-2">
-                      <StatusIcon status={s} className="size-3.5" />
-                      {s === "IN_PROGRESS" ? "진행 중" : s === "PENDING" ? "대기" : "완료"}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="xs" disabled={bulkActionLoading}>
-                    폴더 변경
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleBulkMoveToFolder(null)} className="gap-2">
+      {isSelectMode && selectedIds.size > 0 && (
+        <div className="sticky bottom-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
+          <span className="text-sm font-medium text-muted-foreground">{selectedIds.size}개 선택됨</span>
+          <div className="ml-auto flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="xs" disabled={bulkActionLoading}>
+                  {bulkActionLoading && <Loader2 className="size-3 animate-spin" />}
+                  상태 변경
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {(["IN_PROGRESS", "PENDING", "DONE"] as TaskStatusValue[]).map((s) => (
+                  <DropdownMenuItem key={s} onClick={() => handleBulkStatusChange(s)} className="gap-2">
+                    <StatusIcon status={s} className="size-3.5" />
+                    {s === "IN_PROGRESS" ? "진행 중" : s === "PENDING" ? "대기" : "완료"}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="xs" disabled={bulkActionLoading}>
+                  폴더 변경
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleBulkMoveToFolder(null)} className="gap-2">
+                  <Folder className="size-3.5" />
+                  미분류
+                </DropdownMenuItem>
+                {folders.length > 0 && <DropdownMenuSeparator />}
+                {folders.map((f) => (
+                  <DropdownMenuItem key={f.id} onClick={() => handleBulkMoveToFolder(f.id)} className="gap-2">
                     <Folder className="size-3.5" />
-                    미분류
+                    {f.name}
                   </DropdownMenuItem>
-                  {folders.length > 0 && <DropdownMenuSeparator />}
-                  {folders.map((f) => (
-                    <DropdownMenuItem key={f.id} onClick={() => handleBulkMoveToFolder(f.id)} className="gap-2">
-                      <Folder className="size-3.5" />
-                      {f.name}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => { setBulkCreateAndMove(true); setCreateFolderOpen(true); }}
-                    className="gap-2"
-                  >
-                    <FolderPlus className="size-3.5" />
-                    새 폴더 생성
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => setBulkDeleteOpen(true)}
-                className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
-                disabled={bulkActionLoading}
-              >
-                삭제
-              </Button>
-            </div>
-          )}
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => { setBulkCreateAndMove(true); setCreateFolderOpen(true); }}
+                  className="gap-2"
+                >
+                  <FolderPlus className="size-3.5" />
+                  새 폴더 생성
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => setBulkDeleteOpen(true)}
+              className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+              disabled={bulkActionLoading}
+            >
+              삭제
+            </Button>
+          </div>
         </div>
       )}
 
