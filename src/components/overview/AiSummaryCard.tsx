@@ -3,7 +3,6 @@
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
 import { InlineMarkdown } from "@/components/common/InlineMarkdown";
-import { Skeleton } from "@/components/ui/skeleton";
 
 type Props = {
   summary?: string;
@@ -36,11 +35,7 @@ export function AiSummaryCard({
 
       <section className="mt-4">
         {loading ? (
-          <div className="flex flex-col gap-3 pl-4">
-            <Skeleton className="h-3 w-4/5" />
-            <Skeleton className="h-3 w-3/4" />
-            <Skeleton className="h-3 w-2/3" />
-          </div>
+          <p className="text-sm text-muted-foreground">불러오는 중…</p>
         ) : summaryLines.length > 0 ? (
           <ul className="flex list-disc flex-col gap-3 pl-4">
             {summaryLines.map((line, i) => (

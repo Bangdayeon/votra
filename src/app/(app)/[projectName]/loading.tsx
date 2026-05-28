@@ -26,27 +26,10 @@ export default function ProjectLoading() {
       {/* AiSummaryCard 스켈레톤 */}
       <CardSkeleton>
         <CardHeaderSkeleton />
-        {/* 프로젝트 상태 요약 섹션 */}
-        <div className="mt-4">
-          <Skeleton className="h-5 w-36 mb-2" />
-          <div className="flex flex-col gap-3 pl-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-4/6" />
-          </div>
-        </div>
-        {/* 제안 섹션 */}
-        <div className="mt-5">
-          <Skeleton className="h-5 w-16 mb-2" />
-          <div className="flex flex-col gap-4">
-            {[0, 1].map((i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-8 w-full rounded-md" />
-              </div>
-            ))}
-          </div>
+        <div className="mt-4 flex flex-col gap-3 pl-4">
+          <Skeleton className="h-3 w-4/5" />
+          <Skeleton className="h-3 w-3/4" />
+          <Skeleton className="h-3 w-2/3" />
         </div>
       </CardSkeleton>
 
