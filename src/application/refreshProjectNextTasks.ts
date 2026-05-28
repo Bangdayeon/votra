@@ -22,17 +22,20 @@ export async function refreshProjectNextTasks(
     llm: LlmClient;
   },
 ): Promise<RefreshedProjectNextTasks> {
-  const [settingsRow, recentTasks, pendingTasks] = await Promise.all([
+  const [settingsRow, recentByUpdatedAt, pendingTasks, inProgressTasks] = await Promise.all([
     deps.projects.findSettings(projectId),
     deps.tasks.findRecentByUpdatedAt({ projectId, limit: 10 }),
     deps.tasks.listByFilter({ projectId, status: "PENDING", limit: 10 }),
+    deps.tasks.listByFilter({ projectId, status: "IN_PROGRESS", limit: 10 }),
   ]);
   const settings = parseProjectSettings(settingsRow.settings);
 
-  const seenIds = new Set(recentTasks.map((t) => t.id));
+  const recentDone = recentByUpdatedAt.filter((t) => t.status === "DONE" || t.status === "CANCELLED");
+  const seenIds = new Set([...inProgressTasks, ...pendingTasks].map((t) => t.id));
   const mergedTasks = [
-    ...recentTasks,
-    ...pendingTasks.filter((t) => !seenIds.has(t.id)),
+    ...inProgressTasks,
+    ...pendingTasks,
+    ...recentDone.filter((t) => !seenIds.has(t.id)),
   ];
 
   const tasks = await getProjectNextTasks(settings, { llm: deps.llm }, mergedTasks);

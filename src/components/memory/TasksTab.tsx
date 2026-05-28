@@ -1297,12 +1297,11 @@ export function TasksTab({
             readOnly
             onClick={() => {
               const allSelected = paged.every((t) => selectedIds.has(t.id));
-              setSelectedIds((prev) => {
-                const next = new Set(prev);
-                if (allSelected) paged.forEach((t) => next.delete(t.id));
-                else paged.forEach((t) => next.add(t.id));
-                return next;
-              });
+              if (allSelected) {
+                setSelectedIds(new Set());
+              } else {
+                setSelectedIds(new Set(paged.map((t) => t.id)));
+              }
             }}
             className="size-4 cursor-pointer accent-foreground"
           />
