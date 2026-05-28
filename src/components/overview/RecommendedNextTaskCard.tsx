@@ -5,6 +5,7 @@ import { AgentCommandBox } from "@/components/common/AgentCommandBox";
 import { Card } from "@/components/common/Card";
 import { CardRefreshHeader } from "@/components/common/CardRefreshHeader";
 import { PriorityBadge } from "@/components/common/PriorityBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Props = {
   tasks?: NextTask[];
@@ -35,7 +36,17 @@ export function RecommendedNextTaskCard({
 
       <section className="mt-4">
         {loading ? (
-          <p className="text-sm text-muted-foreground">불러오는 중…</p>
+          <ul className="flex flex-col gap-4">
+            {[0, 1].map((i) => (
+              <li key={i} className="flex flex-col items-start gap-1.5">
+                <div className="flex gap-1.5">
+                  <Skeleton className="h-4 w-7 rounded" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+                <Skeleton className="h-3 w-2/3" />
+              </li>
+            ))}
+          </ul>
         ) : tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             아직 분석된 내용이 없어요. 새로고침 버튼을 눌러 시작해 주세요.

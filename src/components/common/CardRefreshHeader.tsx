@@ -3,6 +3,7 @@
 import { Loader2, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Props = {
   title: string;
@@ -41,9 +42,13 @@ export function CardRefreshHeader({
           </Button>
         )}
       </div>
-      <p className="self-end text-xs text-muted-foreground lg:self-auto">
-        마지막 업데이트: {formatRefreshedAt(refreshedAt)}
-      </p>
+      {loading ? (
+        <Skeleton className="self-end h-3 w-28 lg:self-auto" />
+      ) : (
+        <p className="self-end text-xs text-muted-foreground lg:self-auto">
+          마지막 업데이트: {formatRefreshedAt(refreshedAt)}
+        </p>
+      )}
     </div>
   );
 }
