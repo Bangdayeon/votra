@@ -24,13 +24,23 @@ export async function refreshProjectAiSummary(
     llm: LlmClient;
   },
 ): Promise<RefreshedProjectAiSummary> {
-  const [settingsRow, recentTasks] = await Promise.all([
+  const [settingsRow, recentByUpdatedAt, pendingTasks, inProgressTasks] = await Promise.all([
     deps.projects.findSettings(projectId),
     deps.tasks.findRecentByUpdatedAt({ projectId, limit: 10 }),
+    deps.tasks.listByFilter({ projectId, status: "PENDING", limit: 10 }),
+    deps.tasks.listByFilter({ projectId, status: "IN_PROGRESS", limit: 10 }),
   ]);
   const settings = parseProjectSettings(settingsRow.settings);
 
-  const generated = await getProjectAiSummary(settings, { llm: deps.llm }, recentTasks);
+  const recentDone = recentByUpdatedAt.filter((t) => t.status === "DONE" || t.status === "CANCELLED");
+  const seenIds = new Set([...inProgressTasks, ...pendingTasks].map((t) => t.id));
+  const mergedTasks = [
+    ...inProgressTasks,
+    ...pendingTasks,
+    ...recentDone.filter((t) => !seenIds.has(t.id)),
+  ];
+
+  const generated = await getProjectAiSummary(settings, { llm: deps.llm }, mergedTasks);
 
   const saved = await deps.aiSummaries.upsert({
     projectId,

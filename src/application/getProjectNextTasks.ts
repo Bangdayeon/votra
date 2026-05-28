@@ -4,6 +4,10 @@ import { DEFAULT_NEXT_TASK_PROMPT } from "@/domain/project/settings/defaultNextT
 import type { TaskRecord } from "@/domain/memory/types";
 import type { ProjectSettings } from "@/domain/project/settings/types";
 
+const MAX_TITLE_LEN = 80;
+const MAX_REASON_LEN = 300;
+const MAX_AGENT_COMMAND_LEN = 500;
+
 export async function getProjectNextTasks(
   settings: ProjectSettings,
   deps: { llm: LlmClient },
@@ -37,57 +41,64 @@ export async function getProjectNextTasks(
   );
 
   const prompt = `
-당신은 AI 프로젝트 분석가예요.
+You are an AI project analyst. Analyze the task data below and suggest 1–3 high-impact next actions.
+
+## User instruction
 ${customInstruction}
 
-## 현재 태스크 현황
+## Current task data
 ${taskContext}
 
-## 지시사항
-위 데이터를 분석해서 지금 시작하기에 가장 효과적인 작업을 **1~3개** 제안해 주세요.
+## Rules (strictly follow all)
+- Base your suggestions ONLY on the provided task data. Never mention file names, features, or domains not present in the data.
+- No speculation. Use only what is explicitly stated in recentlyDone[].outcome and recentlyDone[].keyDecisions as evidence.
+- Do NOT simply list pending task titles without analysis. Every suggestion must explain WHY now.
+- Prioritize unfinished work or follow-up tasks found in recentlyDone[].outcome / keyDecisions.
+- When recommending a pending task, explicitly state its connection to recently completed work.
+- If there is insufficient data to make a well-grounded recommendation, return an empty tasks array.
+- agentCommand: max 2 lines, self-contained natural-language instruction (no setup needed). Must reference the actual task title or outcome content.
 
-반드시 아래 규칙을 따르세요:
-- 단순히 대기 중 태스크를 그대로 나열하지 마세요.
-- 최근 완료 작업(recentlyDone)의 outcome·keyDecisions에서 드러난 미완성 부분이나 파생 작업을 우선 분석하세요.
-- 대기 중 태스크를 추천할 때는 완료 작업과의 연관성·의존 관계를 reason에 명시하세요.
-- 완료 작업 패턴에서 기존 목록에 없는 새로운 작업이 필요하다면 새롭게 제안해도 됩니다.
-
-반드시 아래 JSON 형식만 반환하세요:
+## Output
+Respond in Korean. Return ONLY the following JSON — no other text:
 {
   "tasks": [
     {
-      "title": "작업 제목 (간결하게)",
-      "reason": "완료 작업 분석 근거와 지금 해야 하는 이유",
+      "title": "작업 제목 (max 80 chars)",
+      "reason": "완료 작업 분석 근거와 지금 해야 하는 이유 (max 300 chars)",
       "priority": "critical" | "high" | "medium" | "low",
-      "agentCommand": "AI 에이전트에 바로 붙여넣을 수 있는 구체적인 실행 지시"
+      "agentCommand": "AI 에이전트 실행 지시 (max 500 chars)"
     }
   ]
 }
 `.trim();
 
   const text = await deps.llm.complete({
-    system: "출력은 반드시 지정된 JSON 형식만 반환하세요. 다른 텍스트 금지.",
+    system: "You are a JSON-only responder. Output must be valid JSON matching the specified schema exactly. No markdown, no explanations, no extra text.",
     prompt,
-    maxTokens: 1024,
+    maxTokens: 2048,
   });
 
   return parseTasks(text);
 }
 
 function parseTasks(text: string): NextTask[] {
-  const cleaned = stripCodeFence(text).trim();
-  const parsed = JSON.parse(cleaned) as unknown;
-  if (!isRecord(parsed) || !Array.isArray(parsed.tasks)) return [];
-  return parsed.tasks.filter(isNextTask).slice(0, 3);
+  try {
+    const cleaned = stripCodeFence(text).trim();
+    const parsed = JSON.parse(cleaned) as unknown;
+    if (!isRecord(parsed) || !Array.isArray(parsed.tasks)) return [];
+    return parsed.tasks.filter(isNextTask).slice(0, 3);
+  } catch {
+    return [];
+  }
 }
 
 function isNextTask(v: unknown): v is NextTask {
   if (!isRecord(v)) return false;
   return (
-    typeof v.title === "string" &&
-    typeof v.reason === "string" &&
+    typeof v.title === "string" && v.title.length > 0 && v.title.length <= MAX_TITLE_LEN &&
+    typeof v.reason === "string" && v.reason.length > 0 && v.reason.length <= MAX_REASON_LEN &&
     (v.priority === "critical" || v.priority === "high" || v.priority === "medium" || v.priority === "low") &&
-    typeof v.agentCommand === "string"
+    typeof v.agentCommand === "string" && v.agentCommand.length > 0 && v.agentCommand.length <= MAX_AGENT_COMMAND_LEN
   );
 }
 

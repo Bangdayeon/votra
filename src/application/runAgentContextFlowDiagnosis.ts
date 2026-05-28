@@ -30,9 +30,7 @@ function fillTemplate(template: string, input: RunInput): string {
   return template
     .replace("{{team_policy}}", formatPolicy(input.teamPolicy))
     .replace("{{project_policy}}", formatPolicy(input.projectPolicy))
-    .replace("{{context_files}}", formatContextFiles(input.contextFiles))
-    .replace("{{session_stats}}", JSON.stringify({ totalSessions: 0, recentSessions: [] }, null, 2))
-    .replace("{{conversation_patterns}}", JSON.stringify([], null, 2));
+    .replace("{{context_files}}", formatContextFiles(input.contextFiles));
 }
 
 function formatPolicy(text: string): string {

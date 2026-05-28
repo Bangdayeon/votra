@@ -64,7 +64,6 @@ model User {
   acceptedInvites    ProjectInvite[] @relation("AcceptedByUser")
   tasks              Task[]
   taskFolders        TaskFolder[]
-  sessionLogs        SessionLog[]
 }
 
 // ────────────────────────────────────────────
@@ -133,7 +132,6 @@ model Project {
   invites              ProjectInvite[]
   tasks                Task[]
   taskFolders          TaskFolder[]
-  sessionLogs          SessionLog[]
   skillConfigs         ProjectSkillConfig[]
 
   @@unique([ownerId, cwd])
@@ -449,31 +447,6 @@ model Task {
   @@index([projectId, module])
   @@index([projectId, folderId])
   @@index([projectId, deletedAt])
-  @@index([userId])
-}
-
-// ────────────────────────────────────────────
-// SESSION LOG (AI가 세션 종료 시 저장하는 작업 요약)
-// ────────────────────────────────────────────
-
-model SessionLog {
-  id        String   @id @default(cuid())
-  /// MCP 프로세스 기동 시 생성되는 UUID — 같은 세션의 여러 log_session 호출을 하나로 묶어요
-  sessionId String?
-  /// AI가 생성한 세션 요약
-  summary   String   @db.Text
-  /// 작업에 사용한 AI 도구 ("claude" | "cursor" | "gemini" | "codex")
-  aiTool    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([projectId, sessionId])
-  @@index([projectId, createdAt(sort: Desc)])
   @@index([userId])
 }
 

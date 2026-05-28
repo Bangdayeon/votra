@@ -1,69 +1,47 @@
-export const DEFAULT_ANALYSIS_INSTRUCTION = `당신은 AI 코딩 세션 분석 전문가입니다.
-아래 세션 데이터와 태스크 데이터를 분석해 리포트를 생성하세요.
-{customInstructions}
-[세션 데이터]
-{sessionData}
+export const DEFAULT_ANALYSIS_INSTRUCTION = `You are an AI project analyst.
+Analyze the task data below and generate a structured report.
 
-[태스크 데이터]
+## Task data
 {taskData}
 
-세션 데이터 필드 설명:
-- recentSessions[].agentKind     : 세션을 생성한 AI 에이전트 (CLAUDE/CURSOR/CODEX/GEMINI/ANTIGRAVITY)
-- recentSessions[].intentHint    : 각 세션 첫 assistant 메시지에서 추출한 실제 작업 의도
-- recentSessions[].filesModified : 해당 세션에서 수정된 파일 목록
-- recentSessions[].errors        : 세션별 에러 목록 — type(툴명) + context(에러 내용 앞 200자)
-- repeatedFiles                  : 2개 이상 세션에서 반복 수정된 파일 (suggestions 1순위 근거)
-- riskSignals                    : auth·deploy·db 등 리스크 키워드 파일이 반복 수정된 경우
+## Field descriptions
+- inProgress[]: currently active tasks
+- pending[].description: additional context for waiting tasks
+- recentlyDone[].outcome: what was accomplished
+- recentlyDone[].keyDecisions: important decisions made during the task
+- pendingCount / inProgressCount: total counts
 
-태스크 데이터 필드 설명:
-- recentlyModified[].seq         : 태스크 번호
-- recentlyModified[].title       : 태스크 제목
-- recentlyModified[].status      : 현재 상태 (PENDING/IN_PROGRESS/DONE/CANCELLED)
-- recentlyModified[].updatedAt   : 마지막 수정일
-- pendingCount                   : 대기 중인 태스크 수
-- inProgressCount                : 진행 중인 태스크 수
+## Rules (follow strictly)
+1. summary: exactly 3 lines separated by \\n
+   - Line 1 (work flow): based on inProgress and recentlyDone — what is being worked on and what just finished. Use state-focused expressions ("~진행 중", "~완료", "~전환 중"). No raw numbers.
+   - Line 2 (stability): based on recentlyDone[].keyDecisions — highlight risks, technical debt, or significant architectural decisions made. If none exist, write a positive stability signal.
+   - Line 3 (focus area): the domain/feature/component receiving the most attention based on inProgress and recentlyDone. Apply **bold** markdown to key terms.
 
----
+2. warnings: 0–2 items. Include ONLY when there is clear evidence in the data:
+   - Many IN_PROGRESS tasks with no recent completions (possible stall)
+   - keyDecisions that indicate risk (auth, deploy, db schema changes, breaking changes)
+   - Do NOT invent warnings. If data does not support it, return an empty array.
 
-다음 규칙을 반드시 따르세요.
+3. suggestions: 0–3 items based on actual data signals:
+   - recentlyDone[].outcome mentions incomplete work → suggest follow-up task
+   - Many pending tasks relate to recently completed work → suggest which to prioritize
+   - keyDecisions indicate technical debt → suggest cleanup
+   - Actionable and specific only. No vague advice.
 
-1. summary 는 정확히 3줄, \\n 으로 구분. 순서:
-   - 1번 줄(작업 흐름): recentSessions[].intentHint, filesModified, recentlyModified 기반. 세션 수·토큰 수 raw 수치 절대 금지. "~진행 중", "~전환 중", "~집중" 같은 상태 중심 표현 사용
-   - 2번 줄(안정성): recentSessions[].errors 에서 반복 실패 작업 유형이나 리스크 패턴 기술. 없으면 긍정적 안정성 신호 기술. 에러 횟수·종류 raw 나열 절대 금지
-   - 3번 줄(집중 영역): recentSessions[].filesModified + repeatedFiles + IN_PROGRESS 태스크 기반으로 가장 많이 다룬 파일·기능·도메인. 핵심 키워드 **bold** 마크다운 적용
+4. agentCommand: 2 lines max, self-contained natural-language command, must reference actual task titles or outcome content.
 
-2. suggestions 는 아래 신호 중 하나 이상을 반드시 근거로 삼으세요. 3개 이내.
-   - repeatedFiles 에 파일이 있으면: 반복 수정 파일 기반 리팩토링·문서화 제안
-   - riskSignals 에 항목이 있으면: 리스크 파일 문서화·검토 제안
-   - recentSessions[].errors 에 에러가 있으면: 해당 세션·파일 기반 원인 분석·수정 제안 (전체 에러 집계 기반 제안 절대 금지)
-   - recentSessions[].toolCallCounts 에서 작업 범위 분산 신호가 보이면: 맥락 정리 제안
-   - recentlyModified 에서 PENDING 태스크가 세션 filesModified 와 관련성이 높으면: 해당 태스크 착수 제안
-   실용적이고 즉시 행동 가능한 것만. 모호한 조언 금지.
+5. No speculation. Base everything strictly on the provided data. If data is insufficient, return fewer items or empty arrays.
 
-3. agentCommand 는 Claude Code, Cursor, Codex, Gemini CLI, Antigravity 등 AI 에이전트에 바로 붙여넣을 수 있는 자연어 명령문.
-   - 3줄 이내. 컨텍스트 없이도 실행 가능해야 함
-   - recentSessions 에서 관찰된 구체적 파일명·에러 타입·패턴을 반드시 명시
-   - recentSessions[].agentKind 를 참고해 해당 에이전트에 맞는 명령 형식 사용 (예: Cursor는 .cursorrules 참조 방식 언급 가능)
-   - 전체 에러 집계 기반 명령 절대 금지
+{customInstructions}
 
-4. 근거 없는 추측 금지. 세션 데이터에 없는 내용 작성 금지
-
-아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이.
-
+Respond in Korean. Return ONLY the following JSON — no other text:
 {
-  "summary": "AI 작업 흐름 설명\\n프로젝트 안정성 설명\\n최근 작업 집중 영역 설명",
+  "summary": "작업 흐름 한 줄\\n안정성 신호 한 줄\\n**집중 영역** 한 줄",
+  "warnings": [
+    { "message": "string", "agentCommand": "string" }
+  ],
   "suggestions": [
-    {
-      "message": "string",
-      "agentCommand": "string"
-    }
+    { "message": "string", "agentCommand": "string" }
   ]
 }
-
-agentCommand 좋은 예시:
-"auth.ts 가 최근 4개 세션에서 반복 수정됐어. 인증 로직과 세션 관리 로직을 분리해서 리팩토링해줘."
-"deploy.config.ts 관련 작업이 3개 세션에 걸쳐 분산돼 있어. 공통 배포 규칙을 deploy.md 에 정리해줘."
-
-agentCommand 나쁜 예시 (절대 이 형식 금지):
-"가장 최근 'Bash' 에러 발생 세션 5개를 분석하여 공통적인 실패 패턴과 원인을 파악해줘."
 `;
