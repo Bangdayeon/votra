@@ -241,13 +241,13 @@ export function ProjectHeader() {
                     else tabRefs.current.delete(key);
                   }}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 text-sm transition-colors",
+                    "flex items-center gap-1.5 px-2 py-2 text-xs sm:px-3 sm:text-sm transition-colors",
                     active
                       ? "font-medium text-primary"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <TabIcon className="size-4 shrink-0" />
+                  <TabIcon className="size-3.5 sm:size-4 shrink-0" />
                   {label}
                 </Link>
               );
@@ -263,13 +263,13 @@ export function ProjectHeader() {
                     else tabRefs.current.delete(key);
                   }}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 text-sm transition-colors",
+                    "flex items-center gap-1.5 px-2 py-2 text-xs sm:px-3 sm:text-sm transition-colors",
                     active
                       ? "font-medium text-primary"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <TabIcon className="size-4 shrink-0" />
+                  <TabIcon className="size-3.5 sm:size-4 shrink-0" />
                   {label}
                 </Link>
               );
