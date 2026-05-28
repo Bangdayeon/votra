@@ -8,7 +8,7 @@ export function ProjectHeaderCard({ selected }: { selected: Project }) {
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-bold text-foreground">{selected.name}</h2>
         {selected.description && (
-          <span className="text-xs text-gray-500 truncate max-w-[200px]">
+          <span className="hidden sm:inline text-xs text-gray-500 truncate max-w-[200px]">
             {selected.description}
           </span>
         )}

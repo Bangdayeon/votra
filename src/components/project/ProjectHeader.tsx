@@ -186,7 +186,7 @@ export function ProjectHeader() {
           {title}
         </Link>
         {!isSettings && project?.description && (
-          <span className="shrink-0 text-xs text-gray-500">
+          <span className="hidden sm:inline shrink-0 text-xs text-gray-500">
             {project.description}
           </span>
         )}
