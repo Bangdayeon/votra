@@ -185,6 +185,11 @@ export function ProjectHeader() {
         >
           {title}
         </Link>
+        {!isSettings && project?.description && (
+          <span className="shrink-0 text-xs text-gray-500">
+            {project.description}
+          </span>
+        )}
         {!isSettings && project?.lastCliSyncAt && (
           <span className="shrink-0 text-xs text-muted-foreground">
             {formatCliSyncDate(project.lastCliSyncAt)}

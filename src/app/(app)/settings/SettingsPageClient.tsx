@@ -380,10 +380,10 @@ function SettingsForm({
                     type="text"
                     value={title}
                     disabled={!isOwner}
-                    maxLength={20}
-                    placeholder="최대 20자"
+                    maxLength={15}
+                    placeholder="최대 15자"
                     onChange={(e) => {
-                      setTitle(e.target.value);
+                      setTitle(e.target.value.slice(0, 15));
                       setBasicSaveState({ kind: "idle" });
                     }}
                     className={cn(
@@ -392,20 +392,20 @@ function SettingsForm({
                       "disabled:cursor-not-allowed disabled:opacity-50",
                     )}
                   />
-                  <p className="text-xs text-muted-foreground">{title.length} / 20</p>
+                  <p className="text-[10px] text-muted-foreground/70 text-right">{title.length} / 15</p>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-muted-foreground">
                     설명
                   </label>
-                  <textarea
+                  <input
+                    type="text"
                     value={description}
                     disabled={!isOwner}
-                    maxLength={100}
-                    placeholder="최대 100자 · 프로젝트에 대한 짧은 설명을 입력해주세요."
-                    rows={2}
+                    maxLength={25}
+                    placeholder="최대 25자"
                     onChange={(e) => {
-                      setDescription(e.target.value);
+                      setDescription(e.target.value.slice(0, 25));
                       setBasicSaveState({ kind: "idle" });
                     }}
                     className={cn(
@@ -414,7 +414,7 @@ function SettingsForm({
                       "disabled:cursor-not-allowed disabled:opacity-50",
                     )}
                   />
-                  <p className="text-xs text-muted-foreground">{description.length} / 100</p>
+                  <p className="text-[10px] text-muted-foreground/70 text-right">{description.length} / 25</p>
                 </div>
               </div>
               {isOwner && (

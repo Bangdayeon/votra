@@ -7,17 +7,17 @@ export function ProjectHeaderCard({ selected }: { selected: Project }) {
     <div className="w-full">
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-bold text-foreground">{selected.name}</h2>
+        {selected.description && (
+          <span className="text-xs text-gray-500 truncate max-w-[200px]">
+            {selected.description}
+          </span>
+        )}
         {agentLabel && (
           <span className="inline-flex items-center rounded-md bg-[#D4956B] px-2.5 py-1 text-xs font-medium text-white">
             {agentLabel}
           </span>
         )}
       </div>
-      {selected.description && (
-        <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
-          {selected.description}
-        </p>
-      )}
     </div>
   );
 }

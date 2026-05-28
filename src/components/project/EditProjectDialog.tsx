@@ -102,19 +102,24 @@ export function EditProjectDialog({ project, onClose, onSaved }: Props) {
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              maxLength={15}
+              onChange={(e) => setTitle(e.target.value.slice(0, 15))}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
             />
+            <span className="text-[10px] text-muted-foreground/70 text-right">{title.length} / 15</span>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">설명</span>
-            <textarea
+            <input
+              type="text"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
+              maxLength={25}
+              placeholder="최대 25자"
+              onChange={(e) => setDescription(e.target.value.slice(0, 25))}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
             />
+            <span className="text-[10px] text-muted-foreground/70 text-right">{description.length} / 25</span>
           </label>
 
           <div className="flex flex-col gap-1 text-sm">
