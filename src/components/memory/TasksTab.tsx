@@ -15,7 +15,6 @@ import {
   MoreHorizontal,
   RotateCcw,
   Search,
-  Trash2,
   XCircle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,9 +24,6 @@ import { toast } from "sonner";
 import { createFolderAction } from "@/app/actions/createFolderAction";
 import { deleteFolderAction } from "@/app/actions/deleteFolderAction";
 import { deleteTaskAction } from "@/app/actions/deleteTask";
-import { listTrashedTasksAction } from "@/app/actions/listTrashedTasks";
-import { purgeTaskAction } from "@/app/actions/purgeTask";
-import { restoreTaskAction } from "@/app/actions/restoreTask";
 import { getProjectFoldersAction } from "@/app/actions/getProjectFolders";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
 import { moveTaskToFolderAction } from "@/app/actions/moveTaskToFolderAction";
@@ -433,6 +429,7 @@ function TaskRow({
     try {
       await deleteTaskAction(projectId, task.id);
       onDeleted(task.id);
+      toast.success("휴지통으로 이동했어요.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "삭제에 실패했어요.");
     } finally {
@@ -501,8 +498,8 @@ function TaskRow({
           <input
             type="checkbox"
             checked={isSelected}
-            onChange={() => {}}
-            onClick={(e) => e.stopPropagation()}
+            readOnly
+            onClick={(e) => { e.stopPropagation(); onSelect?.(); }}
             className="size-4 shrink-0 cursor-pointer accent-foreground"
           />
         ) : (
@@ -734,9 +731,6 @@ export function TasksTab({
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [bulkCreateAndMove, setBulkCreateAndMove] = useState(false);
 
-  const [trashOpen, setTrashOpen] = useState(false);
-  const [trashedTasks, setTrashedTasks] = useState<TaskRecord[]>([]);
-  const [trashLoading, setTrashLoading] = useState(false);
 
   // filters (used in task list view)
   const [filterUser, setFilterUser] = useState<string>("ALL");
@@ -899,48 +893,11 @@ export function TasksTab({
       setSelectedIds(new Set());
       setBulkDeleteOpen(false);
       setIsSelectMode(false);
-      toast.success(`${ids.length}개 태스크를 삭제했어요.`);
+      toast.success(`${ids.length}개를 휴지통으로 이동했어요.`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "삭제에 실패했어요.");
     } finally {
       setBulkDeleteLoading(false);
-    }
-  }
-
-  async function handleOpenTrash() {
-    if (trashOpen) {
-      setTrashOpen(false);
-      return;
-    }
-    setTrashOpen(true);
-    setTrashLoading(true);
-    try {
-      const rows = await listTrashedTasksAction(selected.id);
-      setTrashedTasks(rows);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "휴지통 로드에 실패했어요.");
-    } finally {
-      setTrashLoading(false);
-    }
-  }
-
-  async function handleRestore(taskId: string) {
-    try {
-      await restoreTaskAction(selected.id, taskId);
-      setTrashedTasks((prev) => prev.filter((t) => t.id !== taskId));
-      toast.success("태스크를 복원했어요.");
-      loadTasks(true);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "복원에 실패했어요.");
-    }
-  }
-
-  async function handlePurge(taskId: string) {
-    try {
-      await purgeTaskAction(selected.id, taskId);
-      setTrashedTasks((prev) => prev.filter((t) => t.id !== taskId));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "영구 삭제에 실패했어요.");
     }
   }
 
@@ -1494,58 +1451,6 @@ export function TasksTab({
         }}
       />
 
-      {/* 휴지통 섹션 */}
-      <div className="mt-4 border-t border-border pt-3">
-        <button
-          type="button"
-          onClick={() => void handleOpenTrash()}
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-        >
-          <Trash2 className="size-3.5 shrink-0" />
-          <span>휴지통</span>
-          <ChevronDown className={cn("ml-auto size-3.5 transition-transform", trashOpen && "rotate-180")} />
-        </button>
-
-        {trashOpen && (
-          <div className="mt-2 space-y-1">
-            {trashLoading ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="size-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : trashedTasks.length === 0 ? (
-              <p className="py-3 text-center text-xs text-muted-foreground">휴지통이 비어 있어요.</p>
-            ) : (
-              trashedTasks.map((t) => {
-                const daysLeft = t.deletedAt
-                  ? 12 - Math.floor((Date.now() - new Date(t.deletedAt).getTime()) / 86400000)
-                  : 0;
-                return (
-                  <div key={t.id} className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm">
-                    <span className="min-w-0 flex-1 truncate text-muted-foreground">{t.title}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{daysLeft}일 후 삭제</span>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => void handleRestore(t.id)}
-                      className="shrink-0 text-xs"
-                    >
-                      복원
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => void handlePurge(t.id)}
-                      className="shrink-0 text-xs text-destructive hover:text-destructive"
-                    >
-                      영구 삭제
-                    </Button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

@@ -55,7 +55,9 @@ function formatRefreshedAt(
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "없음";
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((nowDay.getTime() - dDay.getTime()) / (1000 * 60 * 60 * 24));
   const time = d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
   if (diffDays === 0) return `오늘 ${time}`;
   if (diffDays === 1) return `어제 ${time}`;

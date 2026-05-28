@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, CheckSquare, ChevronRight, LayoutGrid, Layers, Settings, Sparkles, Users } from "lucide-react";
+import { Bot, CheckSquare, ChevronRight, LayoutGrid, Layers, Settings, Sparkles, Trash2, Users } from "lucide-react";
 
 import { useProjects } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
@@ -44,8 +44,9 @@ function parseSettingsTab(value: string | null): SettingsTab {
 function formatCliSyncDate(iso: string): string {
   const date = new Date(iso);
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const dDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((nowDay.getTime() - dDay.getTime()) / (1000 * 60 * 60 * 24));
   const time = date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
   if (diffDays === 0) return `오늘 ${time} 업데이트`;
   if (diffDays === 1) return `어제 ${time} 업데이트`;
@@ -102,6 +103,7 @@ export function ProjectHeader() {
   );
 
   const isSettings = pathname.endsWith("/settings");
+  const isTrash = pathname.endsWith("/trash");
   const activeKey: Tab | null = isSettings ? null : parseTab(searchParams.get("tab"));
   const settingsActiveKey: SettingsTab = isSettings
     ? parseSettingsTab(searchParams.get("tab"))
@@ -131,6 +133,29 @@ export function ProjectHeader() {
       });
     }
   }, [currentActiveKey]);
+
+  if (isTrash) {
+    return (
+      <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Link href={`/${params.projectName}`} className="flex shrink-0">
+            {project?.image ? (
+              <Image src={project.image} alt={title} width={36} height={36} className="size-9 rounded-xl object-cover" />
+            ) : (
+              <span className="flex size-9 items-center justify-center rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: avatarColor }}>
+                {title[0]?.toUpperCase()}
+              </span>
+            )}
+          </Link>
+          <Link href={`/${params.projectName}`} className="truncate text-xl font-semibold">
+            {title}
+          </Link>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          <span className="text-xl font-semibold">휴지통</span>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background px-6 pt-4">
@@ -172,18 +197,29 @@ export function ProjectHeader() {
           </>
         )}
 
-        <Link
-          href={`/${params.projectName}/settings`}
-          className={cn(
-            "ml-auto rounded-md p-1.5 transition-colors",
-            isSettings
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground",
+        <div className="ml-auto flex items-center gap-1">
+          <Link
+            href={`/${params.projectName}/settings`}
+            className={cn(
+              "rounded-md p-1.5 transition-colors",
+              isSettings
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            aria-label="설정"
+          >
+            <Settings className="size-4" />
+          </Link>
+          {!isSettings && (
+            <Link
+              href={`/${params.projectName}/trash`}
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="휴지통"
+            >
+              <Trash2 className="size-4" />
+            </Link>
           )}
-          aria-label="설정"
-        >
-          <Settings className="size-4" />
-        </Link>
+        </div>
       </div>
 
       {/* 탭 */}

@@ -20,6 +20,7 @@ import { UserMenu } from "@/components/project/shell/UserMenu";
 export function SideNavigation() {
   const { open, toggle, mobileOpen, closeMobile } = useSidebar();
   const { projects, selectedId, refresh } = useProjects();
+
   const [editing, setEditing] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(
     null,
