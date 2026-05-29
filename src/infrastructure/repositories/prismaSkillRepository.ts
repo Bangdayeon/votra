@@ -10,7 +10,7 @@ export const prismaSkillRepository: SkillRepository = {
       prisma.platformSkill.findMany({
         where: { isActive: true },
         orderBy: [{ category: "asc" }, { slug: "asc" }],
-        select: { slug: true, name: true, description: true, category: true, contextHint: true, isActive: true },
+        select: { slug: true, name: true, description: true, category: true, contextHint: true, content: true, isActive: true },
       }),
       prisma.projectSkillConfig.findMany({
         where: { projectId },
@@ -26,6 +26,7 @@ export const prismaSkillRepository: SkillRepository = {
       description: s.description,
       category: s.category,
       contextHint: s.contextHint,
+      content: s.content,
       isActive: s.isActive,
       enabled: configMap.get(s.slug) ?? true,
     }));

@@ -55,6 +55,7 @@ export type SkillRecord = {
   description: string;
   category: string;
   contextHint: string;
+  content: string;
   isActive: boolean;
   enabled: boolean;
 };

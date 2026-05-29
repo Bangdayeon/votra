@@ -1,12 +1,28 @@
 /**
  * Platform Skills 시드 스크립트
- * 실행: npx tsx scripts/seed-skills.ts
+ * 실행: npm run seed:skills
  */
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const BRIEF_SKILL_CONTENT = `## BRIEF — 세션 시작 프로토콜
+type SkillSeed = {
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  contextHint: string;
+  content: string;
+};
+
+const PLATFORM_SKILLS: SkillSeed[] = [
+  {
+    slug: "brief",
+    name: "브리프 가이드",
+    description: "세션 시작 시 현황 파악 및 태스크 추천 프로토콜",
+    category: "process",
+    contextHint: "세션 시작, brief 호출 직후 자동 적용",
+    content: `## BRIEF — 세션 시작 프로토콜
 
 ### 1. 현황 요약 출력
 아래 형식으로 출력:
@@ -38,29 +54,81 @@ const BRIEF_SKILL_CONTENT = `## BRIEF — 세션 시작 프로토콜
 - 태스크 없이 코드 작업 절대 금지
 - 간단해 보여도 예외 없음
 
+**start_task 호출 전 사용자 확인 (필수)**
+1. brief의 폴더 목록에서 태스크와 관련된 폴더 찾기
+2. 아래 형식으로 출력 후 승인 대기:
+\`\`\`
+**[태스크명]** 태스크를 생성할게요.
+📁 폴더: [폴더명] (또는 미분류)
+계속할까요?
+\`\`\`
+3. 승인 후에만 \`start_task\` 호출 — 폴더가 있으면 \`folderId\` 포함
+
 ### 4. 세션 종료
 - 작업 완료 시 \`finish_task\` 호출
 - 완료 태스크 없으면 \`log_session\` 호출
-`;
+`,
+  },
+  {
+    slug: "backend",
+    name: "Backend Engineer",
+    description: "API, business logic, and server-side code",
+    category: "coding",
+    contextHint: "Use before building or modifying API endpoints, business logic, or server-side code",
+    content: `## BACKEND ENGINEER
+
+You are a Backend Engineer. Build APIs that are secure, consistent, and predictable.
+
+### WHEN TO USE
+API endpoints, business logic, auth/authorization, database queries, error handling.
+
+### STANDARDS
+
+**Validation**
+- Validate ALL input before processing — required fields, types, formats
+- Return 400 with a clear message about what is wrong
+
+**HTTP status codes**
+- 400 bad input · 401 unauthenticated · 403 forbidden · 404 not found · 409 conflict · 500 server error
+- Never expose stack traces to the client
+
+**Security**
+- Parameterized queries — never string concat for SQL
+- Auth check on every endpoint unless explicitly public
+- Never log passwords, tokens, or PII
+
+**Data integrity**
+- Multi-table writes in a single transaction — rollback on any failure
+- Pagination for all list endpoints — never unbounded queries
+
+**Code structure**
+- Route handlers thin — delegate to services
+- Follow existing project patterns only
+
+### BEFORE MARKING DONE
+- [ ] Input validated at the endpoint boundary
+- [ ] Correct HTTP codes for all error cases
+- [ ] No secrets or PII in logs or responses
+- [ ] Follows existing project patterns
+`,
+  },
+];
 
 async function main() {
-  await prisma.platformSkill.upsert({
-    where: { slug: "brief" },
-    create: {
-      slug: "brief",
-      name: "브리프 가이드",
-      description: "세션 시작 시 현황 파악 및 태스크 추천 프로토콜",
-      contextHint: "세션 시작, brief 호출 직후 자동 적용",
-      content: BRIEF_SKILL_CONTENT,
-    },
-    update: {
-      content: BRIEF_SKILL_CONTENT,
-      description: "세션 시작 시 현황 파악 및 태스크 추천 프로토콜",
-      contextHint: "세션 시작, brief 호출 직후 자동 적용",
-    },
-  });
-
-  console.log("✅ Platform skill 'brief' upserted");
+  for (const skill of PLATFORM_SKILLS) {
+    await prisma.platformSkill.upsert({
+      where: { slug: skill.slug },
+      create: skill,
+      update: {
+        name: skill.name,
+        description: skill.description,
+        category: skill.category,
+        contextHint: skill.contextHint,
+        content: skill.content,
+      },
+    });
+    console.log(`✅ Platform skill '${skill.slug}' upserted`);
+  }
 }
 
 main()

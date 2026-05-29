@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -67,6 +67,7 @@ function SkillRow({
   onToggled: (slug: string, enabled: boolean) => void;
 }) {
   const [pending, setPending] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   async function handleToggle(enabled: boolean) {
     setPending(true);
@@ -82,18 +83,37 @@ function SkillRow({
   }
 
   return (
-    <div className="flex items-start gap-4 rounded-lg border border-border bg-card px-4 py-3.5">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{skill.name}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">{skill.description}</p>
-        <p className="mt-1.5 text-xs text-muted-foreground/70 italic leading-relaxed">
-          {skill.contextHint}
-        </p>
+    <div className="rounded-lg border border-border bg-card">
+      <div
+        className="flex cursor-pointer items-start gap-4 px-4 py-3.5"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">{skill.name}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{skill.description}</p>
+          <p className="mt-1.5 text-xs text-muted-foreground/70 italic leading-relaxed">
+            {skill.contextHint}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 pt-0.5">
+          {pending && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+          <div onClick={(e) => e.stopPropagation()}>
+            <Toggle checked={skill.enabled} onChange={handleToggle} disabled={pending} />
+          </div>
+          {expanded
+            ? <ChevronUp className="size-3.5 text-muted-foreground" />
+            : <ChevronDown className="size-3.5 text-muted-foreground" />
+          }
+        </div>
       </div>
-      <div className="flex shrink-0 items-center gap-2 pt-0.5">
-        {pending && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
-        <Toggle checked={skill.enabled} onChange={handleToggle} disabled={pending} />
-      </div>
+
+      {expanded && (
+        <div className="border-t border-border px-4 py-3">
+          <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-muted-foreground">
+            {skill.content}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }

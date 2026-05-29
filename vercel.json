@@ -1,0 +1,3 @@
+{
+  "buildCommand": "npm run db:deploy && npx tsx scripts/seed-skills.ts && npm run build"
+}
