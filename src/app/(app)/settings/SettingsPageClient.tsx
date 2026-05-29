@@ -137,6 +137,7 @@ function SettingsForm({
   // AI settings state
   const [analysisInstruction, setAnalysisInstruction] = useState("");
   const [nextTaskPrompt, setNextTaskPrompt] = useState("");
+  const [autoRefreshHour, setAutoRefreshHour] = useState<number | null>(null);
   const [guideline, setGuideline] = useState("");
   const [agentContextFlowPrompt, setAgentContextFlowPrompt] = useState("");
   const [existingFileName, setExistingFileName] = useState<string | null>(null);
@@ -167,6 +168,12 @@ function SettingsForm({
             typeof rawAi.nextTaskPrompt === "string"
               ? rawAi.nextTaskPrompt
               : "",
+          );
+          const rawHour = rawAi.autoRefreshHour;
+          setAutoRefreshHour(
+            typeof rawHour === "number" && rawHour >= 0 && rawHour <= 23
+              ? rawHour
+              : null,
           );
           setGuideline(
             typeof data.aiSpecGuideline === "string" &&
@@ -267,6 +274,7 @@ function SettingsForm({
             ai: {
               analysisInstruction: analysisInstruction || null,
               nextTaskPrompt: nextTaskPrompt || null,
+              autoRefreshHour,
             },
           },
           ...buildAiSpecPolicyPatch(guideline, fileChange),
@@ -302,6 +310,7 @@ function SettingsForm({
     projectId,
     analysisInstruction,
     nextTaskPrompt,
+    autoRefreshHour,
     guideline,
     fileChange,
     agentContextFlowPrompt,
@@ -497,6 +506,41 @@ function SettingsForm({
               <p className="text-xs text-muted-foreground">
                 {nextTaskPrompt.length} / {AI_NEXT_TASK_PROMPT_MAX}
               </p>
+            </Section>
+
+            <Section
+              title="자동 업데이트"
+              description="매일 지정한 시각(KST)에 상태 요약과 제안 작업을 자동으로 업데이트해요."
+            >
+              <div className="flex items-center gap-3">
+                <select
+                  disabled={loading || !isOwner}
+                  value={autoRefreshHour === null ? "off" : String(autoRefreshHour)}
+                  onChange={(e) => {
+                    setAutoRefreshHour(
+                      e.target.value === "off" ? null : Number(e.target.value),
+                    );
+                    markDirty();
+                  }}
+                  className={cn(
+                    "h-10 rounded-md border border-input bg-muted px-3 text-sm",
+                    "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                  )}
+                >
+                  <option value="off">사용 안함</option>
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>
+                      {String(i).padStart(2, "0")}:00
+                    </option>
+                  ))}
+                </select>
+                {autoRefreshHour !== null && (
+                  <p className="text-sm text-muted-foreground">
+                    매일 {String(autoRefreshHour).padStart(2, "0")}:00 (KST)에 업데이트
+                  </p>
+                )}
+              </div>
             </Section>
 
             {isOwner && (

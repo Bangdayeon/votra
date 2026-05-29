@@ -12,6 +12,7 @@ import {
   Plug,
   RotateCcw,
   Sun,
+  Terminal,
   UserCog,
   Users,
 } from "lucide-react";
@@ -34,6 +35,7 @@ import {
   type AiSpecFileChange,
 } from "@/domain/aiSpec/types";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 type MenuKey = "account" | "policy" | "guide";
 
@@ -395,42 +397,20 @@ const SERVICE_FEATURES: {
     name: "개요",
     icon: LayoutGrid,
     screenshot: "/assets/images/guide/tab-overview.png",
-    desc: "AI 에이전트 세션을 자동 분석해 프로젝트 현황을 요약하고, 지금 해야 할 작업을 추천해줘요.",
+    desc: "최근 작업 내용을 바탕으로 프로젝트 현황을 요약하고, 다음 작업을 추천해줘요.",
     features: [
       {
         title: "💡 AI 요약 & 솔루션",
         lines: [
-          "업로드된 AI 에이전트 세션을 분석해 프로젝트 진행 상황·이슈·개선 방향을 한눈에 보여줘요.",
-          "새로고침하면 최신 세션 기준으로 다시 분석해요.",
+          "최근 커밋 기록과 저장된 작업 내용을 분석해 프로젝트 진행 상황, 이슈를 한눈에 보여줘요.",
+          "특이하거나 반복적인 문제 패턴이 있으면 경고와 함께 간단한 솔루션을 제시해요."
         ],
       },
       {
-        title: "💬 추천 다음 작업",
+        title: "💬 제안 작업",
         lines: [
-          "AI가 세션 흐름을 보고 높음·보통·낮음 우선순위로 할 일을 정리해줘요.",
-          "각 작업마다 에이전트에게 바로 넘길 수 있는 명령어도 함께 제안해요.",
-        ],
-      },
-    ],
-  },
-  {
-    name: "AI 프롬프트 관리",
-    icon: Bot,
-    screenshot: "/assets/images/guide/tab-manage.png",
-    desc: "프로젝트에 업로드된 AI 프롬프트를 정책 기준으로 평가하고, 컨텍스트 흐름을 진단해요.",
-    features: [
-      {
-        title: "AI 프롬프트",
-        lines: [
-          "CLAUDE.md·AGENTS.md·SKILL.md를 파일 트리로 보여줘요.",
-          "파일마다 정책 적합도를 평가하고, 개별 재평가도 할 수 있어요.",
-        ],
-      },
-      {
-        title: "🩺 AI 프롬프트 흐름 진단",
-        lines: [
-          "전체 정책과 프로젝트 정책이 AI 에이전트에 올바르게 전달되는지 진단해요.",
-          "문제가 있으면 개선 방법도 함께 알려줘요.",
+          "커밋 기록과 작업 내용 기반으로 다음에 진행하면 좋은 작업을 추천해줘요.",
+          "에이전트에게 바로 넘길 수 있는 명령어를 함께 제안해요.",
         ],
       },
     ],
@@ -438,45 +418,75 @@ const SERVICE_FEATURES: {
   {
     name: "태스크",
     icon: ListChecks,
-    screenshot: "",
-    desc: "AI 에이전트가 등록한 태스크를 프로젝트별로 추적하고 관리해요.",
+    screenshot: "/assets/images/guide/tab-task.png",
+    desc: "AI 에이전트가 등록한 태스크를 한눈에 확인하고 관리할 수 있어요.",
     features: [
       {
         title: "태스크 현황 조회",
         lines: [
-          "votra-memory MCP를 통해 에이전트가 등록한 태스크를 PENDING·IN_PROGRESS·DONE 상태로 분류해요.",
-          "세션과 연결된 태스크 흐름을 한눈에 파악할 수 있어요.",
+          "votra-memory MCP를 통해 에이전트가 등록한 태스크를 관리해요.",
+          "폴더별로 분리하여 태스크 흐름을 한눈에 파악할 수 있어요.",
         ],
       },
       {
         title: "태스크 이력",
         lines: [
-          "완료된 태스크와 핵심 결정 사항을 누적 관리해 프로젝트 맥락을 유지해요.",
+          "완료된 태스크와 핵심 결정 사항을 보관하여 프로젝트 맥락 유지에 활용해요.",
         ],
       },
     ],
   },
   {
+    name: "AI 프롬프트 관리",
+    icon: Bot,
+    screenshot: "/assets/images/guide/tab-prompt.png",
+    desc: "프로젝트에 작성된 AI 프롬프트를 정책 기준으로 평가하고, 전체 문서 흐름을 진단해요.",
+    features: [
+      {
+        title: "AI 프롬프트",
+        lines: [
+          "ai 에이전트용 문서들을 파일 트리로 보여줘요.",
+          "파일마다 정책 적합도에 따른 피드백을 받을 수 있어요",
+        ],
+      },
+      {
+        title: "AI 프롬프트 흐름 진단",
+        lines: [
+          "문서 연결 간 맥락 흐름을 분석해 병목 구간이나 맥락 손실 구간을 진단해요.",
+          "중복 되거나 모순이 있는 지점을 진단해 개선점을 제안해요."
+        ],
+      },
+    ],
+  },
+  
+  {
     name: "팀작업",
     icon: Users,
-    screenshot: "",
-    desc: "팀원의 AI 에이전트 세션을 함께 확인하고 프로젝트 진행 상황을 공유해요.",
+    screenshot: "/assets/images/guide/tab-team.png",
+    desc: "팀원을 추가하여 함께 확인하고 태스크 상황을 공유해요.",
     features: [
       {
         title: "공유 프로젝트",
         lines: [
-          "프로젝트를 팀과 공유하면 멤버 모두가 세션·태스크·AI 요약을 볼 수 있어요.",
-        ],
-      },
-      {
-        title: "멤버별 활동 현황",
-        lines: [
-          "누가 어떤 세션을 올렸는지, 진행 중인 태스크가 무엇인지 한눈에 확인해요.",
+          "프로젝트를 팀과 공유하면 멤버 모두가 태스크 상태를 공유할 수 있어요.",
         ],
       },
     ],
   },
 ];
+
+const CLI_STEPS = [
+  { step: "1", title: "CLI 설치", code: "npm install -g @votra/cli" },
+  { step: "2", title: "MCP 서버 등록", code: "votra install" },
+] as const;
+
+const CLI_COMMANDS = [
+  {
+    cmd: "votra install",
+    desc: "AI 도구에 votra MCP 서버 자동 등록",
+    usage: "votra install [claude|cursor|gemini|codex|all]",
+  },
+] as const;
 
 const MCP_SETUP_STEPS = [
   {
@@ -486,31 +496,31 @@ const MCP_SETUP_STEPS = [
   },
   {
     step: "2",
-    title: "로그인",
-    code: "votra signin",
+    title: "MCP 서버 등록",
+    code: "votra install",
   },
   {
     step: "3",
-    title: "MCP 서버 등록",
-    code: "votra mcp install",
+    title: "로그인",
+    code: "Claude Code 재시작 후 signin 툴로 votra 계정에 로그인해요",
   },
 ] as const;
 
 const MCP_TOOLS: { tool: string; desc: string }[] = [
-  { tool: "brief", desc: "현재 프로젝트의 태스크·결정·규칙을 한번에 조회 (세션 시작 시 호출)" },
-  { tool: "recall", desc: "과거 생각·결정을 의미 유사도로 검색" },
+  { tool: "brief", desc: "세션 시작 브리핑 — 태스크·결정·추천 작업 한번에 조회" },
+  { tool: "recall", desc: "과거 결정·인사이트를 의미 기반으로 검색" },
   { tool: "add_task", desc: "새 태스크 등록" },
-  { tool: "start_task", desc: "태스크 등록 후 즉시 IN_PROGRESS 시작 (add_task + update_task 합본)" },
-  { tool: "finish_task", desc: "태스크를 DONE으로 완료하고 세션 요약 저장 (update_task + log_session 합본)" },
+  { tool: "start_task", desc: "태스크 등록 후 즉시 IN_PROGRESS로 시작" },
   { tool: "update_task", desc: "태스크 상태·내용 변경 (PENDING / IN_PROGRESS / DONE)" },
-  { tool: "list_tasks", desc: "태스크 목록 조회" },
-  { tool: "task_detail", desc: "태스크 상세 조회 (description, outcome, keyDecisions 등)" },
+  { tool: "finish_task", desc: "태스크 완료 처리 — 요약·핵심 결정 함께 저장" },
+  { tool: "list_tasks", desc: "태스크 목록 조회 (상태·모듈 필터 가능)" },
+  { tool: "task_detail", desc: "태스크 상세 정보 조회" },
   { tool: "log_session", desc: "세션 종료 전 작업 요약 저장" },
-  { tool: "load_skill", desc: "상황에 맞는 스킬 지침 로드" },
   { tool: "upload_prompt", desc: "CLAUDE.md·AGENTS.md·SKILL.md 업로드" },
-  { tool: "signin", desc: "votra 계정 로그인" },
+  { tool: "load_skill", desc: "컨텍스트별 스킬 지침 로드" },
+  { tool: "signin", desc: "브라우저 OAuth로 votra 계정 로그인" },
   { tool: "whoami", desc: "현재 로그인 계정 확인" },
-  { tool: "signout", desc: "로그아웃" },
+  { tool: "signout", desc: "로그아웃 및 인증 정보 삭제" },
 ];
 
 function GuidePane() {
@@ -519,7 +529,7 @@ function GuidePane() {
       <header>
         <h2 className="text-xl font-semibold">사용 안내</h2>
         <p className="mt-1.5">
-          votra는 작업 내용을 task로 자동 저장하여 세션 간 기억상실 문제를 해결합니다.
+          votra는 작업 내용을 자동 저장하여 세션 간 기억상실 문제를 해결합니다.
         </p>
         <p className="mt-1.5">
           또한 최신 커밋 기록과 작업 내용을 기반으로 프로젝트 현황을 요약하고 다음 작업을 추천합니다.
@@ -540,7 +550,7 @@ function GuidePane() {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{tab.desc}</p>
                 </div>
-                <div className="aspect-video rounded-lg border border-border bg-muted" />
+                <Image src={tab.screenshot} alt={`${tab.name} 스크린샷`} width={800} height={400} className="rounded-lg border border-border object-cover" />
                 <div className="flex flex-col gap-4">
                   {tab.features.map((feat) => (
                     <div key={feat.title}>
@@ -564,13 +574,67 @@ function GuidePane() {
         </div>
       </section>
 
+      <div className="bg-gray-400 rounded-md h-[0.2px]"/>
+      <section className="flex flex-col gap-4">
+        <h3 className="text-base font-semibold">CLI 연동 방법</h3>
+        <p className="text-sm text-muted-foreground">
+          votra CLI를 설치하고 <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">votra install</code> 명령어로 MCP 서버를 AI 도구에 등록해요.
+        </p>
+        <ol className="flex flex-col gap-2">
+          {CLI_STEPS.map(({ step, title, code }) => (
+            <li key={step} className="flex items-center gap-3">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+                {step}
+              </span>
+              <span className="w-28 shrink-0 text-sm font-medium">{title}</span>
+              <code className="flex-1 rounded bg-muted px-3 py-1.5 font-mono text-sm text-foreground">
+                {code}
+              </code>
+            </li>
+          ))}
+        </ol>
+        <p className="text-xs text-muted-foreground">
+          등록 후 Claude Code를 재시작하면 votra-memory MCP 서버가 활성화돼요. 이후 signin 툴로 votra 계정에 로그인하세요.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <Terminal className="size-4 text-muted-foreground" />
+          <h3 className="text-base font-semibold">CLI 명령어 모음</h3>
+        </div>
+        <div className="overflow-hidden rounded-lg border border-border">
+          {CLI_COMMANDS.map(({ cmd, desc, usage }, i) => (
+            <div
+              key={cmd}
+              className={cn(
+                "flex flex-col gap-1.5 px-4 py-3.5",
+                i !== 0 && "border-t border-border",
+              )}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <code className="font-mono text-sm font-semibold text-foreground">
+                  {cmd}
+                </code>
+                <span className="text-right text-sm text-muted-foreground">
+                  {desc}
+                </span>
+              </div>
+              <code className="font-mono text-xs text-muted-foreground/70">
+                {usage}
+              </code>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="flex flex-col gap-6">
         <div className="flex items-center gap-2">
           <Plug className="size-4 text-muted-foreground" />
           <h3 className="text-base font-semibold">MCP 서버 연동</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          Claude Code에 votra MCP 서버를 연결하면 AI 에이전트가 태스크·메모리를 프로젝트와 직접 연동해 관리해요.
+          votra MCP 서버가 연결되면 AI 에이전트가 태스크·메모리를 프로젝트와 직접 연동해 관리해요. Claude Code, Cursor, Gemini CLI, Codex를 지원해요.
         </p>
 
         <div className="flex flex-col gap-3">
@@ -591,7 +655,7 @@ function GuidePane() {
             ))}
           </ol>
           <p className="text-xs text-muted-foreground">
-            install 명령어가 Claude Code 설정에 자동으로 등록해줘요. 완료 후 Claude Code를 재시작하면 돼요.
+            <code className="font-mono">votra install all</code>을 실행하면 Claude Code, Cursor, Gemini CLI, Codex 모두에 등록해요. 완료 후 AI 도구를 재시작하면 돼요.
           </p>
         </div>
 

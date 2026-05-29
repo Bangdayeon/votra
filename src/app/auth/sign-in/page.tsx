@@ -1,9 +1,46 @@
-import { Terminal } from "lucide-react";
+import { Brain, ChevronDown, ListChecks, Terminal, Zap } from "lucide-react";
 import { redirect } from "next/navigation";
 
+import { LandingGuide } from "@/components/auth/LandingGuide";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { getCurrentUser } from "@/infrastructure/auth/currentUser";
 import { safeNextPath } from "@/shared/lib/safeNextPath";
+
+const STATS = [
+  {
+    value: "최대 50%",
+    label: "토큰 절감",
+    sub: "세션마다 컨텍스트 재설명 없이 바로 시작",
+  },
+  {
+    value: "80%",
+    label: "빠른 세션 복귀",
+    sub: "brief 한 번으로 프로젝트 현황 즉시 파악",
+  },
+  {
+    value: "0건",
+    label: "태스크 누락",
+    sub: "에이전트가 등록한 작업을 빠짐없이 추적",
+  },
+] as const;
+
+const VALUE_PROPS = [
+  {
+    icon: Brain,
+    title: "세션 간 기억 유지",
+    desc: "이전 작업·결정·맥락이 끊기지 않아요.",
+  },
+  {
+    icon: ListChecks,
+    title: "태스크 자동 추적",
+    desc: "에이전트가 등록한 태스크를 실시간으로 확인해요.",
+  },
+  {
+    icon: Zap,
+    title: "AI 작업 추천",
+    desc: "커밋 기록 기반으로 다음 작업을 제안해요.",
+  },
+] as const;
 
 export default async function SignInPage({
   searchParams,
@@ -16,36 +53,105 @@ export default async function SignInPage({
   if (user) redirect(safeNext);
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center">
-      <div className="flex w-full max-w-5xl items-center gap-16">
-        <div className="hidden flex-1 flex-col gap-6 md:flex">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              votra
-            </span>
-            <h1 className="text-3xl font-semibold leading-snug text-foreground">
-              막힌 곳을 찾고,<br />나아갈 방향을 드려요
-            </h1>
-          </div>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            프로젝트 흐름을 분석해 AI를 어떻게 쓸지
-            구체적인 솔루션으로 제안해드려요.
-          </p>
-          <div className="flex items-start gap-3 rounded-xl border border-border bg-background/60 px-4 py-3">
-            <Terminal className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">CLI와 함께 사용하기</span>
-              <span className="text-xs text-muted-foreground">
-                터미널에서 <code className="rounded bg-muted px-1 py-0.5 font-mono">votra</code> 명령어로 바로 세션을 시작하고 기록할 수 있어요.
-              </span>
-            </div>
-          </div>
+    <>
+      {/* Section 1: Hero */}
+      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-20">
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute left-1/2 top-0 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/3 rounded-full bg-primary/5 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-primary/3 blur-3xl" />
         </div>
 
-        <div className="w-full max-w-md shrink-0 rounded-2xl border border-border bg-background p-8 shadow-sm">
+        <div className="flex w-full max-w-4xl flex-col items-center gap-8 text-center">
+          <span className="inline-flex items-center rounded-full border border-border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
+            AI 에이전트 메모리 플랫폼
+          </span>
+
+          <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+            AI 에이전트,<br />이제 기억합니다
+          </h1>
+
+          <p className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
+            세션이 끊겨도 프로젝트 맥락은 이어져요.<br />
+            votra가 기억을 유지하고 다음 작업을 추천해요.
+          </p>
+
+          {/* Stats strip */}
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-background/70 backdrop-blur-sm">
+            <div className="grid grid-cols-3 divide-x divide-border">
+              {STATS.map(({ value, label, sub }) => (
+                <div key={label} className="flex flex-col items-center gap-1 px-4 py-5 text-center sm:px-6">
+                  <span className="text-2xl font-bold text-primary sm:text-3xl">{value}</span>
+                  <span className="text-xs font-semibold text-foreground sm:text-sm">{label}</span>
+                  <span className="hidden text-xs leading-tight text-muted-foreground sm:block">{sub}</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-border px-4 py-2 text-center">
+              <span className="text-xs text-muted-foreground">votra 실사용 데이터 기준</span>
+            </div>
+          </div>
+
+          <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
+            {VALUE_PROPS.map(({ icon: Icon, title, desc }) => (
+              <div
+                key={title}
+                className="flex flex-col gap-2 rounded-xl border border-border bg-background/60 p-4 text-left backdrop-blur-sm"
+              >
+                <Icon className="size-4 text-primary" />
+                <span className="text-sm font-medium">{title}</span>
+                <span className="text-xs leading-relaxed text-muted-foreground">{desc}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="w-full max-w-sm overflow-hidden rounded-xl border border-border bg-muted/50 text-left text-xs font-mono shadow-sm">
+            <div className="flex items-center gap-1.5 border-b border-border bg-muted px-3 py-2">
+              <span className="size-2.5 rounded-full bg-destructive/50" />
+              <span className="size-2.5 rounded-full bg-yellow-500/50" />
+              <span className="size-2.5 rounded-full bg-green-500/50" />
+              <Terminal className="ml-auto size-3 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col gap-1.5 p-3.5 text-foreground/80">
+              <p>
+                <span className="text-green-600 dark:text-green-400">$</span> votra install
+              </p>
+              <p className="pl-2 text-muted-foreground">✓ MCP 서버 등록됨 (Claude Code)</p>
+              <p className="mt-1">
+                <span className="text-blue-500">[Claude]</span> brief
+              </p>
+              <p className="pl-2 text-muted-foreground">→ 진행 중 태스크: 3개</p>
+              <p className="pl-2 text-muted-foreground">→ 추천: API 응답 캐싱 추가</p>
+              <p className="mt-1">
+                <span className="text-blue-500">[Claude]</span> add_task &quot;API 캐싱&quot;
+              </p>
+              <p className="pl-2 text-muted-foreground">
+                ✓ #15 등록됨 <span className="animate-pulse">▋</span>
+              </p>
+            </div>
+          </div>
+
+          <a
+            href="#login"
+            className="mt-4 flex flex-col items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <span>로그인하고 시작하기</span>
+            <ChevronDown className="size-4 animate-bounce" />
+          </a>
+        </div>
+      </section>
+
+      {/* Section 2: Login */}
+      <section
+        id="login"
+        className="flex min-h-screen items-center justify-center px-4 py-20"
+      >
+        <div className="w-full max-w-md rounded-2xl border border-border bg-background p-8 shadow-sm">
           <SignInForm next={safeNext === "/" ? undefined : safeNext} />
         </div>
-      </div>
-    </div>
+      </section>
+
+      {/* Section 3: Guide */}
+      <LandingGuide />
+    </>
   );
 }
