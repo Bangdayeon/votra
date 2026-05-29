@@ -1292,6 +1292,12 @@ export function TasksTab({
             )}
 
             {folders.length > 0 && (
+              <div className="flex items-center justify-center my-3">
+              <div className="size-2 rounded-full bg-border" />
+            </div>
+            )}
+
+            {folders.length > 0 && (
               <DndContext
                 sensors={folderDndSensors}
                 collisionDetection={closestCenter}

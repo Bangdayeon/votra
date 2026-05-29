@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronRight, ChevronUp, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -212,16 +213,30 @@ export function SkillsTab({ selected }: { selected: Project }) {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
         <h2 className="text-base font-semibold">스킬</h2>
-        {!loading && (
-          <span className="text-xs text-muted-foreground">
-            AI 도구에서 <code className="rounded bg-muted px-1 py-0.5">load_skill</code>로 불러올 수 있어요.
-          </span>
-        )}
+        <span className="text-xs text-muted-foreground">
+          AI 도구에서 <code className="rounded bg-muted px-1 py-0.5">load_skill</code>로 불러올 수 있어요.
+        </span>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        <div className="flex flex-col gap-6">
+          {[
+            { label: "코딩", count: 3 },
+            { label: "프로세스", count: 2 },
+            { label: "분석", count: 2 },
+          ].map(({ label, count }) => (
+            <div key={label} className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                <span className="text-sm font-semibold">{label}</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: count }).map((_, i) => (
+                  <Skeleton key={i} className="h-[68px] w-full rounded-lg" />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ) : skills.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">

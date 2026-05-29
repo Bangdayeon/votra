@@ -113,7 +113,7 @@ export function SideNavigation() {
 
           <ul className="custom-scrollbar flex flex-1 flex-col items-center gap-2 overflow-y-auto py-3">
             {projects.map((project) => (
-              <li key={project.id} className="flex pl-2.5 justify-center">
+              <li key={project.id} className="flex justify-center">
                 <SideNavMenuItem
                   title={project.name}
                   image={project.image}
