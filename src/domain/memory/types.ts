@@ -41,6 +41,8 @@ export type TaskRecord = {
 export type FolderRecord = {
   id: string;
   name: string;
+  icon: string | null;
+  color: string | null;
   sortOrder: number;
   projectId: string;
   userId: string;

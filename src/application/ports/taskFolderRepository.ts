@@ -10,6 +10,8 @@ export type FolderUpdateInput = {
   id: string;
   projectId: string;
   name: string;
+  icon?: string | null;
+  color?: string | null;
 };
 
 export type TaskFolderRepository = {
@@ -17,4 +19,5 @@ export type TaskFolderRepository = {
   update: (input: FolderUpdateInput) => Promise<FolderRecord | null>;
   delete: (id: string, projectId: string) => Promise<boolean>;
   listByProject: (projectId: string) => Promise<FolderRecord[]>;
+  reorderAll: (items: { id: string; sortOrder: number }[]) => Promise<void>;
 };

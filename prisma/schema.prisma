@@ -393,6 +393,10 @@ model PolicyRule {
 model TaskFolder {
   id        String   @id @default(cuid())
   name      String
+  /// lucide 아이콘 이름 (null = 기본 폴더)
+  icon      String?
+  /// 폴더 색상 키워드 (null = 기본 색상)
+  color     String?
   /// 폴더 내 정렬 순서 (작을수록 위, 0=미설정)
   sortOrder Float    @default(0)
   createdAt DateTime @default(now())

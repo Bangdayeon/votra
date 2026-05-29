@@ -1,6 +1,9 @@
 "use client";
 
 import {
+  Bookmark,
+  Box,
+  Briefcase,
   CalendarDays,
   CheckSquare,
   ChevronDown,
@@ -8,15 +11,39 @@ import {
   ChevronRight,
   Circle,
   Clock,
+  Code2,
+  Flag,
   Folder,
   FolderOpen,
   FolderPlus,
+  GripVertical,
+  Heart,
+  Layers,
   Loader2,
   MoreHorizontal,
   RotateCcw,
   Search,
+  Star,
+  Tag,
+  Target,
   XCircle,
+  Zap,
 } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -27,6 +54,7 @@ import { deleteTaskAction } from "@/app/actions/deleteTask";
 import { getProjectFoldersAction } from "@/app/actions/getProjectFolders";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
 import { moveTaskToFolderAction } from "@/app/actions/moveTaskToFolderAction";
+import { reorderFoldersAction } from "@/app/actions/reorderFoldersAction";
 import { updateFolderAction } from "@/app/actions/updateFolderAction";
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
 import { Button } from "@/components/ui/button";
@@ -55,6 +83,57 @@ import { sortTasks } from "@/domain/memory/sortTasks";
 import type { FolderRecord, TaskSortBy } from "@/domain/memory/types";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
+
+// ── folder icon / color palette ───────────────────────────────────────────────
+
+const FOLDER_ICON_OPTIONS = [
+  { value: "folder", Icon: Folder },
+  { value: "star", Icon: Star },
+  { value: "bookmark", Icon: Bookmark },
+  { value: "tag", Icon: Tag },
+  { value: "zap", Icon: Zap },
+  { value: "heart", Icon: Heart },
+  { value: "flag", Icon: Flag },
+  { value: "code2", Icon: Code2 },
+  { value: "layers", Icon: Layers },
+  { value: "target", Icon: Target },
+  { value: "box", Icon: Box },
+  { value: "briefcase", Icon: Briefcase },
+] as const;
+
+const FOLDER_COLOR_OPTIONS = [
+  { value: "gray",   bg: "#f3f4f6", fg: "#374151" },
+  { value: "red",    bg: "#fee2e2", fg: "#b91c1c" },
+  { value: "orange", bg: "#ffedd5", fg: "#c2410c" },
+  { value: "yellow", bg: "#fef9c3", fg: "#a16207" },
+  { value: "green",  bg: "#dcfce7", fg: "#15803d" },
+  { value: "blue",   bg: "#dbeafe", fg: "#1d4ed8" },
+  { value: "purple", bg: "#f3e8ff", fg: "#7e22ce" },
+  { value: "pink",   bg: "#fce7f3", fg: "#be185d" },
+  { value: "cyan",   bg: "#cffafe", fg: "#0e7490" },
+] as const;
+
+type FolderIconValue = (typeof FOLDER_ICON_OPTIONS)[number]["value"];
+type FolderColorValue = (typeof FOLDER_COLOR_OPTIONS)[number]["value"];
+
+function getFolderColors(color: string | null): { bg: string; fg: string } {
+  return FOLDER_COLOR_OPTIONS.find((c) => c.value === color) ?? { bg: "#dbeafe", fg: "#1d4ed8" };
+}
+
+function FolderIconDisplay({
+  icon,
+  color,
+  className,
+}: {
+  icon: string | null;
+  color: string | null;
+  className?: string;
+}) {
+  const found = FOLDER_ICON_OPTIONS.find((o) => o.value === icon);
+  const IconComp = found?.Icon ?? FolderOpen;
+  const { fg } = getFolderColors(color);
+  return <IconComp className={className} style={{ color: fg }} />;
+}
 
 // ── priority ──────────────────────────────────────────────────────────────────
 
@@ -217,6 +296,132 @@ function CreateFolderDialog({
   );
 }
 
+// ── EditFolderDialog ──────────────────────────────────────────────────────────
+
+function EditFolderDialog({
+  open,
+  folder,
+  projectId,
+  onClose,
+  onUpdated,
+}: {
+  open: boolean;
+  folder: FolderRecord;
+  projectId: string;
+  onClose: () => void;
+  onUpdated: (updated: FolderRecord) => void;
+}) {
+  const [name, setName] = useState(folder.name);
+  const [icon, setIcon] = useState<FolderIconValue | null>(
+    (folder.icon as FolderIconValue | null) ?? null,
+  );
+  const [color, setColor] = useState<FolderColorValue | null>(
+    (folder.color as FolderColorValue | null) ?? null,
+  );
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setName(folder.name);
+      setIcon((folder.icon as FolderIconValue | null) ?? null);
+      setColor((folder.color as FolderColorValue | null) ?? null);
+    }
+  }, [open, folder]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setLoading(true);
+    try {
+      const updated = await updateFolderAction(projectId, folder.id, name.trim(), icon, color);
+      onUpdated(updated);
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "폴더 수정에 실패했어요.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>폴더 수정</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-5 py-4">
+            {/* name */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">이름</span>
+              <input
+                autoFocus
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+
+            {/* icon */}
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium text-muted-foreground">아이콘</span>
+              <div className="grid grid-cols-6 gap-1.5">
+                {FOLDER_ICON_OPTIONS.map(({ value, Icon }) => {
+                  const { bg, fg } = getFolderColors(color);
+                  const selected = icon === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setIcon(selected ? null : value)}
+                      className={cn(
+                        "flex size-9 cursor-pointer items-center justify-center rounded-lg border-2 transition-all",
+                        selected ? "border-foreground/40 scale-110" : "border-transparent hover:scale-105",
+                      )}
+                      style={{ backgroundColor: bg }}
+                    >
+                      <Icon className="size-4" style={{ color: fg }} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* color */}
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium text-muted-foreground">색상</span>
+              <div className="flex flex-wrap gap-2">
+                {FOLDER_COLOR_OPTIONS.map(({ value, bg, fg }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setColor(color === value ? null : value)}
+                    className={cn(
+                      "flex size-7 cursor-pointer items-center justify-center rounded-full border-2 transition-all",
+                      color === value ? "border-foreground scale-110" : "border-transparent hover:scale-105",
+                    )}
+                    style={{ backgroundColor: bg, borderColor: color === value ? fg : undefined }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>취소</Button>
+            <Button type="submit" disabled={!name.trim() || loading}>
+              {loading && <Loader2 className="size-3.5 animate-spin" />}
+              저장
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── FolderCard ────────────────────────────────────────────────────────────────
 
 function FolderCard({
@@ -228,6 +433,8 @@ function FolderCard({
   projectId,
   onRenamed,
   onDeleted,
+  dragHandleListeners,
+  dragHandleAttributes,
 }: {
   folder: FolderRecord | null;
   total: number;
@@ -237,28 +444,12 @@ function FolderCard({
   projectId: string;
   onRenamed?: (updated: FolderRecord) => void;
   onDeleted?: (id: string) => void;
+  dragHandleListeners?: React.HTMLAttributes<HTMLButtonElement>;
+  dragHandleAttributes?: React.HTMLAttributes<HTMLButtonElement>;
 }) {
-  const [renaming, setRenaming] = useState(false);
-  const [renameValue, setRenameValue] = useState(folder?.name ?? "");
-  const [renameLoading, setRenameLoading] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
-  async function handleRename(e: React.FormEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!folder || !renameValue.trim()) return;
-    setRenameLoading(true);
-    try {
-      const updated = await updateFolderAction(projectId, folder.id, renameValue.trim());
-      onRenamed?.(updated);
-      setRenaming(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "폴더 이름 변경에 실패했어요.");
-    } finally {
-      setRenameLoading(false);
-    }
-  }
 
   async function handleDelete() {
     if (!folder) return;
@@ -278,53 +469,39 @@ function FolderCard({
 
   return (
     <div
-      onClick={renaming ? undefined : onClick}
-      className={cn(
-        "group relative flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3.5 transition-all",
-        !renaming && "cursor-pointer hover:border-ring/40 hover:shadow-sm",
-      )}
+      onClick={onClick}
+      className="group relative flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition-all hover:border-ring/40 hover:shadow-sm"
     >
+      {/* drag handle */}
+      {dragHandleListeners && (
+        <button
+          type="button"
+          {...dragHandleListeners}
+          {...dragHandleAttributes}
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0 cursor-grab touch-none text-muted-foreground opacity-0 transition-opacity group-hover:opacity-40 hover:!opacity-100 active:cursor-grabbing"
+        >
+          <GripVertical className="size-4" />
+        </button>
+      )}
+
       {/* icon */}
-      <div className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-lg",
-        isUnclassified ? "bg-muted" : "bg-primary/10",
-      )}>
-        {isUnclassified
-          ? <Folder className="size-4 text-muted-foreground" />
-          : <FolderOpen className="size-4 text-primary" />
-        }
-      </div>
+      {isUnclassified ? (
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <Folder className="size-4 text-muted-foreground" />
+        </div>
+      ) : (
+        <div
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg"
+          style={{ backgroundColor: getFolderColors(folder.color).bg }}
+        >
+          <FolderIconDisplay icon={folder.icon} color={folder.color} className="size-4" />
+        </div>
+      )}
 
       {/* name + counts */}
       <div className="min-w-0 flex-1">
-        {renaming && folder ? (
-          <form onSubmit={handleRename} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2">
-            <input
-              autoFocus
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              className="min-w-0 flex-1 rounded border border-ring bg-background px-2 py-0.5 text-sm font-medium focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={renameLoading || !renameValue.trim()}
-              className="shrink-0 text-xs font-medium text-primary hover:underline disabled:opacity-40"
-            >
-              {renameLoading ? <Loader2 className="size-3 animate-spin" /> : "저장"}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setRenaming(false); }}
-              className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
-            >
-              취소
-            </button>
-          </form>
-        ) : (
-          <p className="truncate text-sm font-medium">
-            {folder?.name ?? "미분류"}
-          </p>
-        )}
+        <p className="truncate text-sm font-medium">{folder?.name ?? "미분류"}</p>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
           <span>{total}개</span>
           {inProgress > 0 && (
@@ -338,38 +515,47 @@ function FolderCard({
         </div>
       </div>
 
-      {/* right side: menu + chevron */}
-      {!renaming && (
-        <div className="flex shrink-0 items-center">
-          {folder && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
-                >
-                  <MoreHorizontal className="size-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuItem onClick={() => { setRenameValue(folder.name); setRenaming(true); }}>
-                  이름 변경
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setDeleteOpen(true)}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  삭제
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+      {/* right side: menu */}
+      <div className="flex shrink-0 items-center">
+        {folder && onRenamed && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
+              >
+                <MoreHorizontal className="size-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                수정
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setDeleteOpen(true)}
+                className="text-red-600 focus:text-red-600"
+              >
+                삭제
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+
+      {/* edit dialog */}
+      {folder && onRenamed && (
+        <EditFolderDialog
+          open={editOpen}
+          folder={folder}
+          projectId={projectId}
+          onClose={() => setEditOpen(false)}
+          onUpdated={(updated) => { onRenamed(updated); }}
+        />
       )}
 
       {/* delete confirm */}
-      {folder && (
+      {folder && onDeleted && (
         <Dialog open={deleteOpen} onOpenChange={(v) => { if (!v) setDeleteOpen(false); }}>
           <DialogContent className="max-w-sm" onClick={(e) => e.stopPropagation()}>
             <DialogHeader>
@@ -389,6 +575,21 @@ function FolderCard({
           </DialogContent>
         </Dialog>
       )}
+    </div>
+  );
+}
+
+// ── SortableFolderCard ────────────────────────────────────────────────────────
+
+function SortableFolderCard(props: Omit<React.ComponentProps<typeof FolderCard>, "dragHandleListeners" | "dragHandleAttributes"> & { folder: FolderRecord }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.folder.id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? "opacity-50" : ""}
+    >
+      <FolderCard {...props} dragHandleListeners={listeners} dragHandleAttributes={attributes} />
     </div>
   );
 }
@@ -838,6 +1039,23 @@ export function TasksTab({
     loadTasks(true);
   }
 
+  const folderDndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  function handleFolderDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = folders.findIndex((f) => f.id === active.id);
+    const newIdx = folders.findIndex((f) => f.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+    const reordered = arrayMove(folders, oldIdx, newIdx);
+    setFolders(reordered);
+    void reorderFoldersAction(selected.id, reordered.map((f) => f.id)).catch(() =>
+      toast.error("폴더 순서 변경에 실패했어요."),
+    );
+  }
+
   async function handleBulkStatusChange(newStatus: TaskStatusValue) {
     setBulkActionLoading(true);
     try {
@@ -1054,7 +1272,7 @@ export function TasksTab({
           <div className="flex flex-col gap-2">
             {/* 모든 태스크 */}
             <FolderCard
-              folder={{ id: "__all__", name: "모든 태스크", sortOrder: -1, projectId: selected.id, userId: "", taskCount: allStats.total, createdAt: new Date(), updatedAt: new Date() }}
+              folder={{ id: "__all__", name: "모든 태스크", icon: null, color: null, sortOrder: -1, projectId: selected.id, userId: "", taskCount: allStats.total, createdAt: new Date(), updatedAt: new Date() }}
               total={allStats.total}
               inProgress={allStats.inProgress}
               pending={allStats.pending}
@@ -1062,38 +1280,44 @@ export function TasksTab({
               projectId={selected.id}
             />
 
-            {folders.length > 0 && (
-              <>
-                {folders.map((folder) => {
-                  const stats = folderStats.get(folder.id) ?? { total: 0, inProgress: 0, pending: 0 };
-                  return (
-                    <FolderCard
-                      key={folder.id}
-                      folder={folder}
-                      total={stats.total}
-                      inProgress={stats.inProgress}
-                      pending={stats.pending}
-                      onClick={() => setFolderView({ kind: "folder", id: folder.id, name: folder.name })}
-                      projectId={selected.id}
-                      onRenamed={handleFolderRenamed}
-                      onDeleted={handleFolderDeleted}
-                    />
-                  );
-                })}
-              </>
+            {unclassifiedStats.total > 0 && (
+              <FolderCard
+                folder={null}
+                total={unclassifiedStats.total}
+                inProgress={unclassifiedStats.inProgress}
+                pending={unclassifiedStats.pending}
+                onClick={() => setFolderView({ kind: "unclassified" })}
+                projectId={selected.id}
+              />
             )}
 
-            {unclassifiedStats.total > 0 && (
-              <>
-                <FolderCard
-                  folder={null}
-                  total={unclassifiedStats.total}
-                  inProgress={unclassifiedStats.inProgress}
-                  pending={unclassifiedStats.pending}
-                  onClick={() => setFolderView({ kind: "unclassified" })}
-                  projectId={selected.id}
-                />
-              </>
+            {folders.length > 0 && (
+              <DndContext
+                sensors={folderDndSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleFolderDragEnd}
+              >
+                <SortableContext items={folders.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col gap-2">
+                    {folders.map((folder) => {
+                      const stats = folderStats.get(folder.id) ?? { total: 0, inProgress: 0, pending: 0 };
+                      return (
+                        <SortableFolderCard
+                          key={folder.id}
+                          folder={folder}
+                          total={stats.total}
+                          inProgress={stats.inProgress}
+                          pending={stats.pending}
+                          onClick={() => setFolderView({ kind: "folder", id: folder.id, name: folder.name })}
+                          projectId={selected.id}
+                          onRenamed={handleFolderRenamed}
+                          onDeleted={handleFolderDeleted}
+                        />
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
 
             {tasks.length === 0 && folders.length === 0 && (

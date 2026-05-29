@@ -12,6 +12,8 @@ function toRecord(
   row: {
     id: string;
     name: string;
+    icon: string | null;
+    color: string | null;
     sortOrder: number;
     projectId: string;
     userId: string;
@@ -23,6 +25,8 @@ function toRecord(
   return {
     id: row.id,
     name: row.name,
+    icon: row.icon,
+    color: row.color,
     sortOrder: row.sortOrder,
     projectId: row.projectId,
     userId: row.userId,
@@ -40,10 +44,13 @@ export const prismaTaskFolderRepository: TaskFolderRepository = {
     return toRecord(row, 0);
   },
 
-  async update({ id, projectId, name }: FolderUpdateInput) {
+  async update({ id, projectId, name, icon, color }: FolderUpdateInput) {
     const existing = await prisma.taskFolder.findFirst({ where: { id, projectId } });
     if (!existing) return null;
-    const row = await prisma.taskFolder.update({ where: { id }, data: { name } });
+    const row = await prisma.taskFolder.update({
+      where: { id },
+      data: { name, ...(icon !== undefined && { icon }), ...(color !== undefined && { color }) },
+    });
     const taskCount = await prisma.task.count({ where: { folderId: id } });
     return toRecord(row, taskCount);
   },
@@ -53,6 +60,14 @@ export const prismaTaskFolderRepository: TaskFolderRepository = {
     if (!existing) return false;
     await prisma.taskFolder.delete({ where: { id } });
     return true;
+  },
+
+  async reorderAll(items) {
+    await prisma.$transaction(
+      items.map(({ id, sortOrder }) =>
+        prisma.taskFolder.update({ where: { id }, data: { sortOrder } }),
+      ),
+    );
   },
 
   async listByProject(projectId) {

@@ -11,7 +11,10 @@ export async function updateFolder(
     return err("폴더 이름을 입력해주세요.");
   }
   try {
-    const folder = await deps.folders.update({ ...input, name: input.name.trim() });
+    const folder = await deps.folders.update({
+      ...input,
+      name: input.name.trim(),
+    });
     if (!folder) return err("폴더를 찾을 수 없어요.");
     return ok(folder);
   } catch (e) {
