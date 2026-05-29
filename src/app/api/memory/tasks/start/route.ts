@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { listSkills } from "@/application/listSkills";
 import { startTask } from "@/application/startTask";
+import { matchSkillsToTask } from "@/domain/memory/matchSkillsToTask";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
+import { prismaSkillRepository } from "@/infrastructure/repositories/prismaSkillRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function POST(req: Request) {
@@ -41,7 +44,15 @@ export async function POST(req: Request) {
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   emitProjectUpdate(body.projectId);
-  return NextResponse.json({ ok: true, task: result.value });
+
+  const skillsResult = await listSkills(body.projectId, { skills: prismaSkillRepository });
+  const enabledSkills = skillsResult.ok ? skillsResult.value.filter((s) => s.enabled) : [];
+  const matchedSkills = matchSkillsToTask(
+    { title: result.value.title, module: result.value.module },
+    enabledSkills,
+  ).map((s) => ({ slug: s.slug, name: s.name, contextHint: s.contextHint }));
+
+  return NextResponse.json({ ok: true, task: result.value, matchedSkills });
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
