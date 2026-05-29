@@ -1,3 +1,4 @@
+import type { GitCommit } from "@/application/ports/gitClient";
 import type { LlmClient } from "@/application/ports/llmClient";
 import { DEFAULT_ANALYSIS_INSTRUCTION } from "@/domain/project/settings/defaultAnalysisInstruction";
 import type { TaskRecord } from "@/domain/memory/types";
@@ -26,8 +27,9 @@ export async function getProjectAiSummary(
   settings: ProjectSettings,
   deps: { llm: LlmClient },
   tasks: TaskRecord[] = [],
+  commits: GitCommit[] = [],
 ): Promise<ProjectAiSummary> {
-  const prompt = buildPrompt(settings, tasks);
+  const prompt = buildPrompt(settings, tasks, commits);
 
   const text = await deps.llm.complete({
     system: "You are a JSON-only responder. Output must be valid JSON matching the specified schema exactly. No markdown, no explanations, no extra text.",
@@ -38,7 +40,7 @@ export async function getProjectAiSummary(
   return parseAiSummary(text);
 }
 
-function buildPrompt(settings: ProjectSettings, tasks: TaskRecord[]): string {
+function buildPrompt(settings: ProjectSettings, tasks: TaskRecord[], commits: GitCommit[]): string {
   const customInstructions = settings.ai.analysisInstruction.trim();
   const customPart = customInstructions ? `[Additional instructions]\n${customInstructions}` : "";
 
@@ -60,6 +62,7 @@ function buildPrompt(settings: ProjectSettings, tasks: TaskRecord[]): string {
         outcome: t.outcome ?? undefined,
         keyDecisions: t.keyDecisions.length > 0 ? t.keyDecisions : undefined,
       })),
+      recentCommits: commits.length > 0 ? commits : undefined,
       pendingCount: pending.length,
       inProgressCount: inProgress.length,
     },

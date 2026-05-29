@@ -8,6 +8,7 @@ import {
   type RefreshedProjectAiSummary,
 } from "@/application/refreshProjectAiSummary";
 import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
+import { processGitClient } from "@/infrastructure/git/processGitClient";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
@@ -24,6 +25,7 @@ export async function refreshProjectAiSummaryAction(
     aiSummaries: prismaProjectAiSummaryRepository,
     tasks: prismaTaskRepository,
     llm: geminiLlmClient,
+    git: processGitClient,
   });
 
   revalidateTag(projectAiSummaryTag(projectId));

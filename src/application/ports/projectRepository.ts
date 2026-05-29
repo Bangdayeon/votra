@@ -66,6 +66,7 @@ export type ProjectRepository = {
     aiSpecGuideline: string | null;
     aiSpecFileName: string | null;
     agentContextFlowPrompt: string | null;
+    cwd: string | null;
   }>;
   /**
    * 프로젝트 소유자의 "전체 정책" (User.aiPolicyText + aiPolicyFileContent) 을 합쳐서 반환해요.

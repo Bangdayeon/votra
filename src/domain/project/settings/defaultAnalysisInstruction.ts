@@ -9,13 +9,14 @@ Analyze the task data below and generate a structured report.
 - pending[].description: additional context for waiting tasks
 - recentlyDone[].outcome: what was accomplished
 - recentlyDone[].keyDecisions: important decisions made during the task
+- recentCommits[]: recent git commits (hash, message, date) — use as supplementary evidence of actual work done
 - pendingCount / inProgressCount: total counts
 
 ## Rules (follow strictly)
 1. summary: exactly 3 lines separated by \\n
-   - Line 1 (work flow): based on inProgress and recentlyDone — what is being worked on and what just finished. Use state-focused expressions ("~진행 중", "~완료", "~전환 중"). No raw numbers.
-   - Line 2 (stability): based on recentlyDone[].keyDecisions — highlight risks, technical debt, or significant architectural decisions made. If none exist, write a positive stability signal.
-   - Line 3 (focus area): the domain/feature/component receiving the most attention based on inProgress and recentlyDone. Apply **bold** markdown to key terms.
+   - Line 1 (work flow): based on inProgress, recentlyDone, and recentCommits — what is being worked on and what just finished. Use state-focused expressions ("~진행 중", "~완료", "~전환 중"). No raw numbers. NEVER state that there are no tasks in progress — if inProgress is empty, focus on what was recently completed and what comes next instead.
+   - Line 2 (stability): based on recentlyDone[].keyDecisions and recentCommits — highlight risks, technical debt, or significant changes. If none exist, write a positive stability signal.
+   - Line 3 (focus area): the domain/feature/component receiving the most attention based on inProgress, recentlyDone, and recentCommits. Apply **bold** markdown to key terms.
 
 2. warnings: 0–2 items. Include ONLY when there is clear evidence in the data:
    - Many IN_PROGRESS tasks with no recent completions (possible stall)

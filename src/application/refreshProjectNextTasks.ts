@@ -1,4 +1,5 @@
 import { getProjectNextTasks } from "@/application/getProjectNextTasks";
+import type { GitClient } from "@/application/ports/gitClient";
 import type { LlmClient } from "@/application/ports/llmClient";
 import type {
   NextTask,
@@ -20,6 +21,7 @@ export async function refreshProjectNextTasks(
     nextTasks: ProjectAiNextTaskRepository;
     tasks: TaskRepository;
     llm: LlmClient;
+    git?: GitClient;
   },
 ): Promise<RefreshedProjectNextTasks> {
   const [settingsRow, recentByUpdatedAt, pendingTasks, inProgressTasks] = await Promise.all([
@@ -30,6 +32,11 @@ export async function refreshProjectNextTasks(
   ]);
   const settings = parseProjectSettings(settingsRow.settings);
 
+  const commits =
+    settingsRow.cwd && deps.git
+      ? await deps.git.getRecentCommits(settingsRow.cwd, 10)
+      : [];
+
   const recentDone = recentByUpdatedAt.filter((t) => t.status === "DONE" || t.status === "CANCELLED");
   const seenIds = new Set([...inProgressTasks, ...pendingTasks].map((t) => t.id));
   const mergedTasks = [
@@ -38,7 +45,7 @@ export async function refreshProjectNextTasks(
     ...recentDone.filter((t) => !seenIds.has(t.id)),
   ];
 
-  const tasks = await getProjectNextTasks(settings, { llm: deps.llm }, mergedTasks);
+  const tasks = await getProjectNextTasks(settings, { llm: deps.llm }, mergedTasks, commits);
 
   const saved = await deps.nextTasks.upsert({ projectId, tasks });
 

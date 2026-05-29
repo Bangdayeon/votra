@@ -1,3 +1,4 @@
+import type { GitCommit } from "@/application/ports/gitClient";
 import type { LlmClient } from "@/application/ports/llmClient";
 import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
 import { DEFAULT_NEXT_TASK_PROMPT } from "@/domain/project/settings/defaultNextTaskPrompt";
@@ -5,15 +6,15 @@ import type { TaskRecord } from "@/domain/memory/types";
 import type { ProjectSettings } from "@/domain/project/settings/types";
 
 const MAX_TITLE_LEN = 80;
-const MAX_REASON_LEN = 300;
 const MAX_AGENT_COMMAND_LEN = 500;
 
 export async function getProjectNextTasks(
   settings: ProjectSettings,
   deps: { llm: LlmClient },
   tasks: TaskRecord[] = [],
+  commits: GitCommit[] = [],
 ): Promise<NextTask[]> {
-  if (tasks.length === 0) return [];
+  if (tasks.length === 0 && commits.length === 0) return [];
 
   const customInstruction = settings.ai.nextTaskPrompt.trim() || DEFAULT_NEXT_TASK_PROMPT;
 
@@ -35,6 +36,7 @@ export async function getProjectNextTasks(
         outcome: t.outcome ?? undefined,
         keyDecisions: t.keyDecisions.length > 0 ? t.keyDecisions : undefined,
       })),
+      recentCommits: commits.length > 0 ? commits : undefined,
     },
     null,
     2,
@@ -51,12 +53,14 @@ ${taskContext}
 
 ## Rules (strictly follow all)
 - Base your suggestions ONLY on the provided task data. Never mention file names, features, or domains not present in the data.
-- No speculation. Use only what is explicitly stated in recentlyDone[].outcome and recentlyDone[].keyDecisions as evidence.
+- Use recentlyDone[].outcome and recentlyDone[].keyDecisions as primary evidence when available. If they are missing, use task titles and recentCommits as the basis for analysis.
+- If recentCommits is provided, treat commit messages as supplementary evidence of what was recently worked on — use them to infer progress and suggest follow-up actions.
 - Do NOT simply list pending task titles without analysis. Every suggestion must explain WHY now.
-- Prioritize unfinished work or follow-up tasks found in recentlyDone[].outcome / keyDecisions.
-- When recommending a pending task, explicitly state its connection to recently completed work.
-- If there is insufficient data to make a well-grounded recommendation, return an empty tasks array.
-- agentCommand: max 2 lines, self-contained natural-language instruction (no setup needed). Must reference the actual task title or outcome content.
+- Prioritize unfinished work or follow-up tasks. If there are no pending tasks, suggest logical next steps based on what was recently completed and committed.
+- When recommending a pending task, explicitly state its connection to recently completed work or recent commits.
+- Always return at least one suggestion if any tasks or commits are provided. Only return an empty tasks array if both the task list and commit list are completely empty.
+- If there is no clear follow-up work, be proactive: suggest improvements to quality (tests, error handling, performance), observability (logging, monitoring), documentation, or the next feature that would naturally follow from completed work. Make the suggestion specific and grounded in the available data — never generic.
+- agentCommand: max 2 lines, self-contained natural-language instruction (no setup needed). Must reference the actual task title, outcome content, or commit message.
 
 ## Output
 Respond in Korean. Return ONLY the following JSON — no other text:
@@ -96,7 +100,7 @@ function isNextTask(v: unknown): v is NextTask {
   if (!isRecord(v)) return false;
   return (
     typeof v.title === "string" && v.title.length > 0 && v.title.length <= MAX_TITLE_LEN &&
-    typeof v.reason === "string" && v.reason.length > 0 && v.reason.length <= MAX_REASON_LEN &&
+    typeof v.reason === "string" && v.reason.length > 0 &&
     (v.priority === "critical" || v.priority === "high" || v.priority === "medium" || v.priority === "low") &&
     typeof v.agentCommand === "string" && v.agentCommand.length > 0 && v.agentCommand.length <= MAX_AGENT_COMMAND_LEN
   );

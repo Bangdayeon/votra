@@ -1,4 +1,5 @@
 import { getProjectAiSummary } from "@/application/getProjectAiSummary";
+import type { GitClient } from "@/application/ports/gitClient";
 import type { LlmClient } from "@/application/ports/llmClient";
 import type {
   ProjectAiInsightRow,
@@ -22,6 +23,7 @@ export async function refreshProjectAiSummary(
     aiSummaries: ProjectAiSummaryRepository;
     tasks: TaskRepository;
     llm: LlmClient;
+    git?: GitClient;
   },
 ): Promise<RefreshedProjectAiSummary> {
   const [settingsRow, recentByUpdatedAt, pendingTasks, inProgressTasks] = await Promise.all([
@@ -32,6 +34,11 @@ export async function refreshProjectAiSummary(
   ]);
   const settings = parseProjectSettings(settingsRow.settings);
 
+  const commits =
+    settingsRow.cwd && deps.git
+      ? await deps.git.getRecentCommits(settingsRow.cwd, 10)
+      : [];
+
   const recentDone = recentByUpdatedAt.filter((t) => t.status === "DONE" || t.status === "CANCELLED");
   const seenIds = new Set([...inProgressTasks, ...pendingTasks].map((t) => t.id));
   const mergedTasks = [
@@ -40,7 +47,7 @@ export async function refreshProjectAiSummary(
     ...recentDone.filter((t) => !seenIds.has(t.id)),
   ];
 
-  const generated = await getProjectAiSummary(settings, { llm: deps.llm }, mergedTasks);
+  const generated = await getProjectAiSummary(settings, { llm: deps.llm }, mergedTasks, commits);
 
   const saved = await deps.aiSummaries.upsert({
     projectId,

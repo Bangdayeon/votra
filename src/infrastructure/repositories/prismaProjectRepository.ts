@@ -166,6 +166,7 @@ export const prismaProjectRepository: ProjectRepository = {
         aiSpecGuideline: true,
         aiSpecFileName: true,
         agentContextFlowPrompt: true,
+        cwd: true,
       },
     });
     return {
@@ -173,6 +174,7 @@ export const prismaProjectRepository: ProjectRepository = {
       aiSpecGuideline: row?.aiSpecGuideline ?? null,
       aiSpecFileName: row?.aiSpecFileName ?? null,
       agentContextFlowPrompt: row?.agentContextFlowPrompt ?? null,
+      cwd: row?.cwd ?? null,
     };
   },
 
