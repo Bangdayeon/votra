@@ -99,6 +99,11 @@ export const prismaTaskRepository: TaskRepository = {
     return toRecord(row);
   },
 
+  async findBySeq({ seq, projectId }: { seq: number; projectId: string }) {
+    const row = await prisma.task.findFirst({ where: { seq, projectId, deletedAt: null }, select: SELECT });
+    return row ? toRecord(row) : null;
+  },
+
   async listByFilter({ projectId, userId, status, module, limit, offset }: TaskListFilter) {
     const rows = await prisma.task.findMany({
       where: {

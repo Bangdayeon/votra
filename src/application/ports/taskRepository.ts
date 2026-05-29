@@ -35,6 +35,7 @@ export type TaskListFilter = {
 export type TaskRepository = {
   create: (input: TaskCreateInput) => Promise<TaskRecord>;
   update: (input: TaskUpdateInput) => Promise<TaskRecord | null>;
+  findBySeq: (args: { seq: number; projectId: string }) => Promise<TaskRecord | null>;
   listByFilter: (filter: TaskListFilter) => Promise<TaskRecord[]>;
   findRecentDone: (args: {
     projectId: string;
