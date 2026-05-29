@@ -73,10 +73,12 @@ export function SideNavMenuItem({
       />
     ) : (
       <span
-        className="size-7 rounded-full"
+        className="size-7 rounded-full flex items-center justify-center text-white text-xs font-semibold"
         style={{ backgroundColor: colorFromTitle(title) }}
         aria-hidden
-      />
+      >
+        {title.charAt(0)}
+      </span>
     );
     const compactClassName = cn(
       "inline-flex items-center justify-center size-9 cursor-pointer rounded-full p-0 transition-shadow hover:bg-accent",
@@ -137,10 +139,12 @@ export function SideNavMenuItem({
         />
       ) : (
         <span
-          className="size-7 shrink-0 rounded-full"
+          className="size-7 shrink-0 rounded-full flex items-center justify-center text-white text-xs font-semibold"
           style={{ backgroundColor: colorFromTitle(title) }}
           aria-hidden
-        />
+        >
+          {title.charAt(0)}
+        </span>
       )}
       <span className="truncate">{title}</span>
     </>
