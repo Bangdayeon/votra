@@ -134,33 +134,13 @@ export function ProjectHeader() {
     }
   }, [currentActiveKey]);
 
-  if (isTrash) {
-    return (
-      <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background px-6 py-4">
-        <div className="flex items-center gap-3">
-          <Link href={`/${params.projectName}`} className="flex shrink-0">
-            {project?.image ? (
-              <Image src={project.image} alt={title} width={36} height={36} className="size-9 rounded-xl object-cover" />
-            ) : (
-              <span className="flex size-9 items-center justify-center rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: avatarColor }}>
-                {title[0]?.toUpperCase()}
-              </span>
-            )}
-          </Link>
-          <Link href={`/${params.projectName}`} className="truncate text-xl font-semibold">
-            {title}
-          </Link>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-          <span className="text-xl font-semibold">휴지통</span>
-        </div>
-      </header>
-    );
-  }
-
   return (
-    <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background px-6 pt-4">
+    <header className={cn(
+      "sticky top-0 z-10 shrink-0 border-b border-border bg-background px-6 pt-4",
+      isTrash && "pb-4",
+    )}>
       {/* 프로젝트 아바타 + 이름 + 설정 */}
-      <div className="flex items-center gap-3 mb-3">
+      <div className={cn("flex items-center gap-3", !isTrash && "mb-3")}>
         <Link href={`/${params.projectName}`} className="flex shrink-0">
           {project?.image ? (
             <Image
@@ -185,20 +165,20 @@ export function ProjectHeader() {
         >
           {title}
         </Link>
-        {!isSettings && project?.description && (
+        {!isSettings && !isTrash && project?.description && (
           <span className="hidden sm:inline shrink-0 text-xs text-gray-500">
             {project.description}
           </span>
         )}
-        {!isSettings && project?.lastCliSyncAt && (
+        {!isSettings && !isTrash && project?.lastCliSyncAt && (
           <span className="shrink-0 text-xs text-muted-foreground">
             {formatCliSyncDate(project.lastCliSyncAt)}
           </span>
         )}
-        {isSettings && (
+        {(isSettings || isTrash) && (
           <>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-xl font-semibold">설정</span>
+            <span className="text-xl font-semibold">{isSettings ? "설정" : "휴지통"}</span>
           </>
         )}
 
@@ -206,29 +186,28 @@ export function ProjectHeader() {
           <Link
             href={`/${params.projectName}/settings`}
             className={cn(
-              "rounded-md p-1.5 transition-colors",
-              isSettings
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground",
+              "rounded-md p-1.5 transition-colors text-muted-foreground hover:text-foreground",
+              (isSettings || isTrash) && "opacity-0 pointer-events-none",
             )}
             aria-label="설정"
           >
             <Settings className="size-4" />
           </Link>
-          {!isSettings && (
-            <Link
-              href={`/${params.projectName}/trash`}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground"
-              aria-label="휴지통"
-            >
-              <Trash2 className="size-4" />
-            </Link>
-          )}
+          <Link
+            href={`/${params.projectName}/trash`}
+            className={cn(
+              "rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground",
+              (isSettings || isTrash) && "opacity-0 pointer-events-none",
+            )}
+            aria-label="휴지통"
+          >
+            <Trash2 className="size-4" />
+          </Link>
         </div>
       </div>
 
       {/* 탭 */}
-      <nav ref={navRef} className="relative flex items-end gap-1">
+      {!isTrash && <nav ref={navRef} className="relative flex items-end gap-1">
         {isSettings
           ? SETTINGS_TABS.map(({ label, key, icon: TabIcon }) => {
               const active = settingsActiveKey === key;
@@ -284,7 +263,7 @@ export function ProjectHeader() {
             opacity: indicator.ready ? 1 : 0,
           }}
         />
-      </nav>
+      </nav>}
     </header>
   );
 }

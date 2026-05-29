@@ -342,7 +342,7 @@ export function TrashPageClient({
                     "rounded-full px-2 py-0.5 text-xs",
                     left <= 3 ? "bg-red-100 text-red-600" : "bg-muted text-muted-foreground",
                   )}>
-                    {left}일 후 삭제
+                    {left === 0 ? "오늘 삭제" : `${left}일 후 삭제`}
                   </span>
                 </div>
                 {!isSelectMode && (
