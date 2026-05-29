@@ -25,7 +25,16 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
       ? ai.nextTaskPrompt.slice(0, AI_NEXT_TASK_PROMPT_MAX)
       : "";
 
-  return { ai: { analysisInstruction, nextTaskPrompt } };
+  const rawHour = ai.autoRefreshHour;
+  const autoRefreshHour =
+    typeof rawHour === "number" &&
+    Number.isInteger(rawHour) &&
+    rawHour >= 0 &&
+    rawHour <= 23
+      ? rawHour
+      : null;
+
+  return { ai: { analysisInstruction, nextTaskPrompt, autoRefreshHour } };
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {

@@ -12,7 +12,6 @@ import {
   Plug,
   RotateCcw,
   Sun,
-  Terminal,
   UserCog,
   Users,
 } from "lucide-react";
@@ -479,50 +478,6 @@ const SERVICE_FEATURES: {
   },
 ];
 
-const CLI_STEPS = [
-  { step: "1", title: "CLI 설치", code: "npm install -g @votra/cli" },
-  { step: "2", title: "로그인", code: "votra signin" },
-  { step: "3", title: "세션 실시간 업로드", code: "votra upload --project --watch" },
-] as const;
-
-const CLI_COMMANDS = [
-  {
-    cmd: "votra signin",
-    desc: "브라우저 OAuth로 로그인",
-    usage: "votra signin [url] [--port <n>] [--no-open]",
-  },
-  {
-    cmd: "votra whoami",
-    desc: "현재 로그인 계정 확인",
-    usage: "votra whoami",
-  },
-  {
-    cmd: "votra signout",
-    desc: "로그아웃 및 인증 정보 삭제",
-    usage: "votra signout",
-  },
-  {
-    cmd: "votra upload",
-    desc: "--watch로 세션 실시간 동기화",
-    usage: "votra upload [file] [-w] [-p [path]] [--no-claude-files]",
-  },
-  {
-    cmd: "votra inspect",
-    desc: "이벤트·토큰·타입 분포 분석",
-    usage: "votra inspect [file] [-t <type>] [-l <n>] [--raw]",
-  },
-  {
-    cmd: "votra replay",
-    desc: "세션을 정적 HTML 리플레이로 생성",
-    usage: "votra replay [file] [-o <path>] [-w] [-p [path]] [-s [port]]",
-  },
-  {
-    cmd: "votra claude-files",
-    desc: "CLAUDE.md·AGENTS.md·SKILL.md 업로드",
-    usage: "votra claude-files [-p <path>]",
-  },
-] as const;
-
 const MCP_SETUP_STEPS = [
   {
     step: "1",
@@ -542,22 +497,32 @@ const MCP_SETUP_STEPS = [
 ] as const;
 
 const MCP_TOOLS: { tool: string; desc: string }[] = [
-  { tool: "brief", desc: "현재 프로젝트의 태스크·결정·규칙을 한번에 조회" },
-  { tool: "remember", desc: "결정·인사이트 저장 (decision / architecture / bug / context)" },
-  { tool: "recall", desc: "과거 결정을 의미 기반으로 검색" },
+  { tool: "brief", desc: "현재 프로젝트의 태스크·결정·규칙을 한번에 조회 (세션 시작 시 호출)" },
+  { tool: "recall", desc: "과거 생각·결정을 의미 유사도로 검색" },
   { tool: "add_task", desc: "새 태스크 등록" },
-  { tool: "update_task", desc: "태스크 상태 변경 (PENDING / IN_PROGRESS / DONE)" },
+  { tool: "start_task", desc: "태스크 등록 후 즉시 IN_PROGRESS 시작 (add_task + update_task 합본)" },
+  { tool: "finish_task", desc: "태스크를 DONE으로 완료하고 세션 요약 저장 (update_task + log_session 합본)" },
+  { tool: "update_task", desc: "태스크 상태·내용 변경 (PENDING / IN_PROGRESS / DONE)" },
   { tool: "list_tasks", desc: "태스크 목록 조회" },
+  { tool: "task_detail", desc: "태스크 상세 조회 (description, outcome, keyDecisions 등)" },
   { tool: "log_session", desc: "세션 종료 전 작업 요약 저장" },
+  { tool: "load_skill", desc: "상황에 맞는 스킬 지침 로드" },
+  { tool: "upload_prompt", desc: "CLAUDE.md·AGENTS.md·SKILL.md 업로드" },
+  { tool: "signin", desc: "votra 계정 로그인" },
+  { tool: "whoami", desc: "현재 로그인 계정 확인" },
+  { tool: "signout", desc: "로그아웃" },
 ];
 
 function GuidePane() {
   return (
     <div className="flex flex-col gap-12">
       <header>
-        <h2 className="text-xl font-semibold">안내</h2>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          votra는 AI 에이전트 세션을 팀과 함께 분석하고 관리하는 도구예요.
+        <h2 className="text-xl font-semibold">사용 안내</h2>
+        <p className="mt-1.5">
+          votra는 작업 내용을 task로 자동 저장하여 세션 간 기억상실 문제를 해결합니다.
+        </p>
+        <p className="mt-1.5">
+          또한 최신 커밋 기록과 작업 내용을 기반으로 프로젝트 현황을 요약하고 다음 작업을 추천합니다.
         </p>
       </header>
 
@@ -596,56 +561,6 @@ function GuidePane() {
               </div>
             );
           })}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h3 className="text-base font-semibold">CLI 연동 방법</h3>
-        <p className="text-sm text-muted-foreground">
-          votra CLI를 설치하면 AI 에이전트 세션이 자동으로 웹 대시보드에 올라가요.
-        </p>
-        <ol className="flex flex-col gap-2">
-          {CLI_STEPS.map(({ step, title, code }) => (
-            <li key={step} className="flex items-center gap-3">
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
-                {step}
-              </span>
-              <span className="w-28 shrink-0 text-sm font-medium">{title}</span>
-              <code className="flex-1 rounded bg-muted px-3 py-1.5 font-mono text-sm text-foreground">
-                {code}
-              </code>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
-          <Terminal className="size-4 text-muted-foreground" />
-          <h3 className="text-base font-semibold">CLI 명령어 모음</h3>
-        </div>
-        <div className="overflow-hidden rounded-lg border border-border">
-          {CLI_COMMANDS.map(({ cmd, desc, usage }, i) => (
-            <div
-              key={cmd}
-              className={cn(
-                "flex flex-col gap-1.5 px-4 py-3.5",
-                i !== 0 && "border-t border-border",
-              )}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <code className="font-mono text-sm font-semibold text-foreground">
-                  {cmd}
-                </code>
-                <span className="text-right text-sm text-muted-foreground">
-                  {desc}
-                </span>
-              </div>
-              <code className="font-mono text-xs text-muted-foreground/70">
-                {usage}
-              </code>
-            </div>
-          ))}
         </div>
       </section>
 
