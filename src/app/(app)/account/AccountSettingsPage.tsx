@@ -16,8 +16,9 @@ import {
   UserCog,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { type UserAiPolicyBundle } from "@/app/actions/getUserAiPolicy";
@@ -43,48 +44,73 @@ const MENU: { key: MenuKey; label: string; icon: React.ElementType }[] = [
   { key: "guide", label: "안내", icon: BookOpen },
 ];
 
+function tabHref(key: MenuKey): string {
+  if (key === "account") return "/account";
+  return `/account?tab=${key}`;
+}
+
 export function AccountSettingsPage({
   initialPolicy,
 }: {
   initialPolicy: UserAiPolicyBundle;
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab");
   const active: MenuKey =
     rawTab === "policy" ? "policy" : rawTab === "guide" ? "guide" : "account";
 
-  const setActive = (key: MenuKey) => {
-    router.replace(`/account?tab=${key}`);
-  };
+  const navRef = useRef<HTMLElement>(null);
+  const tabRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+  const [indicator, setIndicator] = useState({ left: 0, width: 0, ready: false });
+
+  useEffect(() => {
+    const el = tabRefs.current.get(active);
+    if (el && navRef.current) {
+      const navRect = navRef.current.getBoundingClientRect();
+      const tabRect = el.getBoundingClientRect();
+      setIndicator({ left: tabRect.left - navRect.left, width: tabRect.width, ready: true });
+    }
+  }, [active]);
 
   return (
-    <div className="flex h-full min-h-0">
-      <nav className="flex w-[220px] shrink-0 flex-col gap-1 border-r border-border bg-sidebar p-3">
-        <h2 className="px-2 pb-2 text-sm font-medium text-muted-foreground">
-          설정
-        </h2>
-        {MENU.map((m) => {
-          const Icon = m.icon;
-          const selected = m.key === active;
-          return (
-            <button
-              key={m.key}
-              type="button"
-              onClick={() => setActive(m.key)}
-              className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors",
-                selected
-                  ? "bg-foreground text-background"
-                  : "text-foreground hover:bg-sidebar-accent",
-              )}
-            >
-              <Icon className="size-4" />
-              {m.label}
-            </button>
-          );
-        })}
-      </nav>
+    <div className="flex h-full flex-col overflow-hidden">
+      <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background px-6 pt-4">
+        <div className="mb-3 flex items-center gap-3">
+          <h1 className="text-xl font-semibold">전체 설정</h1>
+        </div>
+        <nav ref={navRef} className="relative flex items-end gap-1">
+          {MENU.map(({ key, label, icon: TabIcon }) => {
+            const isActive = active === key;
+            return (
+              <Link
+                key={key}
+                href={tabHref(key)}
+                ref={(el) => {
+                  if (el) tabRefs.current.set(key, el);
+                  else tabRefs.current.delete(key);
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-2 text-xs sm:px-3 sm:text-sm transition-colors",
+                  isActive
+                    ? "font-medium text-primary"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <TabIcon className="size-3.5 sm:size-4 shrink-0" />
+                {label}
+              </Link>
+            );
+          })}
+          <div
+            className="absolute bottom-0 h-0.5 bg-primary transition-all duration-200 ease-out"
+            style={{
+              left: indicator.left,
+              width: indicator.width,
+              opacity: indicator.ready ? 1 : 0,
+            }}
+          />
+        </nav>
+      </header>
 
       <div className="custom-scrollbar flex-1 overflow-y-auto px-8 pt-8 pb-12">
         <div className="mx-auto w-full max-w-2xl">
