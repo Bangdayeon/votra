@@ -1,4 +1,4 @@
-import { Brain, ChevronDown, ListChecks, Terminal, Zap } from "lucide-react";
+import { Brain, ListChecks, Terminal, Zap } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { LandingGuide } from "@/components/auth/LandingGuide";
@@ -53,27 +53,37 @@ export default async function SignInPage({
   if (user) redirect(safeNext);
 
   return (
-    <>
-      {/* Section 1: Hero */}
+    <div>
+      {/* Section 1: Login */}
       <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-20">
         <div className="pointer-events-none absolute inset-0 -z-10">
           <div className="absolute left-1/2 top-0 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/3 rounded-full bg-primary/5 blur-3xl" />
           <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-primary/3 blur-3xl" />
         </div>
 
-        <div className="flex w-full max-w-4xl flex-col items-center gap-8 text-center">
-          <span className="inline-flex items-center rounded-full border border-border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-            AI 에이전트 메모리 플랫폼
-          </span>
+        <div className="flex w-full max-w-md flex-col gap-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <h1 className="text-5xl font-bold tracking-tight" style={{ color: "#7B1FA2" }}>votra</h1>
+            <span className="w-full border-b border-border pb-6 text-xs text-muted-foreground">태스크 단위로 연결하는 AI 세션 기억</span>
+          </div>
 
-          <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-            AI 에이전트,<br />이제 기억합니다
-          </h1>
+          <div className="rounded-2xl bg-background p-8">
+            <SignInForm next={safeNext === "/" ? undefined : safeNext} />
+          </div>
+        </div>
+      </section>
 
-          <p className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
-            세션이 끊겨도 프로젝트 맥락은 이어져요.<br />
-            votra가 기억을 유지하고 다음 작업을 추천해요.
-          </p>
+      {/* Section 2: Hero */}
+      <section className="border-t border-border px-4 py-24">
+        <div className="flex w-full max-w-4xl mx-auto flex-col items-center gap-12 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <h2 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+              AI 에이전트,<br />이제 기억합니다
+            </h2>
+            <p className="max-w-md text-base leading-relaxed text-muted-foreground">
+              votra가 기억을 유지하고 다음 작업을 추천해요.
+            </p>
+          </div>
 
           {/* Stats strip */}
           <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-background/70 backdrop-blur-sm">
@@ -129,29 +139,11 @@ export default async function SignInPage({
               </p>
             </div>
           </div>
-
-          <a
-            href="#login"
-            className="mt-4 flex flex-col items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <span>로그인하고 시작하기</span>
-            <ChevronDown className="size-4 animate-bounce" />
-          </a>
-        </div>
-      </section>
-
-      {/* Section 2: Login */}
-      <section
-        id="login"
-        className="flex min-h-screen items-center justify-center px-4 py-20"
-      >
-        <div className="w-full max-w-md rounded-2xl border border-border bg-background p-8 shadow-sm">
-          <SignInForm next={safeNext === "/" ? undefined : safeNext} />
         </div>
       </section>
 
       {/* Section 3: Guide */}
       <LandingGuide />
-    </>
+    </div>
   );
 }

@@ -21,6 +21,7 @@ import {
   Layers,
   Loader2,
   MoreHorizontal,
+  Plus,
   RotateCcw,
   Search,
   Star,
@@ -49,12 +50,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { createFolderAction } from "@/app/actions/createFolderAction";
+import { createTaskAction, type CreateTaskInput } from "@/app/actions/createTaskAction";
 import { deleteFolderAction } from "@/app/actions/deleteFolderAction";
 import { deleteTaskAction } from "@/app/actions/deleteTask";
 import { getProjectFoldersAction } from "@/app/actions/getProjectFolders";
+import { getProjectSkillsAction } from "@/app/actions/getProjectSkillsAction";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
 import { moveTaskToFolderAction } from "@/app/actions/moveTaskToFolderAction";
 import { reorderFoldersAction } from "@/app/actions/reorderFoldersAction";
+import { suggestTaskModuleAction } from "@/app/actions/suggestTaskModuleAction";
 import { updateFolderAction } from "@/app/actions/updateFolderAction";
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
 import { Button } from "@/components/ui/button";
@@ -80,7 +84,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { filterTasks } from "@/domain/memory/filterTasks";
 import { getTaskPriorityLevel } from "@/domain/memory/getTaskPriorityLevel";
 import { sortTasks } from "@/domain/memory/sortTasks";
-import type { FolderRecord, TaskSortBy } from "@/domain/memory/types";
+import type { FolderRecord, SkillRecord, TaskSortBy } from "@/domain/memory/types";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
@@ -140,17 +144,17 @@ function FolderIconDisplay({
 type PriorityLevel = 0 | 1 | 2 | 3 | 4;
 
 const PRIORITY_LABELS: Record<1 | 2 | 3 | 4, string> = {
-  4: "Critical",
-  3: "High",
-  2: "Medium",
   1: "Low",
+  2: "Medium",
+  3: "High",
+  4: "Critical",
 };
 
 const PRIORITY_STYLES: Record<1 | 2 | 3 | 4, string> = {
-  4: "bg-red-100 text-red-700",
-  3: "bg-orange-100 text-orange-700",
-  2: "bg-yellow-100 text-yellow-700",
   1: "bg-green-100 text-green-700",
+  2: "bg-yellow-100 text-yellow-700",
+  3: "bg-orange-100 text-orange-700",
+  4: "bg-red-100 text-red-700",
 };
 
 // ── status ────────────────────────────────────────────────────────────────────
@@ -225,6 +229,277 @@ function FilterDropdown<T extends string>({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+// ── CreateTaskDialog ──────────────────────────────────────────────────────────
+
+const TASK_TITLE_MAX = 80;
+const TASK_DESC_MAX = 2000;
+
+const PRIORITY_CREATE_OPTIONS = [
+  { value: 0, label: "없음" },
+  { value: 1, label: "Low" },
+  { value: 2, label: "Medium" },
+  { value: 3, label: "High" },
+  { value: 4, label: "Critical" },
+] as const;
+
+const PRIORITY_ACTIVE_STYLES: Record<number, string> = {
+  0: "border-border bg-muted text-foreground",
+  1: "border-green-300 bg-green-100 text-green-700",
+  2: "border-yellow-300 bg-yellow-100 text-yellow-700",
+  3: "border-orange-300 bg-orange-100 text-orange-700",
+  4: "border-red-300 bg-red-100 text-red-700",
+};
+
+function CreateTaskDialog({
+  open,
+  projectId,
+  folders,
+  defaultFolderId,
+  onClose,
+  onCreated,
+}: {
+  open: boolean;
+  projectId: string;
+  folders: FolderRecord[];
+  defaultFolderId: string | null;
+  onClose: () => void;
+  onCreated: (task: TaskRecord) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [folderId, setFolderId] = useState<string | null>(defaultFolderId);
+  const [module, setModule] = useState<string | null>(null);
+  const [priority, setPriority] = useState(2);
+  const [loading, setLoading] = useState(false);
+  const [skills, setSkills] = useState<SkillRecord[]>([]);
+  const [moduleLoading, setModuleLoading] = useState(false);
+  const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestSeq = useRef(0);
+
+  useEffect(() => {
+    if (!open) return;
+    setTitle("");
+    setDescription("");
+    setFolderId(defaultFolderId);
+    setModule(null);
+    setPriority(2);
+    setSkills([]);
+    setModuleLoading(false);
+    getProjectSkillsAction(projectId).then(setSkills).catch(() => {});
+  }, [open, defaultFolderId, projectId]);
+
+  useEffect(() => {
+    if (suggestDebounce.current) clearTimeout(suggestDebounce.current);
+    if (!title.trim()) return;
+    const seq = ++suggestSeq.current;
+    suggestDebounce.current = setTimeout(() => {
+      setModuleLoading(true);
+      suggestTaskModuleAction(projectId, title.trim(), description)
+        .then((suggested) => {
+          if (suggestSeq.current !== seq) return;
+          if (suggested) setModule(suggested);
+        })
+        .catch(() => {})
+        .finally(() => { if (suggestSeq.current === seq) setModuleLoading(false); });
+    }, 1500);
+    return () => { if (suggestDebounce.current) clearTimeout(suggestDebounce.current); };
+  }, [title, description, projectId]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setLoading(true);
+    try {
+      const input: CreateTaskInput = {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        module: module ?? undefined,
+        priority,
+        folderId,
+      };
+      const task = await createTaskAction(projectId, input);
+      onCreated(task);
+      onClose();
+      toast.success("태스크를 등록했어요.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "태스크 생성에 실패했어요.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const activeSkills = skills.filter((s) => s.isActive && s.enabled);
+  const currentFolderName = folderId
+    ? (folders.find((f) => f.id === folderId)?.name ?? "알 수 없음")
+    : "미분류";
+  const currentFolder = folderId ? folders.find((f) => f.id === folderId) : null;
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>새 태스크</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 py-4">
+            {/* 폴더 선택 */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground">폴더</label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <span className="flex items-center gap-1.5 text-foreground">
+                      {currentFolder ? (
+                        <FolderIconDisplay icon={currentFolder.icon} color={currentFolder.color} className="size-3.5" />
+                      ) : (
+                        <Folder className="size-3.5 text-muted-foreground" />
+                      )}
+                      {currentFolderName}
+                    </span>
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+                  <DropdownMenuItem
+                    onClick={() => setFolderId(null)}
+                    className={cn("gap-2", folderId === null && "font-medium")}
+                  >
+                    <Folder className="size-3.5" />
+                    미분류
+                  </DropdownMenuItem>
+                  {folders.length > 0 && <DropdownMenuSeparator />}
+                  {folders.map((f) => (
+                    <DropdownMenuItem
+                      key={f.id}
+                      onClick={() => setFolderId(f.id)}
+                      className={cn("gap-2", folderId === f.id && "font-medium")}
+                    >
+                      <FolderIconDisplay icon={f.icon} color={f.color} className="size-3.5" />
+                      {f.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* 제목 */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground">제목</label>
+                <span className="text-xs text-muted-foreground/60">{title.length}/{TASK_TITLE_MAX}</span>
+              </div>
+              <input
+                autoFocus
+                type="text"
+                placeholder="태스크 제목을 입력하세요"
+                value={title}
+                onChange={(e) => setTitle(e.target.value.slice(0, TASK_TITLE_MAX))}
+                maxLength={TASK_TITLE_MAX}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+
+            {/* 내용 */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground">내용</label>
+                <span className="text-xs text-muted-foreground/60">{description.length}/{TASK_DESC_MAX}</span>
+              </div>
+              <textarea
+                rows={5}
+                placeholder="태스크 내용을 입력하세요 (선택)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value.slice(0, TASK_DESC_MAX))}
+                maxLength={TASK_DESC_MAX}
+                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+
+            {/* 모듈 */}
+            {activeSkills.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">모듈</label>
+                  {moduleLoading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <span className={module ? "text-foreground" : "text-muted-foreground"}>
+                        {module
+                          ? (activeSkills.find((s) => s.slug === module)?.name ?? module)
+                          : "모듈 선택 (선택)"}
+                      </span>
+                      <ChevronDown className="size-3.5 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+                    <DropdownMenuItem
+                      onClick={() => setModule(null)}
+                      className={cn("gap-2", !module && "font-medium")}
+                    >
+                      선택 안 함
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {activeSkills.map((s) => (
+                      <DropdownMenuItem
+                        key={s.slug}
+                        onClick={() => setModule(s.slug)}
+                        className={cn("gap-2", module === s.slug && "font-medium")}
+                      >
+                        {s.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+
+            {/* 중요도 */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground">중요도</label>
+              <div className="flex gap-1.5">
+                {PRIORITY_CREATE_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setPriority(value)}
+                    className={cn(
+                      "flex-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors",
+                      priority === value
+                        ? PRIORITY_ACTIVE_STYLES[value]
+                        : "border-border text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              취소
+            </Button>
+            <Button type="submit" disabled={!title.trim() || loading}>
+              {loading && <Loader2 className="size-3.5 animate-spin" />}
+              만들기
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -925,6 +1200,8 @@ export function TasksTab({
   });
 
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [createTaskDefaultFolderId, setCreateTaskDefaultFolderId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -1022,6 +1299,9 @@ export function TasksTab({
   }
   function handleDeleted(id: string) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+  function handleTaskCreated(task: TaskRecord) {
+    setTasks((prev) => [task, ...prev]);
   }
   function handleFolderRenamed(updated: FolderRecord) {
     setFolders((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
@@ -1247,13 +1527,22 @@ export function TasksTab({
               )}
             </div>
           )}
-          <button
-            onClick={() => setCreateFolderOpen(true)}
-            className="ml-auto flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <FolderPlus className="size-3.5" />
-            새 폴더
-          </button>
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              onClick={() => setCreateFolderOpen(true)}
+              className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <FolderPlus className="size-3.5" />
+              새 폴더
+            </button>
+            <button
+              onClick={() => { setCreateTaskDefaultFolderId(null); setCreateTaskOpen(true); }}
+              className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Plus className="size-3.5" />
+              새 태스크
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -1330,9 +1619,7 @@ export function TasksTab({
               <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
                 <CheckSquare className="size-8 opacity-30" strokeWidth={1.5} />
                 <p>아직 태스크가 없어요.</p>
-                <p className="text-xs">
-                  AI 도구에서 <code className="rounded bg-muted px-1 py-0.5">add_task</code> 툴로 등록하거나 폴더를 만들어보세요.
-                </p>
+                <p className="text-xs">새 태스크 버튼으로 바로 등록해보세요.</p>
               </div>
             )}
           </div>
@@ -1349,6 +1636,14 @@ export function TasksTab({
               void handleBulkMoveToFolder(folder.id);
             }
           }}
+        />
+        <CreateTaskDialog
+          open={createTaskOpen && folderView.kind === "list"}
+          projectId={selected.id}
+          folders={folders}
+          defaultFolderId={createTaskDefaultFolderId}
+          onClose={() => setCreateTaskOpen(false)}
+          onCreated={handleTaskCreated}
         />
       </div>
     );
@@ -1387,21 +1682,36 @@ export function TasksTab({
             </span>
           )}
         </div>
-        <button
-          onClick={() => {
-            if (isSelectMode) {
-              setIsSelectMode(false);
-              setSelectedIds(new Set());
-            } else {
-              setIsSelectMode(true);
-              setExpandedId(null);
-            }
-          }}
-          className="ml-auto flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          {!isSelectMode && <CheckSquare className="size-3.5" />}
-          {isSelectMode ? "취소" : "선택하기"}
-        </button>
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            onClick={() => {
+              if (isSelectMode) {
+                setIsSelectMode(false);
+                setSelectedIds(new Set());
+              } else {
+                setIsSelectMode(true);
+                setExpandedId(null);
+              }
+            }}
+            className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {!isSelectMode && <CheckSquare className="size-3.5" />}
+            {isSelectMode ? "취소" : "선택하기"}
+          </button>
+          {!isSelectMode && (
+            <button
+              onClick={() => {
+                const defaultId = folderView.kind === "folder" ? folderView.id : null;
+                setCreateTaskDefaultFolderId(defaultId);
+                setCreateTaskOpen(true);
+              }}
+              className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Plus className="size-3.5" />
+              새 태스크
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 검색 */}
@@ -1703,6 +2013,14 @@ export function TasksTab({
             void handleBulkMoveToFolder(folder.id);
           }
         }}
+      />
+      <CreateTaskDialog
+        open={createTaskOpen}
+        projectId={selected.id}
+        folders={folders}
+        defaultFolderId={createTaskDefaultFolderId}
+        onClose={() => setCreateTaskOpen(false)}
+        onCreated={handleTaskCreated}
       />
 
     </div>

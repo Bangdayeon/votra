@@ -31,19 +31,19 @@ import type { TaskRecord, TaskStatusValue } from "@/domain/memory/types";
 import { cn } from "@/lib/utils";
 
 const PRIORITY_LABELS: Record<1 | 2 | 3 | 4, string> = {
-  4: "Critical", 3: "High", 2: "Medium", 1: "Low",
+  1: "Low", 2: "Medium", 3: "High", 4: "Critical",
 };
 const PRIORITY_STYLES: Record<1 | 2 | 3 | 4, string> = {
-  4: "bg-red-100 text-red-700", 3: "bg-orange-100 text-orange-700",
-  2: "bg-yellow-100 text-yellow-700", 1: "bg-green-100 text-green-700",
+  1: "bg-green-100 text-green-700", 2: "bg-yellow-100 text-yellow-700",
+  3: "bg-orange-100 text-orange-700", 4: "bg-red-100 text-red-700",
 };
 
 function calcPriorityLevel(priority: number): 0 | 1 | 2 | 3 | 4 {
-  if (priority >= 9) return 4;
-  if (priority >= 7) return 3;
-  if (priority >= 4) return 2;
-  if (priority >= 1) return 1;
-  return 0;
+  if (priority <= 0) return 0;
+  if (priority === 1) return 1;
+  if (priority === 2) return 2;
+  if (priority === 3) return 3;
+  return 4;
 }
 
 function StatusIcon({ status }: { status: TaskStatusValue }) {
