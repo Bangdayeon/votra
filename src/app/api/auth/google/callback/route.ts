@@ -6,7 +6,6 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_SEC,
 } from "@/infrastructure/auth/sessionConfig";
-import { DEFAULT_AI_POLICY_TEXT } from "@/domain/aiSpec/types";
 import { randomProfileAppearance } from "@/domain/user/profileAppearance";
 import { safeNextPath } from "@/shared/lib/safeNextPath";
 
@@ -109,7 +108,6 @@ export async function GET(req: NextRequest) {
           name: googleUser.name,
           profileColor: randomAppearance.profileColor,
           profileImage: randomAppearance.profileImage,
-          aiPolicyText: DEFAULT_AI_POLICY_TEXT,
         },
         select: { id: true },
       });

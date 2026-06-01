@@ -47,13 +47,6 @@ model User {
   /// public 폴더 기준 이미지 경로 (예: /assets/images/profile_dog.png)
   profileImage String?
 
-  /// 계정 전체 (모든 프로젝트) 에 적용할 AI 활용 정책 본문 (자유 텍스트).
-  aiPolicyText        String? @db.Text
-  /// 정책 파일 업로드 시 원본 파일명 (예: "company-ai-policy.md")
-  aiPolicyFileName    String?
-  /// 정책 파일 본문 (텍스트, 512KB 캡)
-  aiPolicyFileContent String? @db.Text
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -105,17 +98,6 @@ model Project {
   /// 프로젝트별 설정 (유형, AI 분석 옵션 등). domain/project/settings/types.ts 의 ProjectSettings 와 동기화.
   settings Json?
 
-  /// AI 가 프로젝트의 md 파일(CLAUDE.md, AGENTS.md 등)을 평가할 때 따를 사용자 지침. 자유 텍스트.
-  aiSpecGuideline String? @db.Text
-
-  /// 사용자가 업로드한 AI 스펙 보조 파일 이름 (한 프로젝트에 1개). 없으면 null.
-  aiSpecFileName    String?
-  /// 업로드 파일의 텍스트 본문. 텍스트 파일을 가정하고 그대로 보관 (~512KB cap).
-  aiSpecFileContent String? @db.Text
-
-  /// AI 프롬프트 흐름 진단에 사용할 기본 프롬프트. 비워두면 시스템 기본 프롬프트 사용.
-  agentContextFlowPrompt String? @db.Text
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -124,11 +106,8 @@ model Project {
 
   members              ProjectMember[]
   agents               ProjectAgent[]
-  claudeFiles          ClaudeFile[]
-  claudeFileEvaluations ClaudeFileEvaluation[]
   aiSummary            ProjectAiSummary?
   aiNextTask           ProjectAiNextTask?
-  agentContextFlowDiagnosis ProjectAgentContextFlowDiagnosis?
   invites              ProjectInvite[]
   tasks                Task[]
   taskFolders          TaskFolder[]
@@ -250,115 +229,6 @@ model ProjectAgent {
 }
 
 // ────────────────────────────────────────────
-// CLAUDE FILE (AI 동작에 영향을 주는 파일)
-// CLAUDE.md / AGENTS.md / SKILL.md 등을 사용자 머신에서 스캔해 DB 에 적재.
-// 대시보드는 fs 가 아닌 이 테이블만 읽으므로 배포 환경에서도 동작.
-// ────────────────────────────────────────────
-
-model ClaudeFile {
-  id String @id @default(cuid())
-
-  /// "CLAUDE" | "AGENTS" | "SKILL" — domain/claudeFiles/types.ts 의 ClaudeFileKind 와 동기화
-  kind String
-  /// "global" | "project-root" | "subdir" — ClaudeFileScope 와 동기화
-  scope String
-
-  /// 사용자 머신 기준 절대 경로
-  absPath     String
-  /// scope 안에서의 보기용 경로
-  displayPath String
-  /// 파일 본문 (256KB 캡)
-  content     String @db.Text
-  /// epoch ms — currency 점수 계산 입력
-  mtimeMs     BigInt
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([projectId, absPath])
-  @@index([projectId])
-}
-
-// ────────────────────────────────────────────
-// CLAUDE FILE EVALUATION (AI 정책 문서 평가 상태)
-// 한 ClaudeFile 의 마지막 평가 결과/진행 상태를 캐싱.
-// (projectId, absPath) 로 키잉해 ClaudeFile 재인제스트에도 살아남게 함.
-// ────────────────────────────────────────────
-
-model ClaudeFileEvaluation {
-  id String @id @default(cuid())
-
-  /// "PENDING" | "LOADING" | "DONE" | "ERROR" — domain 의 ClaudeFileEvaluationStatus 와 동기화
-  status String
-
-  /// "OK" | "WARNING" | "DANGER" — status=DONE 일 때만 채워짐
-  severity String?
-
-  /// status=ERROR 일 때 사용자에게 보여줄 사유
-  errorMessage String? @db.Text
-
-  /// LLM 이 돌려준 한국어 해설 — "왜 이 평가가 됐는지" 설명. status=DONE 일 때 사용.
-  aiReason String? @db.Text
-
-  /// LLM 이 채점한 PolicyRule.key → 점수 매핑. e.g. { "commands": 18, "architecture": 12, ... }
-  scoresJson Json?
-
-  /// LLM 이 생성한 항목별 개선 제안. 점수가 낮은 항목만 포함. e.g. { "commands": "npm run dev 를 코드 펜스로 추가해보세요." }
-  suggestionsJson Json?
-
-  /// 평가 기준 적용 여부 — 사용자가 어떤 기준으로 통과/탈락 판단됐는지 캡션에 사용
-  basedOnBasic   Boolean @default(true)
-  basedOnProject Boolean @default(false)
-  basedOnTeam    Boolean @default(false)
-
-  /// 평가 당시 사용자의 "전체 정책" 내용 해시 (sha256 head). 변경되면 재평가 트리거.
-  globalPolicyHash String?
-  /// 전체 정책 위반 시 LLM 이 적은 한 줄 문제 진술. 위반 없으면 null.
-  globalPolicyProblem String? @db.Text
-  /// 전체 정책 위반 시 LLM 이 적은, 사용자가 AI agent 에 그대로 붙여 넣어 고치게 할 명령어. 위반 없으면 null.
-  globalPolicyAgentCommand String? @db.Text
-
-  /// 평가가 끝난 시각 (DONE/ERROR 진입 시각)
-  evaluatedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  /// ClaudeFile.absPath 와 매칭. ClaudeFile 재인제스트로 row id 가 바뀌어도 평가 결과는 유지됨.
-  absPath String
-
-  @@unique([projectId, absPath])
-  @@index([projectId])
-}
-
-// ────────────────────────────────────────────
-// PROJECT AGENT CONTEXT FLOW DIAGNOSIS (AI 지시 문서 흐름 진단 캐시)
-// 사용자가 "업데이트" 버튼을 누를 때만 갱신.
-// ────────────────────────────────────────────
-
-model ProjectAgentContextFlowDiagnosis {
-  id String @id @default(cuid())
-
-  /// LLM 이 생성한 진단 결과 (마크다운 형식)
-  result String @db.Text
-
-  /// 마지막 갱신 시각
-  refreshedAt DateTime @default(now())
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  projectId String  @unique
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-// ────────────────────────────────────────────
 // POLICY RULE (AI 정책 평가 규칙 — 시스템 기본값)
 // 사용자/팀이 따로 덮어쓰기 전까지 모든 프로젝트가 공유하는 평가 항목.
 // ────────────────────────────────────────────
@@ -366,7 +236,7 @@ model ProjectAgentContextFlowDiagnosis {
 model PolicyRule {
   id String @id @default(cuid())
 
-  /// 도메인 ClaudeFileScore 키와 1:1 매칭 ("commands" | "architecture" | "patterns" | "conciseness" | "currency" | "actionability")
+  /// 규칙 식별자 키 ("commands" | "architecture" | "patterns" | "conciseness" | "currency" | "actionability")
   key String @unique
 
   /// 사용자에게 보여줄 한국어 라벨

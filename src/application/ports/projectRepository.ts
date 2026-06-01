@@ -33,12 +33,6 @@ export type ProjectUpdateInput = {
   structure?: Record<string, unknown> | null;
   /** undefined: 변경 없음. null: 제거. 객체: 교체. */
   settings?: Record<string, unknown> | null;
-  /** undefined: 변경 없음. null: 제거. 문자열: 교체. */
-  aiSpecGuideline?: string | null;
-  /** undefined: 변경 없음. null: 파일 제거. 객체: 새 파일로 교체. */
-  aiSpecFile?: { name: string; content: string } | null;
-  /** undefined: 변경 없음. null/빈문자열: 제거. 문자열: 교체. */
-  agentContextFlowPrompt?: string | null;
 };
 
 export type ProjectMemberRow = {
@@ -63,18 +57,8 @@ export type ProjectRepository = {
   delete: (id: string) => Promise<void>;
   findSettings: (id: string) => Promise<{
     settings: unknown;
-    aiSpecGuideline: string | null;
-    aiSpecFileName: string | null;
-    agentContextFlowPrompt: string | null;
     cwd: string | null;
   }>;
-  /**
-   * 프로젝트 소유자의 "전체 정책" (User.aiPolicyText + aiPolicyFileContent) 을 합쳐서 반환해요.
-   * 평가 시 전체 정책 위반 검사 입력으로 사용해요. 둘 다 null 이면 null.
-   */
-  findOwnerAiPolicy: (
-    projectId: string,
-  ) => Promise<{ text: string; fileContent: string | null } | null>;
 
   findByCwd: (args: {
     cwd: string;

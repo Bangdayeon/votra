@@ -6,7 +6,6 @@ import type { TaskRecord } from "@/domain/memory/types";
 import type { ProjectSettings } from "@/domain/project/settings/types";
 
 const MAX_TITLE_LEN = 80;
-const MAX_AGENT_COMMAND_LEN = 500;
 
 export async function getProjectNextTasks(
   settings: ProjectSettings,
@@ -43,7 +42,7 @@ export async function getProjectNextTasks(
   );
 
   const prompt = `
-You are an AI project analyst. Analyze the task data below and suggest 1–3 high-impact next actions.
+You are an AI project analyst. Analyze the task data below and suggest 2–3 high-impact next actions.
 
 ## User instruction
 ${customInstruction}
@@ -102,7 +101,7 @@ function isNextTask(v: unknown): v is NextTask {
     typeof v.title === "string" && v.title.length > 0 && v.title.length <= MAX_TITLE_LEN &&
     typeof v.reason === "string" && v.reason.length > 0 &&
     (v.priority === "critical" || v.priority === "high" || v.priority === "medium" || v.priority === "low") &&
-    typeof v.agentCommand === "string" && v.agentCommand.length > 0 && v.agentCommand.length <= MAX_AGENT_COMMAND_LEN
+    typeof v.agentCommand === "string" && v.agentCommand.length > 0
   );
 }
 

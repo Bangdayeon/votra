@@ -6,7 +6,6 @@ import { listFolders } from "@/application/listFolders";
 import { listSkills } from "@/application/listSkills";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
-import { prismaClaudeFileRepository } from "@/infrastructure/repositories/prismaClaudeFileRepository";
 import { prismaSkillRepository } from "@/infrastructure/repositories/prismaSkillRepository";
 import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
@@ -54,7 +53,6 @@ export async function GET(req: Request) {
     },
     {
       tasks: prismaTaskRepository,
-      claudeFiles: prismaClaudeFileRepository,
     },
   );
 

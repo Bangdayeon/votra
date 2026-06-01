@@ -78,21 +78,6 @@ export const prismaProjectRepository: ProjectRepository = {
           ? Prisma.JsonNull
           : (input.settings as Prisma.InputJsonValue);
     }
-    if (input.aiSpecGuideline !== undefined) {
-      data.aiSpecGuideline = input.aiSpecGuideline;
-    }
-    if (input.aiSpecFile !== undefined) {
-      if (input.aiSpecFile === null) {
-        data.aiSpecFileName = null;
-        data.aiSpecFileContent = null;
-      } else {
-        data.aiSpecFileName = input.aiSpecFile.name;
-        data.aiSpecFileContent = input.aiSpecFile.content;
-      }
-    }
-    if (input.agentContextFlowPrompt !== undefined) {
-      data.agentContextFlowPrompt = input.agentContextFlowPrompt ?? null;
-    }
     await prisma.project.update({ where: { id: input.id }, data });
   },
 
@@ -163,33 +148,13 @@ export const prismaProjectRepository: ProjectRepository = {
       where: { id },
       select: {
         settings: true,
-        aiSpecGuideline: true,
-        aiSpecFileName: true,
-        agentContextFlowPrompt: true,
         cwd: true,
       },
     });
     return {
       settings: row?.settings ?? null,
-      aiSpecGuideline: row?.aiSpecGuideline ?? null,
-      aiSpecFileName: row?.aiSpecFileName ?? null,
-      agentContextFlowPrompt: row?.agentContextFlowPrompt ?? null,
       cwd: row?.cwd ?? null,
     };
-  },
-
-  findOwnerAiPolicy: async (id) => {
-    const row = await prisma.project.findUnique({
-      where: { id },
-      select: {
-        owner: { select: { aiPolicyText: true, aiPolicyFileContent: true } },
-      },
-    });
-    if (!row?.owner) return null;
-    const text = row.owner.aiPolicyText ?? "";
-    const fileContent = row.owner.aiPolicyFileContent ?? null;
-    if (text.length === 0 && fileContent === null) return null;
-    return { text, fileContent };
   },
 
   findByCwd: async ({ cwd, ownerId }) => {

@@ -4,24 +4,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { updateProjectAction } from "@/app/actions/updateProject";
-import { AiSpecPolicyFields } from "@/components/aiSpec/AiSpecPolicyFields";
 import { toast } from "sonner";
 import { DeleteProjectConfirmDialog } from "@/components/project/DeleteProjectConfirmDialog";
 import { useProjects } from "@/components/project/ProjectsContext";
 import { Button } from "@/components/ui/button";
 import {
-  buildAiSpecPolicyPatch,
-  type AiSpecFileChange,
-} from "@/domain/aiSpec/types";
-import { DEFAULT_AI_SPEC_GUIDELINE } from "@/domain/aiSpec/defaultAiSpecGuideline";
-import {
-  AGENT_CONTEXT_FLOW_PROMPT_MAX,
   AI_ANALYSIS_INSTRUCTION_MAX,
   AI_NEXT_TASK_PROMPT_MAX,
 } from "@/domain/project/settings/types";
 import { cn } from "@/lib/utils";
 
-type SettingsTab = "all" | "overview" | "ai-management";
+type SettingsTab = "all" | "overview";
 
 type SaveState = { kind: "idle" } | { kind: "saving" };
 
@@ -118,11 +111,7 @@ function SettingsForm({
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab");
   const activeTab: SettingsTab =
-    rawTab === "overview"
-      ? "overview"
-      : rawTab === "ai-management"
-        ? "ai-management"
-        : "all";
+    rawTab === "overview" ? "overview" : "all";
 
   // Basic info state
   const [title, setTitle] = useState(projectName);
@@ -138,12 +127,6 @@ function SettingsForm({
   const [analysisInstruction, setAnalysisInstruction] = useState("");
   const [nextTaskPrompt, setNextTaskPrompt] = useState("");
   const [autoRefreshHour, setAutoRefreshHour] = useState<number | null>(null);
-  const [guideline, setGuideline] = useState("");
-  const [agentContextFlowPrompt, setAgentContextFlowPrompt] = useState("");
-  const [existingFileName, setExistingFileName] = useState<string | null>(null);
-  const [fileChange, setFileChange] = useState<AiSpecFileChange>({
-    kind: "none",
-  });
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
 
@@ -175,23 +158,6 @@ function SettingsForm({
               ? rawHour
               : null,
           );
-          setGuideline(
-            typeof data.aiSpecGuideline === "string" &&
-              data.aiSpecGuideline.length > 0
-              ? data.aiSpecGuideline
-              : DEFAULT_AI_SPEC_GUIDELINE,
-          );
-          setExistingFileName(
-            typeof data.aiSpecFileName === "string"
-              ? data.aiSpecFileName
-              : null,
-          );
-          setAgentContextFlowPrompt(
-            typeof data.agentContextFlowPrompt === "string"
-              ? data.agentContextFlowPrompt
-              : "",
-          );
-          setFileChange({ kind: "none" });
         }
       })
       .catch(() => {})
@@ -277,8 +243,6 @@ function SettingsForm({
               autoRefreshHour,
             },
           },
-          ...buildAiSpecPolicyPatch(guideline, fileChange),
-          agentContextFlowPrompt: agentContextFlowPrompt || null,
         }),
       });
       const data: unknown = await res.json();
@@ -291,30 +255,13 @@ function SettingsForm({
         toast.error(msg);
         return;
       }
-      setExistingFileName(
-        typeof data.aiSpecFileName === "string" ? data.aiSpecFileName : null,
-      );
-      setAgentContextFlowPrompt(
-        typeof data.agentContextFlowPrompt === "string"
-          ? data.agentContextFlowPrompt
-          : "",
-      );
-      setFileChange({ kind: "none" });
       setSaveState({ kind: "idle" });
       toast.success("저장됐어요.");
     } catch (err) {
       setSaveState({ kind: "idle" });
       toast.error(err instanceof Error ? err.message : "저장에 실패했어요.");
     }
-  }, [
-    projectId,
-    analysisInstruction,
-    nextTaskPrompt,
-    autoRefreshHour,
-    guideline,
-    fileChange,
-    agentContextFlowPrompt,
-  ]);
+  }, [projectId, analysisInstruction, nextTaskPrompt, autoRefreshHour]);
 
   const displayThumbnail = thumbnailDataUrl ?? projectImage ?? null;
 
@@ -541,64 +488,6 @@ function SettingsForm({
                   </p>
                 )}
               </div>
-            </Section>
-
-            {isOwner && (
-              <SaveBar
-                saving={saveState.kind === "saving"}
-                disabled={loading}
-                onSave={onSave}
-              />
-            )}
-          </>
-        )}
-
-        {activeTab === "ai-management" && (
-          <>
-            <Section
-              title="AI 스펙 문서 지침"
-              description="AI 에이전트용 문서(CLAUDE.md, AGENTS.md 등)를 평가할 때 고려해야 할 사항을 작성해주세요."
-            >
-              <AiSpecPolicyFields
-                guideline={guideline}
-                onGuidelineChange={(next) => {
-                  setGuideline(next);
-                  markDirty();
-                }}
-                existingFileName={existingFileName}
-                fileChange={fileChange}
-                onFileChange={(next) => {
-                  setFileChange(next);
-                  markDirty();
-                }}
-                disabled={loading || !isOwner}
-                guidelinePlaceholder="예) 보안 관련 지침이 명시돼야 해요. 폴더 구조와 의존 방향이 적혀 있어야 통과로 봐주세요."
-              />
-            </Section>
-
-            <Section
-              title="AI 프롬프트 흐름 진단 프롬프트"
-              description="팀·프로젝트 정책과 비교해 프롬프트 플로우를 진단할 때 고려해야 할 사항을 작성해주세요."
-            >
-              <textarea
-                value={agentContextFlowPrompt}
-                disabled={loading || !isOwner}
-                maxLength={AGENT_CONTEXT_FLOW_PROMPT_MAX}
-                placeholder="비워두면 시스템 기본 프롬프트가 사용돼요."
-                rows={8}
-                onChange={(e) => {
-                  setAgentContextFlowPrompt(e.target.value);
-                  markDirty();
-                }}
-                className={cn(
-                  "w-full rounded-md border border-border bg-muted px-3 py-2 font-mono text-xs",
-                  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]",
-                  "disabled:cursor-not-allowed disabled:opacity-50",
-                )}
-              />
-              <p className="text-xs text-muted-foreground">
-                {agentContextFlowPrompt.length} / {AGENT_CONTEXT_FLOW_PROMPT_MAX}
-              </p>
             </Section>
 
             {isOwner && (

@@ -1,4 +1,3 @@
-import type { ClaudeFileRepository } from "@/application/ports/claudeFileRepository";
 import type { TaskRepository } from "@/application/ports/taskRepository";
 import type { TaskRecord } from "@/domain/memory/types";
 import { err, ok } from "@/shared/lib/result";
@@ -26,27 +25,18 @@ export async function getProjectBrief(
   input: GetProjectBriefInput,
   deps: {
     tasks: TaskRepository;
-    claudeFiles: ClaudeFileRepository;
   },
 ): Promise<Result<ProjectBrief, string>> {
   try {
-    const [pendingTasks, inProgressTasks, recentlyDone, claudeFiles, recentlyModified] =
+    const [pendingTasks, inProgressTasks, recentlyDone, recentlyModified] =
       await Promise.all([
         deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "PENDING", limit: 20 }),
         deps.tasks.listByFilter({ projectId: input.projectId, userId: input.userId, status: "IN_PROGRESS", limit: 20 }),
         deps.tasks.findRecentDone({ projectId: input.projectId, userId: input.userId, limit: 5 }),
-        deps.claudeFiles.findByProject(input.projectId),
         deps.tasks.findRecentByUpdatedAt({ projectId: input.projectId, userId: input.userId, limit: 10 }),
       ]);
 
     const recentDecisions = recentlyDone.filter((t) => t.keyDecisions.length > 0);
-
-    const ruleFile =
-      claudeFiles.find((f) => f.kind === "CLAUDE" && f.scope === "project-root") ??
-      claudeFiles.find((f) => f.kind === "AGENTS" && f.scope === "project-root") ??
-      claudeFiles[0];
-
-    const rules = ruleFile ? extractRules(ruleFile.content) : [];
 
     return ok({
       projectTitle: input.projectTitle,
@@ -56,25 +46,9 @@ export async function getProjectBrief(
       recentDecisions,
       recentlyDone,
       recentlyModified,
-      rules,
+      rules: [],
     });
   } catch (e) {
     return err(e instanceof Error ? e.message : "브리핑 조회에 실패했어요.");
   }
-}
-
-const rulesCache = new Map<string, string[]>();
-
-function extractRules(content: string): string[] {
-  const cached = rulesCache.get(content);
-  if (cached) return cached;
-
-  const rules = content
-    .split("\n")
-    .filter((line) => /^[-*]|^#{1,3}\s/.test(line.trim()))
-    .map((line) => line.trim())
-    .slice(0, 20);
-
-  rulesCache.set(content, rules);
-  return rules;
 }

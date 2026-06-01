@@ -3,14 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
-import type { CachedAgentContextFlowDiagnosis } from "@/application/getCachedAgentContextFlowDiagnosis";
 import type { CachedProjectAiSummary } from "@/application/getCachedProjectAiSummary";
 import type { CachedProjectNextTasks } from "@/application/getCachedProjectNextTasks";
-import type { ListClaudeFilesResult } from "@/application/listClaudeFiles";
 import type { ProjectMemberRow } from "@/app/actions/getProjectMembers";
 import type { TaskRecord } from "@/app/actions/getProjectTasks";
-import { AgentContextFlowCard } from "@/components/claude-files/AgentContextFlowCard";
-import { ClaudeFilesCard } from "@/components/claude-files/ClaudeFilesCard";
 import { SkillsTab } from "@/components/memory/SkillsTab";
 import { TasksTab } from "@/components/memory/TasksTab";
 import { OverviewTab } from "@/components/overview/OverviewTab";
@@ -26,9 +22,7 @@ export type ProjectPageInitialData = {
     nextTasks: CachedProjectNextTasks;
   };
   manage: {
-    files: ListClaudeFilesResult;
     rules: PolicyRule[];
-    diagnosis: CachedAgentContextFlowDiagnosis;
   };
   tasks: TaskRecord[] | undefined;
   team: {
@@ -96,11 +90,6 @@ export function ProjectPageClient({
       {visitedTabs.has("manage") && (
         <div className={cn(tab !== "manage" && "hidden")}>
           <div className="flex flex-col gap-4 md:flex-row md:items-start">
-            <ClaudeFilesCard selected={project} initialManage={initialData?.manage} />
-            <AgentContextFlowCard
-              selected={project}
-              initialDiagnosis={initialData?.manage.diagnosis}
-            />
           </div>
         </div>
       )}

@@ -3,7 +3,6 @@
 import {
   BookOpen,
   Bot,
-  Globe2,
   LayoutGrid,
   ListChecks,
   LogOut,
@@ -21,27 +20,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { type UserAiPolicyBundle } from "@/app/actions/getUserAiPolicy";
 import { resetAccountAction } from "@/app/actions/resetAccount";
 import { signOutAction } from "@/app/actions/signOut";
-import { updateUserAiPolicyAction } from "@/app/actions/updateUserAiPolicy";
 import { updateUserNameAction } from "@/app/actions/updateUserName";
-import { AiSpecPolicyFields } from "@/components/aiSpec/AiSpecPolicyFields";
 import { useCurrentUser } from "@/components/project/shell/CurrentUserContext";
 import { useTheme, type ThemeSetting } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
-import {
-  buildAiSpecPolicyPatch,
-  type AiSpecFileChange,
-} from "@/domain/aiSpec/types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-type MenuKey = "account" | "policy" | "guide";
+type MenuKey = "account" | "guide";
 
 const MENU: { key: MenuKey; label: string; icon: React.ElementType }[] = [
   { key: "account", label: "계정 설정", icon: UserCog },
-  { key: "policy", label: "전체 정책", icon: Globe2 },
   { key: "guide", label: "안내", icon: BookOpen },
 ];
 
@@ -50,15 +41,11 @@ function tabHref(key: MenuKey): string {
   return `/account?tab=${key}`;
 }
 
-export function AccountSettingsPage({
-  initialPolicy,
-}: {
-  initialPolicy: UserAiPolicyBundle;
-}) {
+export function AccountSettingsPage() {
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab");
   const active: MenuKey =
-    rawTab === "policy" ? "policy" : rawTab === "guide" ? "guide" : "account";
+    rawTab === "guide" ? "guide" : "account";
 
   const navRef = useRef<HTMLElement>(null);
   const tabRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
@@ -117,8 +104,6 @@ export function AccountSettingsPage({
         <div className="mx-auto w-full max-w-2xl">
           {active === "account" ? (
             <AccountPane />
-          ) : active === "policy" ? (
-            <PolicyPane initialPolicy={initialPolicy} />
           ) : (
             <GuidePane />
           )}
@@ -310,78 +295,6 @@ function AccountPane() {
           </Button>
         )}
       </section>
-    </div>
-  );
-}
-
-function PolicyPane({ initialPolicy }: { initialPolicy: UserAiPolicyBundle }) {
-  const [guideline, setGuideline] = useState(initialPolicy.aiSpecGuideline);
-  const [initialGuideline, setInitialGuideline] = useState(
-    initialPolicy.aiSpecGuideline,
-  );
-  const [existingFileName, setExistingFileName] = useState<string | null>(
-    initialPolicy.aiSpecFileName,
-  );
-  const [fileChange, setFileChange] = useState<AiSpecFileChange>({
-    kind: "none",
-  });
-  const [pending, startSave] = useTransition();
-
-  const hasChanges =
-    guideline !== initialGuideline || fileChange.kind !== "none";
-
-  const onSave = () => {
-    startSave(async () => {
-      const res = await updateUserAiPolicyAction(
-        buildAiSpecPolicyPatch(guideline, fileChange),
-      );
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      if (fileChange.kind === "upload") {
-        setExistingFileName(fileChange.name);
-      } else if (fileChange.kind === "remove") {
-        setExistingFileName(null);
-      }
-      setFileChange({ kind: "none" });
-      setInitialGuideline(guideline);
-      toast.success("저장됐어요.");
-    });
-  };
-
-  return (
-    <div className="flex flex-col gap-8">
-      <header>
-        <h2 className="text-xl font-semibold">전체 정책</h2>
-        <span className="mt-2 text-sm text-muted-foreground">
-          <p>모든 프로젝트에 공통으로 적용할 AI 활용 정책을 적어주세요.</p>
-          <p>ex. 보안·민감 정보 처리 기준 등</p>
-        </span>
-      </header>
-
-      <div className="relative">
-        <AiSpecPolicyFields
-          guideline={guideline}
-          onGuidelineChange={setGuideline}
-          existingFileName={existingFileName}
-          fileChange={fileChange}
-          onFileChange={setFileChange}
-          disabled={pending}
-          guidelinePlaceholder="예) 고객 데이터를 포함한 코드를 외부 LLM 으로 보내지 않아요. 보안 관련 변경은 사람이 검토해요."
-          fileHint="이미 정리한 정책 문서가 있다면 텍스트 파일로 올려 주세요. (최대 512KB)"
-        />
-      </div>
-
-      <div className="flex justify-end">
-        <Button
-          type="button"
-          onClick={onSave}
-          disabled={pending || !hasChanges}
-        >
-          {pending ? "저장 중…" : "저장"}
-        </Button>
-      </div>
     </div>
   );
 }

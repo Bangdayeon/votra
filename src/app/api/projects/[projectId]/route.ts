@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getProjectSettings } from "@/application/getProjectSettings";
-import {
-  updateProjectSettings,
-  type AiSpecFileInput,
-} from "@/application/updateProjectSettings";
-import { AI_SPEC_GUIDELINE_MAX } from "@/domain/aiSpec/types";
-import { AGENT_CONTEXT_FLOW_PROMPT_MAX } from "@/domain/project/settings/types";
-import { parseAiSpecFilePayload } from "@/domain/aiSpec/parseAiSpecFilePayload";
+import { updateProjectSettings } from "@/application/updateProjectSettings";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { assertProjectOwner } from "@/infrastructure/auth/assertProjectOwner";
 import { prismaPolicyRuleRepository } from "@/infrastructure/repositories/prismaPolicyRuleRepository";
@@ -31,9 +25,6 @@ export async function GET(_req: Request, ctx: RouteContext) {
   return NextResponse.json({
     ok: true,
     settings: bundle.settings,
-    aiSpecGuideline: bundle.aiSpecGuideline,
-    aiSpecFileName: bundle.aiSpecFileName,
-    agentContextFlowPrompt: bundle.agentContextFlowPrompt,
   });
 }
 
@@ -65,79 +56,17 @@ export async function PATCH(req: Request, ctx: RouteContext) {
   }
 
   const hasSettings = body.settings !== undefined;
-  const hasGuideline = body.aiSpecGuideline !== undefined;
-  const hasFile = body.aiSpecFile !== undefined;
-  const hasFlowPrompt = body.agentContextFlowPrompt !== undefined;
-  if (!hasSettings && !hasGuideline && !hasFile && !hasFlowPrompt) {
+  if (!hasSettings) {
     return NextResponse.json(
       { ok: false, error: "변경할 항목이 없어요." },
       { status: 400 },
     );
   }
 
-  let guideline: string | undefined;
-  if (hasGuideline) {
-    if (typeof body.aiSpecGuideline !== "string") {
-      return NextResponse.json(
-        { ok: false, error: "aiSpecGuideline 은 문자열이어야 해요." },
-        { status: 400 },
-      );
-    }
-    if (body.aiSpecGuideline.length > AI_SPEC_GUIDELINE_MAX) {
-      return NextResponse.json(
-        { ok: false, error: "지침이 너무 길어요." },
-        { status: 400 },
-      );
-    }
-    guideline = body.aiSpecGuideline;
-  }
-
-  let file: AiSpecFileInput | null | undefined;
-  if (hasFile) {
-    const parsed = parseAiSpecFilePayload(body.aiSpecFile);
-    if (!parsed.ok) {
-      return NextResponse.json(
-        { ok: false, error: parsed.error },
-        { status: 400 },
-      );
-    }
-    file = parsed.value;
-  }
-
-  let agentContextFlowPrompt: string | null | undefined;
-  if (hasFlowPrompt) {
-    if (
-      body.agentContextFlowPrompt !== null &&
-      typeof body.agentContextFlowPrompt !== "string"
-    ) {
-      return NextResponse.json(
-        { ok: false, error: "agentContextFlowPrompt 은 문자열이어야 해요." },
-        { status: 400 },
-      );
-    }
-    if (
-      typeof body.agentContextFlowPrompt === "string" &&
-      body.agentContextFlowPrompt.length > AGENT_CONTEXT_FLOW_PROMPT_MAX
-    ) {
-      return NextResponse.json(
-        { ok: false, error: "프롬프트가 너무 길어요." },
-        { status: 400 },
-      );
-    }
-    agentContextFlowPrompt =
-      body.agentContextFlowPrompt === null ||
-      body.agentContextFlowPrompt === ""
-        ? null
-        : (body.agentContextFlowPrompt as string);
-  }
-
   await updateProjectSettings(
     {
       id: projectId,
       settings: hasSettings ? parseProjectSettings(body.settings) : undefined,
-      aiSpecGuideline: guideline,
-      aiSpecFile: file,
-      agentContextFlowPrompt,
     },
     { projects: prismaProjectRepository },
   );
@@ -149,9 +78,6 @@ export async function PATCH(req: Request, ctx: RouteContext) {
   return NextResponse.json({
     ok: true,
     settings: bundle.settings,
-    aiSpecGuideline: bundle.aiSpecGuideline,
-    aiSpecFileName: bundle.aiSpecFileName,
-    agentContextFlowPrompt: bundle.agentContextFlowPrompt,
   });
 }
 

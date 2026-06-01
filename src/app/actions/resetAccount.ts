@@ -21,9 +21,6 @@ export async function resetAccountAction(): Promise<
     prisma.user.update({
       where: { id: user.id },
       data: {
-        aiPolicyText: null,
-        aiPolicyFileName: null,
-        aiPolicyFileContent: null,
         profileColor: null,
         profileImage: null,
       },
