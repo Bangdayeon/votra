@@ -349,28 +349,6 @@ const SERVICE_FEATURES: {
       },
     ],
   },
-  {
-    name: "AI 프롬프트 관리",
-    icon: Bot,
-    screenshot: "/assets/images/guide/tab-prompt.png",
-    desc: "프로젝트에 작성된 AI 프롬프트를 정책 기준으로 평가하고, 전체 문서 흐름을 진단해요.",
-    features: [
-      {
-        title: "AI 프롬프트",
-        lines: [
-          "ai 에이전트용 문서들을 파일 트리로 보여줘요.",
-          "파일마다 정책 적합도에 따른 피드백을 받을 수 있어요",
-        ],
-      },
-      {
-        title: "AI 프롬프트 흐름 진단",
-        lines: [
-          "문서 연결 간 맥락 흐름을 분석해 병목 구간이나 맥락 손실 구간을 진단해요.",
-          "중복 되거나 모순이 있는 지점을 진단해 개선점을 제안해요."
-        ],
-      },
-    ],
-  },
   
   {
     name: "팀작업",
