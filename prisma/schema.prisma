@@ -27,6 +27,13 @@ enum TaskStatus {
   CANCELLED
 }
 
+enum MemoryTier {
+  ACTIVE
+  LONG_TERM
+  ARCHIVED
+  TRASH
+}
+
 // ────────────────────────────────────────────
 // USER
 // ────────────────────────────────────────────
@@ -98,6 +105,9 @@ model Project {
   /// 프로젝트별 설정 (유형, AI 분석 옵션 등). domain/project/settings/types.ts 의 ProjectSettings 와 동기화.
   settings Json?
 
+  sortOrder  Float   @default(0)
+  isFavorite Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -112,6 +122,8 @@ model Project {
   tasks                Task[]
   taskFolders          TaskFolder[]
   skillConfigs         ProjectSkillConfig[]
+  memoryReflections    ProjectMemoryReflection[]
+  memoryContext        ProjectMemoryContext?
 
   @@unique([ownerId, cwd])
   @@index([ownerId])
@@ -307,6 +319,14 @@ model Task {
   doneAt      DateTime?
   /// 휴지통 이동 시각. null 이면 활성 태스크. 12일 후 영구 삭제.
   deletedAt   DateTime?
+  /// AI 메모리 감쇠 계층. ACTIVE=기본, LONG_TERM=영구보존, ARCHIVED=장기보관, TRASH=감쇠 대기
+  memoryTier     MemoryTier @default(ACTIVE)
+  /// MCP recall/task_detail/brief 호출 시 누적 접근 횟수
+  accessCount    Int        @default(0)
+  /// 마지막으로 MCP 툴에서 참조된 시각
+  lastAccessedAt DateTime?
+  /// 사용자가 장기 기억으로 명시 고정. LONG_TERM 강제 유지.
+  isPinned       Boolean    @default(false)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -321,7 +341,56 @@ model Task {
   @@index([projectId, module])
   @@index([projectId, folderId])
   @@index([projectId, deletedAt])
+  @@index([projectId, memoryTier])
+  @@index([projectId, lastAccessedAt])
   @@index([userId])
+}
+
+// ────────────────────────────────────────────
+// PROJECT MEMORY CONTEXT (AI 성장형 프로젝트 맥락 기억)
+// 태스크에서 추출한 맥락을 plain text로 누적 저장.
+// 프로젝트당 1개. 학습할 때마다 갱신되며 version이 올라감.
+// ────────────────────────────────────────────
+
+model ProjectMemoryContext {
+  id        String @id @default(cuid())
+  projectId String @unique
+
+  /// AI가 태스크 학습을 통해 축적한 프로젝트 맥락 (plain text, 한국어)
+  content   String @db.Text
+  /// 몇 번째 학습인지. 갱신마다 +1.
+  version   Int    @default(1)
+
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ────────────────────────────────────────────
+// PROJECT MEMORY REFLECTION (AI 메모리 반성 스냅샷)
+// finish_task N회 누적 또는 cron 에 의해 자동 생성.
+// ────────────────────────────────────────────
+
+model ProjectMemoryReflection {
+  id        String @id @default(cuid())
+
+  /// AI가 분석한 인사이트 목록. [{type:"pattern"|"insight"|"risk", text}]
+  insights  Json @default("[]")
+  /// AI 추천 태스크 목록. [{title, reason, priority:"high"|"medium"|"low"}]
+  suggestedTasks Json @default("[]")
+  /// AI가 생성한 프로젝트 컨텍스트 요약. brief에서 LONG_TERM 태스크와 함께 활용.
+  contextSummary String? @db.Text
+  /// 분석에 사용된 태스크 수
+  analyzedTaskCount Int @default(0)
+  /// 트리거 원인: "cron" | "threshold"
+  triggerReason String @default("cron")
+
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
 }
 
 // ────────────────────────────────────────────

@@ -18,7 +18,7 @@ export const prismaProjectRepository: ProjectRepository = {
           { members: { some: { userId } } },
         ],
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ isFavorite: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
       include: {
         agents: { take: 1 },
         members: { where: { userId }, select: { role: true } },
@@ -35,6 +35,8 @@ export const prismaProjectRepository: ProjectRepository = {
         firstAgentSource: r.agents[0]?.source ?? null,
         memberRole: r.members[0]?.role ?? null,
         lastCliSyncAt: null,
+        sortOrder: r.sortOrder,
+        isFavorite: r.isFavorite,
       }),
     );
   },
@@ -167,5 +169,30 @@ export const prismaProjectRepository: ProjectRepository = {
       orderBy: { createdAt: "desc" },
     });
     return row ?? null;
+  },
+
+  reorderProjects: async ({ userId, orderedIds }) => {
+    if (orderedIds.length === 0) return;
+    await prisma.$transaction(
+      orderedIds.map((id, idx) =>
+        prisma.project.updateMany({
+          where: {
+            id,
+            OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+          },
+          data: { sortOrder: idx },
+        }),
+      ),
+    );
+  },
+
+  setFavorite: async ({ userId, id, isFavorite }) => {
+    await prisma.project.updateMany({
+      where: {
+        id,
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      data: { isFavorite },
+    });
   },
 };

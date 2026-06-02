@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -44,6 +44,9 @@ export type SideNavMenuItemProps = {
   onEdit?: () => void;
   /** 삭제 메뉴 핸들러 */
   onDelete?: () => void;
+  isFavorite?: boolean;
+  onFavorite?: () => void;
+  onUnfavorite?: () => void;
   className?: string;
 };
 
@@ -56,6 +59,9 @@ export function SideNavMenuItem({
   compact = false,
   onEdit,
   onDelete,
+  isFavorite,
+  onFavorite,
+  onUnfavorite,
   className,
 }: SideNavMenuItemProps) {
   if (compact) {
@@ -116,7 +122,11 @@ export function SideNavMenuItem({
     );
   }
 
-  const hasMenu = onEdit !== undefined || onDelete !== undefined;
+  const hasMenu =
+    onEdit !== undefined ||
+    onDelete !== undefined ||
+    onFavorite !== undefined ||
+    onUnfavorite !== undefined;
 
   const rowClassName = cn(
     "inline-flex items-center gap-2 w-full cursor-pointer justify-start rounded-full px-1 py-2 text-sm font-normal hover:bg-accent hover:text-accent-foreground",
@@ -170,6 +180,9 @@ export function SideNavMenuItem({
       {hasMenu && (
         <RowMenu
           title={title}
+          isFavorite={isFavorite}
+          onFavorite={onFavorite}
+          onUnfavorite={onUnfavorite}
           onEdit={onEdit}
           onDelete={onDelete}
         />
@@ -180,14 +193,23 @@ export function SideNavMenuItem({
 
 function RowMenu({
   title,
+  isFavorite,
+  onFavorite,
+  onUnfavorite,
   onEdit,
   onDelete,
 }: {
   title: string;
+  isFavorite?: boolean;
+  onFavorite?: () => void;
+  onUnfavorite?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+
+  const hasFavoriteAction = onFavorite !== undefined || onUnfavorite !== undefined;
+  const hasEditActions = onEdit !== undefined || onDelete !== undefined;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -198,7 +220,6 @@ function RowMenu({
           onClick={(e) => e.stopPropagation()}
           className={cn(
             "absolute right-2 top-[47%] flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-opacity hover:bg-purple-300 hover:text-foreground focus:opacity-100",
-            // 기본은 숨김, 부모 row 호버 시 노출. 메뉴 열려있을 땐 계속 노출.
             "opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100",
           )}
         >
@@ -209,9 +230,41 @@ function RowMenu({
         align="end"
         side="right"
         sideOffset={4}
-        className="w-36 p-1"
+        className="w-40 p-1"
       >
         <div className="flex flex-col">
+          {hasFavoriteAction && (
+            isFavorite ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(false);
+                  onUnfavorite?.();
+                }}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              >
+                <Star className="size-4 fill-yellow-400 text-yellow-400" />
+                즐겨찾기 해제
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(false);
+                  onFavorite?.();
+                }}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              >
+                <Star className="size-4 text-muted-foreground" />
+                즐겨찾기 등록
+              </button>
+            )
+          )}
+          {hasFavoriteAction && hasEditActions && (
+            <div className="my-1 h-px bg-border" />
+          )}
           {onEdit && (
             <button
               type="button"

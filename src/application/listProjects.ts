@@ -12,6 +12,8 @@ export type ProjectListItem = {
   isOwner: boolean;
   /** ISO 8601 — CLI 가 마지막으로 세션을 업로드한 시각 */
   lastCliSyncAt?: string;
+  sortOrder: number;
+  isFavorite: boolean;
 };
 
 export async function listProjects(
@@ -29,6 +31,8 @@ export async function listProjects(
     cwd: r.cwd ?? undefined,
     isOwner: r.memberRole === "OWNER",
     lastCliSyncAt: r.lastCliSyncAt?.toISOString(),
+    sortOrder: r.sortOrder,
+    isFavorite: r.isFavorite,
   }));
 }
 

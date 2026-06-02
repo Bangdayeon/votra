@@ -13,6 +13,8 @@ export type ProjectListRow = {
   firstAgentSource: string | null;
   memberRole: string | null;
   lastCliSyncAt: Date | null;
+  sortOrder: number;
+  isFavorite: boolean;
 };
 
 export type ProjectCreateInput = {
@@ -55,6 +57,8 @@ export type ProjectRepository = {
   create: (data: ProjectCreateInput) => Promise<string>;
   update: (input: ProjectUpdateInput) => Promise<void>;
   delete: (id: string) => Promise<void>;
+  reorderProjects: (args: { userId: string; orderedIds: string[] }) => Promise<void>;
+  setFavorite: (args: { userId: string; id: string; isFavorite: boolean }) => Promise<void>;
   findSettings: (id: string) => Promise<{
     settings: unknown;
     cwd: string | null;

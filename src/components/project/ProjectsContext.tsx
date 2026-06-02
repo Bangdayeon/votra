@@ -26,6 +26,8 @@ export type Project = {
   isOwner?: boolean;
   /** CLI 가 마지막으로 세션을 업로드한 시각 (ISO 8601) */
   lastCliSyncAt?: string;
+  sortOrder: number;
+  isFavorite: boolean;
 };
 
 type ProjectsCtx = {
