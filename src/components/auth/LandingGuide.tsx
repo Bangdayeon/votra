@@ -1,62 +1,27 @@
 "use client";
 
-import {
-  Bot,
-  CheckCircle2,
-  LayoutGrid,
-  ListChecks,
-  Plug,
-  Terminal,
-  Users,
-} from "lucide-react";
-import { useState } from "react";
+import Image from "next/image";
+import { Check, Copy, Terminal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
+import { AxhubSignInButton } from "@/components/auth/AxhubSignInButton";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { cn } from "@/lib/utils";
 
-const TABS = ["빠른 시작", "주요 기능", "MCP 툴"] as const;
+const TABS = ["votra 소셜 로그인", "MCP 설치", "brief, task"] as const;
 type Tab = (typeof TABS)[number];
 
-const FEATURES = [
-  {
-    icon: LayoutGrid,
-    name: "개요",
-    desc: "최근 커밋 기록과 작업 내용을 분석해 프로젝트 현황과 추천 작업을 한눈에 보여줘요.",
-    details: ["AI 요약 & 이슈 경고", "다음 작업 추천"],
-  },
-  {
-    icon: ListChecks,
-    name: "태스크",
-    desc: "votra MCP를 통해 에이전트가 등록한 태스크를 관리하고 폴더별로 흐름을 파악해요.",
-    details: ["실시간 태스크 현황", "이력 및 핵심 결정 보관"],
-  },
-  {
-    icon: Users,
-    name: "팀작업",
-    desc: "프로젝트를 팀과 공유하여 멤버 모두가 태스크 상태를 함께 확인해요.",
-    details: ["공유 프로젝트"],
-  },
-] as const;
-
-const MCP_TOOLS = [
-  { tool: "brief", desc: "세션 시작 브리핑 — 태스크·결정·추천 작업 한번에 조회" },
-  { tool: "recall", desc: "과거 결정·인사이트를 의미 기반으로 검색" },
-  { tool: "add_task", desc: "새 태스크 등록" },
-  { tool: "start_task", desc: "태스크 등록 후 즉시 IN_PROGRESS로 시작" },
-  { tool: "update_task", desc: "태스크 상태·내용 변경" },
-  { tool: "finish_task", desc: "태스크 완료 처리 — 요약·핵심 결정 함께 저장" },
-  { tool: "list_tasks", desc: "태스크 목록 조회 (상태·모듈 필터 가능)" },
-  { tool: "task_detail", desc: "태스크 상세 정보 조회" },
-  { tool: "log_session", desc: "세션 종료 전 작업 요약 저장" },
-  { tool: "upload_prompt", desc: "CLAUDE.md·AGENTS.md·SKILL.md 업로드" },
-  { tool: "load_skill", desc: "컨텍스트별 스킬 지침 로드" },
-  { tool: "signin", desc: "브라우저 OAuth로 votra 계정 로그인" },
-  { tool: "whoami", desc: "현재 로그인 계정 확인" },
-  { tool: "signout", desc: "로그아웃 및 인증 정보 삭제" },
-] as const;
-
 export function LandingGuide() {
-  const [active, setActive] = useState<Tab>("빠른 시작");
+  const [active, setActive] = useState<Tab>("votra 소셜 로그인");
   const [visible, setVisible] = useState(true);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    const i = TABS.indexOf(active);
+    const el = tabRefs.current[i];
+    if (el) setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [active]);
 
   const handleTab = (tab: Tab) => {
     if (tab === active) return;
@@ -68,159 +33,172 @@ export function LandingGuide() {
   };
 
   return (
-    <section className="border-t border-border px-4 py-24">
+    <section className="px-4 py-24">
       <div className="mx-auto flex max-w-4xl flex-col gap-12">
-        <header className="flex flex-col gap-3 text-center">
-          <h2 className="text-2xl font-bold sm:text-3xl">어떻게 사용하나요?</h2>
-          <p className="text-muted-foreground">
-            CLI 하나로 시작해, MCP로 에이전트와 자연스럽게 연동해요.
-          </p>
+        <header className="text-center">
+          <h2 className="text-2xl font-bold sm:text-3xl">votra 3분만에 시작하기</h2>
         </header>
 
-        <div className="flex gap-1 rounded-xl border border-border bg-muted/50 p-1">
-          {TABS.map((tab) => (
+        <div className="relative flex justify-center gap-2">
+          {TABS.map((tab, i) => (
             <button
               key={tab}
+              ref={(el) => { tabRefs.current[i] = el; }}
               type="button"
               onClick={() => handleTab(tab)}
               className={cn(
-                "flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all",
-                active === tab
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                "cursor-pointer px-8 pb-5 text-sm font-medium transition-colors",
+                active === tab ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {tab}
+              <span className="flex items-center justify-center gap-1.5">
+                <span className="flex size-4 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
+                  {i + 1}
+                </span>
+                {tab}
+              </span>
             </button>
           ))}
+          <div
+            className="absolute bottom-0 h-[3px] rounded-full bg-purple-600 transition-all duration-300"
+            style={{ left: indicator.left, width: indicator.width }}
+          />
         </div>
 
         <div
           className={cn(
-            "transition-all duration-150",
+            "mx-auto w-full max-w-2xl transition-all duration-150",
             visible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
           )}
         >
-          {active === "빠른 시작" && <QuickStartContent />}
-          {active === "주요 기능" && <FeaturesContent />}
-          {active === "MCP 툴" && <McpToolsContent />}
+          {active === "votra 소셜 로그인" && <SocialLoginContent />}
+          {active === "MCP 설치" && <McpInstallContent />}
+          {active === "brief, task" && <BriefTaskContent />}
         </div>
       </div>
     </section>
   );
 }
 
-function QuickStartContent() {
+function CodeCopy({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="mt-1 flex items-center justify-between rounded-lg bg-muted px-3 py-2">
+      <code className="font-mono text-sm">{code}</code>
+      <button
+        type="button"
+        onClick={copy}
+        className="ml-3 shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+        aria-label="복사"
+      >
+        {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
+      </button>
+    </div>
+  );
+}
+
+function Step({ n, label, children }: { n: number; label: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-border bg-background text-[10px] font-bold text-foreground">
+        {n}
+      </span>
+      <div className="flex flex-col gap-1 pt-0.5">
+        <span className="text-sm font-medium">{label}</span>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SocialLoginContent() {
+  return (
+    <div className="mx-auto flex max-w-md flex-col gap-8">
       <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
-            1
-          </span>
-          <span className="w-32 shrink-0 text-sm font-medium">CLI 설치</span>
-          <code className="flex-1 rounded-lg bg-muted px-3 py-2 font-mono text-sm">
-            npm install -g @votra/cli
-          </code>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
-            2
-          </span>
-          <span className="w-32 shrink-0 text-sm font-medium">MCP 서버 등록</span>
-          <code className="flex-1 rounded-lg bg-muted px-3 py-2 font-mono text-sm">
-            votra install
-          </code>
-        </div>
-        <div className="flex items-start gap-4">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
-            3
-          </span>
-          <div className="flex flex-col gap-0.5 pt-0.5">
-            <span className="text-sm font-medium">Claude Code 재시작 → signin 툴로 로그인</span>
-            <span className="text-xs text-muted-foreground">
-              재시작 후 votra-memory MCP 서버가 활성화돼요.
-            </span>
-          </div>
+        <span className="text-sm font-medium">이 페이지에서 소셜 로그인</span>
+        <div className="flex flex-col gap-3">
+          <AxhubSignInButton />
+          <GoogleSignInButton />
         </div>
       </div>
+      <Image
+        src="/images/guide/tab-overview.png"
+        alt="votra 대시보드 미리보기"
+        width={600}
+        height={400}
+        className="w-full rounded-xl"
+      />
+    </div>
+  );
+}
 
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-4">
-        <div className="flex items-center gap-2">
-          <Terminal className="size-4 text-muted-foreground" />
-          <span className="text-sm font-medium">지원 도구</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {["Claude Code", "Cursor", "Gemini CLI", "Codex"].map((tool) => (
-            <span
-              key={tool}
-              className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium"
-            >
-              {tool}
-            </span>
+function McpInstallContent() {
+  return (
+    <div className="mx-auto flex max-w-md flex-col gap-6">
+      <Step n={1} label="CLI 설치">
+        <CodeCopy code="npm install -g @votra/cli" />
+      </Step>
+
+      <Step n={2} label="MCP 서버 등록">
+        <span className="mt-1 text-xs text-muted-foreground">
+          연결할 에이전트를 지정해서 등록해요. 여러 에이전트에 동시에 등록할 수 있어요.
+        </span>
+        <CodeCopy code="votra install" />
+        <span className="text-xs text-muted-foreground">기본값은 claude예요.</span>
+        <div className="mt-1 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 rounded-lg bg-muted p-3 font-mono text-xs">
+          {[
+            ["votra install cursor", "Cursor"],
+            ["votra install gemini", "Gemini CLI"],
+            ["votra install codex", "Codex"],
+            ["votra install antigravity", "Antigravity"],
+            ["votra install all", "모든 에이전트에 한번에 등록"],
+          ].map(([cmd, desc]) => (
+            <>
+              <code key={cmd} className="text-foreground">{cmd}</code>
+              <span key={desc} className="text-muted-foreground"># {desc}</span>
+            </>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">
-          <code className="font-mono">votra install all</code>로 모든 도구에 한번에 등록할 수 있어요.
-        </p>
-      </div>
+      </Step>
+
+      <Step n={3} label="새 세션에서 로그인">
+        <span className="mt-1 text-xs text-muted-foreground">
+          프로젝트 루트에서 새 세션을 열고 아래 명령어를 말해보세요.
+        </span>
+        <CodeCopy code="votra signin" />
+        <Image
+          src="/images/guide/tab-mcp-signin.png"
+          alt="votra signin 예시"
+          width={600}
+          height={360}
+          className="mt-2 w-full rounded-xl"
+        />
+      </Step>
     </div>
   );
 }
 
-function FeaturesContent() {
+function BriefTaskContent() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {FEATURES.map(({ icon: Icon, name, desc, details }) => (
-        <div
-          key={name}
-          className="flex flex-col gap-3 rounded-xl border border-border bg-background p-5 transition-all hover:border-primary/40 hover:shadow-sm"
-        >
-          <div className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
-              <Icon className="size-4 text-primary" />
-            </div>
-            <span className="text-sm font-semibold">{name}</span>
-          </div>
-          <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
-          <div className="flex flex-col gap-1">
-            {details.map((d) => (
-              <div key={d} className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-3 shrink-0 text-primary/60" />
-                <span className="text-xs text-muted-foreground">{d}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function McpToolsContent() {
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Plug className="size-4 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">
-          votra-memory MCP 서버에서 제공하는 툴 목록이에요. 에이전트가 자동으로 호출해요.
-        </p>
+    <div className="mx-auto flex max-w-md flex-col gap-8">
+      <div className="flex flex-col gap-2">
+        <span className="text-xl font-bold">brief</span>
+        <p className="text-sm text-muted-foreground">첫 실행으로 프로젝트를 등록할 수 있어요.</p>
+        <p className="text-sm text-muted-foreground">이후 생성되는 커밋 기록과 태스크로 프로젝트 현황을 조회할 수 있어요.</p>
       </div>
-      <div className="overflow-hidden rounded-xl border border-border">
-        {MCP_TOOLS.map(({ tool, desc }, i) => (
-          <div
-            key={tool}
-            className={cn(
-              "flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/50",
-              i !== 0 && "border-t border-border",
-            )}
-          >
-            <code className="w-28 shrink-0 font-mono text-sm font-semibold text-foreground">
-              {tool}
-            </code>
-            <span className="text-sm text-muted-foreground">{desc}</span>
-          </div>
-        ))}
+
+      <div className="flex flex-col gap-2">
+        <span className="text-xl font-bold">task</span>
+        <p className="text-sm text-muted-foreground">프로젝트 현황 데이터 기반으로 다음 태스크를 추천해줘요.</p>
+        <p className="text-sm text-muted-foreground">원하는 태스크를 생성하라고 에이전트에게 요청하면 얼마든지 생성해줘요.</p>
+        <p className="text-sm text-muted-foreground">작업을 진행할 태스크를 에이전트에게 요청해서 작업을 시작해보세요.</p>
       </div>
     </div>
   );

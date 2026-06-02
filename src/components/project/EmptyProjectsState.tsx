@@ -10,7 +10,7 @@ export function EmptyProjectsState() {
     <div className="flex flex-col gap-6 h-full items-center justify-center px-8 py-6">
       <div className="flex flex-col gap-1 text-center text-sm text-muted-foreground">
         <p>아직 등록된 프로젝트가 없어요.</p>
-        <p>votra CLI 로 작업 기록을 업로드하면 자동으로 프로젝트가 만들어져요.</p>
+        <p>votra mcp 설치 후 brief를 첫 실행하면 프로젝트가 추가돼요.</p>
       </div>
 
       <ol className="flex w-full max-w-md flex-col gap-4">
@@ -26,10 +26,12 @@ export function EmptyProjectsState() {
         />
         <Step
           index={3}
-          title="프로젝트 폴더 루트에서 업로드"
-          command="votra upload --project"
-          hint="실시간 동기화를 하고 싶다면 끝에 --watch 를 붙여주세요."
-          extraCommand="votra upload --project --watch"
+          title="프로젝트 폴더 루트에서 세션 실행 후 brief 명령"
+          steps={[
+            "프로젝트 폴더 루트로 이동",
+            "AI agent 실행",
+            "brief 첫 실행시켜서 프로젝트 추가",
+          ]}
         />
       </ol>
     </div>
@@ -39,12 +41,13 @@ export function EmptyProjectsState() {
 type StepProps = {
   index: number;
   title: string;
-  command: string;
+  command?: string;
   hint?: string;
   extraCommand?: string;
+  steps?: string[];
 };
 
-function Step({ index, title, command, hint, extraCommand }: StepProps) {
+function Step({ index, title, command, hint, extraCommand, steps }: StepProps) {
   return (
     <li className="flex gap-3">
       <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
@@ -52,7 +55,17 @@ function Step({ index, title, command, hint, extraCommand }: StepProps) {
       </span>
       <div className="flex flex-1 flex-col gap-1.5">
         <span className="text-sm font-medium">{title}</span>
-        <CommandBlock command={command} />
+        {steps && (
+          <ol className="flex flex-col gap-1">
+            {steps.map((step, i) => (
+              <li key={i} className="flex gap-2 text-xs text-muted-foreground">
+                <span className="shrink-0 font-medium text-foreground/60">{i + 1})</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+        {command && <CommandBlock command={command} />}
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
         {extraCommand && <CommandBlock command={extraCommand} />}
       </div>
