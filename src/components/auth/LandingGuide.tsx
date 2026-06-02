@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Check, Copy, Terminal } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import { AxhubSignInButton } from "@/components/auth/AxhubSignInButton";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
@@ -129,11 +129,11 @@ function SocialLoginContent() {
         </div>
       </div>
       <Image
-        src="/images/guide/tab-overview.png"
+        src="/assets/images/guide/tab-overview.png"
         alt="votra 대시보드 미리보기"
         width={600}
         height={400}
-        className="w-full rounded-xl"
+        className="w-full rounded-xl shadow-lg"
       />
     </div>
   );
@@ -160,10 +160,10 @@ function McpInstallContent() {
             ["votra install antigravity", "Antigravity"],
             ["votra install all", "모든 에이전트에 한번에 등록"],
           ].map(([cmd, desc]) => (
-            <>
-              <code key={cmd} className="text-foreground">{cmd}</code>
-              <span key={desc} className="text-muted-foreground"># {desc}</span>
-            </>
+            <Fragment key={cmd}>
+              <code className="text-foreground">{cmd}</code>
+              <span className="text-muted-foreground"># {desc}</span>
+            </Fragment>
           ))}
         </div>
       </Step>
