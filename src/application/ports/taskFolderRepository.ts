@@ -4,6 +4,8 @@ export type FolderCreateInput = {
   name: string;
   projectId: string;
   userId: string;
+  icon?: string | null;
+  color?: string | null;
 };
 
 export type FolderUpdateInput = {

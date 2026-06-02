@@ -37,9 +37,9 @@ function toRecord(
 }
 
 export const prismaTaskFolderRepository: TaskFolderRepository = {
-  async create({ name, projectId, userId }: FolderCreateInput) {
+  async create({ name, projectId, userId, icon, color }: FolderCreateInput) {
     const row = await prisma.taskFolder.create({
-      data: { name, projectId, userId },
+      data: { name, projectId, userId, ...(icon !== undefined && { icon }), ...(color !== undefined && { color }) },
     });
     return toRecord(row, 0);
   },
