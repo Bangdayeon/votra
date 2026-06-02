@@ -18,6 +18,7 @@ import {
   FolderPlus,
   GripVertical,
   Heart,
+  Info,
   Layers,
   Loader2,
   MoreHorizontal,
@@ -81,6 +82,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { filterTasks } from "@/domain/memory/filterTasks";
 import { getTaskPriorityLevel } from "@/domain/memory/getTaskPriorityLevel";
 import { sortTasks } from "@/domain/memory/sortTasks";
@@ -390,35 +392,39 @@ function CreateTaskDialog({
 
             {/* 제목 */}
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-muted-foreground">제목</label>
-                <span className="text-xs text-muted-foreground/60">{title.length}/{TASK_TITLE_MAX}</span>
+              <label className="text-xs font-medium text-muted-foreground">제목</label>
+              <div className="relative">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="태스크 제목을 입력하세요"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value.slice(0, TASK_TITLE_MAX))}
+                  maxLength={TASK_TITLE_MAX}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-16 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/50">
+                  {title.length}/{TASK_TITLE_MAX}
+                </span>
               </div>
-              <input
-                autoFocus
-                type="text"
-                placeholder="태스크 제목을 입력하세요"
-                value={title}
-                onChange={(e) => setTitle(e.target.value.slice(0, TASK_TITLE_MAX))}
-                maxLength={TASK_TITLE_MAX}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              />
             </div>
 
             {/* 내용 */}
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-muted-foreground">내용</label>
-                <span className="text-xs text-muted-foreground/60">{description.length}/{TASK_DESC_MAX}</span>
+              <label className="text-xs font-medium text-muted-foreground">내용</label>
+              <div className="relative">
+                <textarea
+                  rows={5}
+                  placeholder="태스크 내용을 입력하세요 (선택)"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value.slice(0, TASK_DESC_MAX))}
+                  maxLength={TASK_DESC_MAX}
+                  className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 pb-8 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+                <span className="pointer-events-none absolute bottom-2 right-3 text-xs text-muted-foreground/50">
+                  {description.length}/{TASK_DESC_MAX}
+                </span>
               </div>
-              <textarea
-                rows={5}
-                placeholder="태스크 내용을 입력하세요 (선택)"
-                value={description}
-                onChange={(e) => setDescription(e.target.value.slice(0, TASK_DESC_MAX))}
-                maxLength={TASK_DESC_MAX}
-                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              />
             </div>
 
             {/* 모듈 */}
@@ -426,6 +432,18 @@ function CreateTaskDialog({
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-1">
                   <label className="text-xs font-medium text-muted-foreground">모듈</label>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex cursor-default">
+                          <Info className="size-3 text-muted-foreground/50" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[200px] text-xs">
+                        태스크가 속한 기능 영역이에요. 프로젝트에 등록된 스킬 중 하나를 선택하면 태스크를 모듈별로 분류할 수 있어요.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   {moduleLoading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
                 </div>
                 <DropdownMenu>
@@ -474,7 +492,7 @@ function CreateTaskDialog({
                     type="button"
                     onClick={() => setPriority(value)}
                     className={cn(
-                      "flex-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors",
+                      "flex-1 cursor-pointer rounded-md border px-2 py-1.5 text-xs font-medium transition-colors",
                       priority === value
                         ? PRIORITY_ACTIVE_STYLES[value]
                         : "border-border text-muted-foreground hover:bg-muted",
