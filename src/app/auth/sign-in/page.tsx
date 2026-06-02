@@ -2,7 +2,6 @@ import { Brain, ListChecks, Zap } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { LandingGuide } from "@/components/auth/LandingGuide";
-import { MockSignInButton } from "@/components/auth/MockSignInButton";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { getCurrentUser } from "@/infrastructure/auth/currentUser";
 import { safeNextPath } from "@/shared/lib/safeNextPath";
@@ -65,11 +64,6 @@ export default async function SignInPage({
 
             <div className="rounded-2xl bg-background p-8">
               <SignInForm next={safeNext === "/" ? undefined : safeNext} />
-              {process.env.MOCK_AUTH === "true" && (
-                <div className="mt-4 border-t border-dashed border-orange-200 pt-4">
-                  <MockSignInButton next={safeNext === "/" ? undefined : safeNext} />
-                </div>
-              )}
             </div>
           </div>
 
