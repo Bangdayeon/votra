@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Plus } from "lucide-react";
+import { Check, Copy, Plus, Terminal, Bot } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -47,27 +47,34 @@ export function AddProjectDialog({ onAdded, children }: Props) {
         <DialogHeader>
           <DialogTitle>프로젝트 추가</DialogTitle>
           <DialogDescription>
-            votra CLI 로 작업 기록을 업로드하면 자동으로 프로젝트가 만들어져요.
+            votra MCP 를 설치하고 AI agent 에게 brief 를 시키면 프로젝트가 자동으로 추가돼요.
           </DialogDescription>
         </DialogHeader>
 
         <ol className="flex flex-col gap-4">
           <Step
             index={1}
+            source="terminal"
             title="CLI 설치 (최초 1회)"
             command="npm i -g @votra/cli@latest"
           />
           <Step
             index={2}
-            title="로그인 (로그아웃 상태일 때만)"
-            command="votra signin"
+            source="terminal"
+            title="MCP 설치 (최초 1회)"
+            command="votra install"
           />
           <Step
             index={3}
-            title="프로젝트 폴더 루트에서 업로드"
-            command="votra upload --project"
-            hint="실시간 동기화를 하고 싶다면 끝에 --watch 를 붙여주세요."
-            extraCommand="votra upload --project --watch"
+            source="agent"
+            title="로그인 (로그아웃 상태일 때만)"
+            command="signin 해줘"
+          />
+          <Step
+            index={4}
+            source="agent"
+            title="프로젝트 폴더 루트에서 세션 시작"
+            command="brief 해줘"
           />
         </ol>
 
@@ -85,31 +92,44 @@ type StepProps = {
   index: number;
   title: string;
   command: string;
-  hint?: string;
-  extraCommand?: string;
+  source: "terminal" | "agent";
 };
 
-function Step({ index, title, command, hint, extraCommand }: StepProps) {
+function Step({ index, title, command, source }: StepProps) {
   return (
     <li className="flex gap-3">
       <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
         {index}
       </span>
       <div className="flex flex-1 flex-col gap-1.5">
-        <span className="text-sm font-medium">{title}</span>
-        <CommandBlock command={command} />
-        {hint && (
-          <p className="text-xs text-muted-foreground">
-            {hint}
-          </p>
-        )}
-        {extraCommand && <CommandBlock command={extraCommand} />}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">{title}</span>
+          <SourceBadge source={source} />
+        </div>
+        <CommandBlock command={command} source={source} />
       </div>
     </li>
   );
 }
 
-function CommandBlock({ command }: { command: string }) {
+function SourceBadge({ source }: { source: "terminal" | "agent" }) {
+  if (source === "terminal") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+        <Terminal className="size-2.5" />
+        터미널
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary">
+      <Bot className="size-2.5" />
+      AI agent
+    </span>
+  );
+}
+
+function CommandBlock({ command, source }: { command: string; source: "terminal" | "agent" }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -123,7 +143,10 @@ function CommandBlock({ command }: { command: string }) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
+    <div className={cn(
+      "flex items-center justify-between gap-2 rounded-md border px-3 py-2",
+      source === "agent" ? "border-primary/20 bg-primary/5" : "border-border bg-muted/40",
+    )}>
       <code className="truncate font-mono text-xs text-foreground">{command}</code>
       <button
         type="button"
