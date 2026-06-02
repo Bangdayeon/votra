@@ -238,7 +238,6 @@ const TASK_TITLE_MAX = 80;
 const TASK_DESC_MAX = 2000;
 
 const PRIORITY_CREATE_OPTIONS = [
-  { value: 0, label: "없음" },
   { value: 1, label: "Low" },
   { value: 2, label: "Medium" },
   { value: 3, label: "High" },
