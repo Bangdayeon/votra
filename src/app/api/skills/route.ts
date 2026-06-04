@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { listCustomSkills } from "@/application/listCustomSkills";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
-import { prisma } from "@/infrastructure/db/prisma";
+import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
 
-// GET /api/skills?projectId= — 전체 플랫폼 스킬 목록 + 프로젝트별 enabled 상태
+// GET /api/skills?projectId= — 프로젝트 커스텀 스킬 목록
 export async function GET(req: Request) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
   if (!user) {
@@ -16,24 +17,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const [skills, configs] = await Promise.all([
-    prisma.platformSkill.findMany({
-      where: { isActive: true },
-      select: { slug: true, name: true, description: true, contextHint: true },
-      orderBy: { slug: "asc" },
-    }),
-    prisma.projectSkillConfig.findMany({
-      where: { projectId },
-      select: { skillSlug: true, enabled: true },
-    }),
-  ]);
+  const result = await listCustomSkills(projectId, { customSkills: prismaCustomSkillRepository });
+  if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
 
-  const configMap = new Map(configs.map((c) => [c.skillSlug, c.enabled]));
-
-  const result = skills.map((skill) => ({
-    ...skill,
-    enabled: configMap.get(skill.slug) ?? true, // 기본값: 활성화
-  }));
-
-  return NextResponse.json({ ok: true, skills: result });
+  return NextResponse.json({ ok: true, skills: result.value });
 }

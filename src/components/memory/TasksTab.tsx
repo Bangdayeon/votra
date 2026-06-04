@@ -62,7 +62,7 @@ import { pinTaskAction } from "@/app/actions/pinTaskAction";
 import { deleteFolderAction } from "@/app/actions/deleteFolderAction";
 import { deleteTaskAction } from "@/app/actions/deleteTask";
 import { getProjectFoldersAction } from "@/app/actions/getProjectFolders";
-import { getProjectSkillsAction } from "@/app/actions/getProjectSkillsAction";
+import { getCustomSkillsAction } from "@/app/actions/getCustomSkillsAction";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
 import { moveTaskToFolderAction } from "@/app/actions/moveTaskToFolderAction";
 import { reorderFoldersAction } from "@/app/actions/reorderFoldersAction";
@@ -93,7 +93,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { filterTasks } from "@/domain/memory/filterTasks";
 import { getTaskPriorityLevel } from "@/domain/memory/getTaskPriorityLevel";
 import { sortTasks } from "@/domain/memory/sortTasks";
-import type { FolderRecord, SkillRecord, TaskSortBy } from "@/domain/memory/types";
+import type { FolderRecord, ProjectCustomSkillRecord, TaskSortBy } from "@/domain/memory/types";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
@@ -282,7 +282,7 @@ function CreateTaskDialog({
   const [module, setModule] = useState<string | null>(null);
   const [priority, setPriority] = useState(2);
   const [loading, setLoading] = useState(false);
-  const [skills, setSkills] = useState<SkillRecord[]>([]);
+  const [skills, setSkills] = useState<ProjectCustomSkillRecord[]>([]);
   const [moduleLoading, setModuleLoading] = useState(false);
   const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestSeq = useRef(0);
@@ -296,7 +296,7 @@ function CreateTaskDialog({
     setPriority(2);
     setSkills([]);
     setModuleLoading(false);
-    getProjectSkillsAction(projectId).then(setSkills).catch(() => {});
+    getCustomSkillsAction(projectId).then(setSkills).catch(() => {});
   }, [open, defaultFolderId, projectId]);
 
   useEffect(() => {
@@ -339,7 +339,7 @@ function CreateTaskDialog({
     }
   }
 
-  const activeSkills = skills.filter((s) => s.isActive && s.enabled);
+  const activeSkills = skills.filter((s) => s.isEnabled);
   const currentFolderName = folderId
     ? (folders.find((f) => f.id === folderId)?.name ?? "알 수 없음")
     : "미분류";

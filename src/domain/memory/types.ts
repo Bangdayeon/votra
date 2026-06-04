@@ -57,17 +57,6 @@ export type FolderRecord = {
   updatedAt: Date;
 };
 
-export type SkillRecord = {
-  slug: string;
-  name: string;
-  description: string;
-  category: string;
-  contextHint: string;
-  content: string;
-  isActive: boolean;
-  enabled: boolean;
-};
-
 export type ProjectCustomSkillRecord = {
   id: string;
   slug: string;

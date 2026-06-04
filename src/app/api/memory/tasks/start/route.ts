@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { listSkills } from "@/application/listSkills";
 import { startTask } from "@/application/startTask";
 import { matchSkillsToTask } from "@/domain/memory/matchSkillsToTask";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
-import { prismaSkillRepository } from "@/infrastructure/repositories/prismaSkillRepository";
+import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function POST(req: Request) {
@@ -45,8 +44,8 @@ export async function POST(req: Request) {
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   emitProjectUpdate(body.projectId);
 
-  const skillsResult = await listSkills(body.projectId, { skills: prismaSkillRepository });
-  const enabledSkills = skillsResult.ok ? skillsResult.value.filter((s) => s.enabled) : [];
+  const allSkills = await prismaCustomSkillRepository.listByProject(body.projectId);
+  const enabledSkills = allSkills.filter((s) => s.isEnabled);
   const matchedSkills = matchSkillsToTask(
     { title: result.value.title, module: result.value.module },
     enabledSkills,

@@ -12,6 +12,7 @@ export type CreateCustomSkillInput = {
 
 export type UpsertCustomSkillInput = {
   projectId: string;
+  slug?: string;
   name: string;
   description: string;
   folder: string;

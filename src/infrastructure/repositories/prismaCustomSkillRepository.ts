@@ -32,7 +32,7 @@ function toRecord(row: {
 
 export const prismaCustomSkillRepository: CustomSkillRepository = {
   async upsertByName(input: UpsertCustomSkillInput) {
-    const slug = toKebabSlug(input.name);
+    const slug = input.slug ?? toKebabSlug(input.name);
     const row = await prisma.projectCustomSkill.upsert({
       where: { projectId_slug: { projectId: input.projectId, slug } },
       create: {

@@ -2,7 +2,7 @@
 
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
-import { prismaSkillRepository } from "@/infrastructure/repositories/prismaSkillRepository";
+import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
 
 export async function suggestTaskModuleAction(
   projectId: string,
@@ -12,8 +12,8 @@ export async function suggestTaskModuleAction(
   const guard = await assertProjectMember(projectId);
   if (!guard.ok) return null;
 
-  const skills = await prismaSkillRepository.listWithConfig(projectId);
-  const activeSkills = skills.filter((s) => s.isActive && s.enabled);
+  const skills = await prismaCustomSkillRepository.listByProject(projectId);
+  const activeSkills = skills.filter((s) => s.isEnabled);
   if (activeSkills.length === 0) return null;
 
   const skillList = activeSkills.map((s) => `${s.slug}: ${s.name}`).join(", ");

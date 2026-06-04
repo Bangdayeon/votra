@@ -5,7 +5,7 @@ import { prisma } from "@/infrastructure/db/prisma";
 
 type Params = { params: Promise<{ slug: string }> };
 
-// GET /api/skills/:slug?projectId= — 스킬 content 반환 (enabled 체크)
+// GET /api/skills/:slug?projectId= — 스킬 content 반환
 export async function GET(req: Request, { params }: Params) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
   if (!user) {
@@ -19,43 +19,19 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const skill = await prisma.platformSkill.findUnique({
-    where: { slug },
-    select: { slug: true, name: true, contextHint: true, content: true, isActive: true },
+  const skill = await prisma.projectCustomSkill.findUnique({
+    where: { projectId_slug: { projectId, slug } },
   });
 
-  if (!skill || !skill.isActive) {
-    // fallback: 프로젝트 커스텀 스킬 확인
-    const customSkill = await prisma.projectCustomSkill.findUnique({
-      where: { projectId_slug: { projectId, slug } },
-    });
-    if (!customSkill || !customSkill.isEnabled) {
-      return NextResponse.json({ ok: false, error: "스킬을 찾을 수 없어요." }, { status: 404 });
-    }
-    return NextResponse.json({
-      ok: true,
-      slug: customSkill.slug,
-      name: customSkill.name,
-      contextHint: customSkill.description,
-      content: customSkill.content,
-    });
-  }
-
-  // 프로젝트별 enabled 상태 확인 (기본: 활성화)
-  const config = await prisma.projectSkillConfig.findUnique({
-    where: { projectId_skillSlug: { projectId, skillSlug: slug } },
-  });
-  const enabled = config?.enabled ?? true;
-
-  if (!enabled) {
-    return NextResponse.json({ ok: false, error: "이 프로젝트에서 비활성화된 스킬이에요." }, { status: 403 });
+  if (!skill || !skill.isEnabled) {
+    return NextResponse.json({ ok: false, error: "스킬을 찾을 수 없어요." }, { status: 404 });
   }
 
   return NextResponse.json({
     ok: true,
     slug: skill.slug,
     name: skill.name,
-    contextHint: skill.contextHint,
+    contextHint: skill.contextHint ?? skill.description,
     content: skill.content,
   });
 }
@@ -79,15 +55,17 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ ok: false, error: "enabled 값이 필요해요." }, { status: 400 });
   }
 
-  const skill = await prisma.platformSkill.findUnique({ where: { slug }, select: { slug: true } });
-  if (!skill) {
+  const existing = await prisma.projectCustomSkill.findUnique({
+    where: { projectId_slug: { projectId, slug } },
+    select: { slug: true },
+  });
+  if (!existing) {
     return NextResponse.json({ ok: false, error: "스킬을 찾을 수 없어요." }, { status: 404 });
   }
 
-  await prisma.projectSkillConfig.upsert({
-    where: { projectId_skillSlug: { projectId, skillSlug: slug } },
-    create: { projectId, skillSlug: slug, enabled: body.enabled },
-    update: { enabled: body.enabled },
+  await prisma.projectCustomSkill.update({
+    where: { projectId_slug: { projectId, slug } },
+    data: { isEnabled: body.enabled as boolean },
   });
 
   return NextResponse.json({ ok: true, slug, enabled: body.enabled });

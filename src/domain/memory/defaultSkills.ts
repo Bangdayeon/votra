@@ -1,26 +1,18 @@
-/**
- * Platform Skills 시드 스크립트
- * 실행: npm run seed:skills
- */
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
-type SkillSeed = {
+export type DefaultSkill = {
   slug: string;
   name: string;
   description: string;
-  category: string;
+  folder: string;
   contextHint: string;
   content: string;
 };
 
-const PLATFORM_SKILLS: SkillSeed[] = [
+export const DEFAULT_SKILLS: DefaultSkill[] = [
   {
     slug: "devops",
     name: "DevOps Engineer",
     description: "배포, CI/CD, 모니터링, 인프라, 시크릿 관리",
-    category: "process",
+    folder: "프로세스",
     contextHint: "배포, deploy, CI/CD, 인프라, 도커, docker, 환경변수, 모니터링, 시크릿, SSL, 헬스체크, 롤백, devops, infrastructure, production 작업 전에 사용하세요",
     content: `## DEVOPS ENGINEER
 
@@ -99,7 +91,7 @@ Post-deploy:
     slug: "testing",
     name: "QA Engineer",
     description: "테스트 계획, 엣지 케이스, 보안 기초, 버그 재현 및 검증",
-    category: "process",
+    folder: "프로세스",
     contextHint: "테스트, 검증, QA, 버그, 테스트 계획, 엣지 케이스, 보안 테스트, testing, qa, test plan, edge case, verification, bug fix 작업 전에 사용하세요",
     content: `## QA ENGINEER
 
@@ -133,20 +125,6 @@ Security basics. Performance baselines.
 **Level 5: Flow/Integration** — for connected modules
 - Create in Module A → appears in Module B
 - Delete from A → B handles gracefully
-
-### TEST CLASSIFICATION
-
-**You can execute (mark passed/failed with evidence):**
-- Code review: logic, error handling, edge case branches
-- curl/API: endpoint responses, status codes, error messages
-- DB queries: data integrity, FK constraints
-
-**User must execute live (create as pending with steps):**
-- Browser UI without automation: manual click-through
-- Real-time features: WebSocket, live updates
-- Mobile/responsive: real device testing
-
-Never mark a "user must execute" test as passed from code review.
 
 ### STANDARDS
 
@@ -185,7 +163,7 @@ Never mark a "user must execute" test as passed from code review.
     slug: "planner",
     name: "Planner",
     description: "프로젝트 구조화, 모듈/태스크 분해, 작업 우선순위 설계",
-    category: "process",
+    folder: "프로세스",
     contextHint: "기획, 플랜, 계획, 태스크 분해, 모듈 설계, 버전 계획, 구조화, 로드맵, plan, planning, structure, module, roadmap, breakdown 작업 전에 사용하세요",
     content: `## PLANNER
 
@@ -251,7 +229,7 @@ NOT: "GET /api/rooms/available"
     slug: "designer",
     name: "Designer",
     description: "비즈니스 리서치, 디자인 시스템, 인터랙티브 컴포넌트, 시각 품질",
-    category: "coding",
+    folder: "개발",
     contextHint: "디자인, design, UI, 컴포넌트, 색상, 타이포그래피, 디자인 시스템, 스타일 가이드, 토큰, 레이아웃, 비주얼 작업 전에 사용하세요",
     content: `## DESIGNER
 
@@ -325,7 +303,7 @@ Build these two artifacts:
     slug: "integration",
     name: "Integration Engineer",
     description: "시스템 연동, 외부 API, 웹훅, 리얼타임 작업",
-    category: "coding",
+    folder: "개발",
     contextHint: "시스템 연동, 외부 API, 웹훅, webhook, api, integration, realtime, sse, websocket, socket 작업 전에 사용하세요",
     content: `## INTEGRATION ENGINEER
 
@@ -382,7 +360,7 @@ API contracts between frontend/backend, third-party service integration.
     slug: "frontend",
     name: "Frontend Engineer",
     description: "UI 컴포넌트, 페이지, 인터랙션 작업",
-    category: "coding",
+    folder: "개발",
     contextHint: "UI, 컴포넌트, 페이지, 화면, 폼, 레이아웃, 인터랙션 작업 전에 사용하세요",
     content: `## FRONTEND ENGINEER
 
@@ -434,7 +412,7 @@ Building or modifying pages, components, forms, layouts, or interactions.
     slug: "database",
     name: "Database Architect",
     description: "스키마 설계, 마이그레이션, 쿼리 최적화",
-    category: "coding",
+    folder: "개발",
     contextHint: "db, sql, orm, prisma, 프리즈마, 스키마, 마이그레이션, 테이블, 인덱스, 쿼리, 데이터베이스 작업 전에 사용하세요",
     content: `## DATABASE ARCHITECT
 
@@ -486,7 +464,7 @@ Schema design, migrations, indexes, query optimization, data integrity.
     slug: "backend",
     name: "Backend Engineer",
     description: "API, 비즈니스 로직, 서버 코드 작업",
-    category: "coding",
+    folder: "개발",
     contextHint: "API 엔드포인트 추가·수정, 비즈니스 로직 구현, 서버 코드 작업 전에 사용하세요",
     content: `## BACKEND ENGINEER
 
@@ -526,27 +504,3 @@ API endpoints, business logic, auth/authorization, database queries, error handl
 `,
   },
 ];
-
-async function main() {
-  for (const skill of PLATFORM_SKILLS) {
-    await prisma.platformSkill.upsert({
-      where: { slug: skill.slug },
-      create: skill,
-      update: {
-        name: skill.name,
-        description: skill.description,
-        category: skill.category,
-        contextHint: skill.contextHint,
-        content: skill.content,
-      },
-    });
-    console.log(`✅ Platform skill '${skill.slug}' upserted`);
-  }
-}
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
