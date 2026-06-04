@@ -22,7 +22,10 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
       "folder": "폴더명 (예: 리팩토링, 테스트, 배포, API연동)",
       "content": "## 스킬 지침\n에이전트가 바로 따를 수 있는 단계별 마크다운 지침 (500자 이내)",
       "patternSummary": "이 패턴이 3회 이상 반복된 근거 (태스크 번호 포함)",
-      "contextHint": "이 스킬을 사용해야 하는 상황을 한 문장으로 (예: 외부 API 연동 태스크 시작 전에 사용)"
+      "contextHint": "이 스킬을 사용해야 하는 상황을 한 문장으로 (예: 외부 API 연동 태스크 시작 전에 사용)",
+      "hookEvent": "PreToolUse | PostToolUse | Stop | null",
+      "hookMatcher": "툴 이름 (예: Edit, Bash, Write, mcp__votra-memory__finish_task) 또는 null",
+      "hookScript": "#!/bin/bash\necho '⚠️ SOP: [규칙 설명]'\nexit 0"
     }
   ],
   "contextSummary": "이 프로젝트의 현재 상태와 핵심 맥락을 2-3문장으로 요약"
@@ -34,7 +37,8 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
 - risk: 주의가 필요한 기술적 부채나 위험 요소
 - 인사이트는 3-5개, 추천 태스크는 1-3개로 제한
 - 이미 진행 중이거나 대기 중인 태스크와 겹치지 않는 새로운 작업만 추천
-- skillSuggestions: 동일한 작업 패턴이 3회 이상 반복된 경우에만 최대 2개 제안. 없으면 빈 배열 []. content는 에이전트가 바로 활용할 수 있는 구체적인 지침으로 작성.`;
+- skillSuggestions: 동일한 작업 패턴이 3회 이상 반복된 경우에만 최대 2개 제안. 없으면 빈 배열 []. content는 에이전트가 바로 활용할 수 있는 구체적인 지침으로 작성.
+- hookEvent/hookMatcher/hookScript: 기계적으로 강제할 수 있는 패턴(특정 툴 사용 전후)이면 설정하세요. PreToolUse = 툴 사용 직전 리마인더, PostToolUse = 툴 완료 후 검증, Stop = 세션 종료 전 체크. 순수 맥락/지식형 패턴이면 세 필드 모두 null. hookScript는 반드시 exit 0 (리마인더) 또는 명백한 오류 방지 시에만 exit 2 (차단). hookMatcher는 Claude Code 툴 이름 그대로 사용 (예: "Edit", "Bash", "Write").`;
 
 export function createGeminiReflectionEngine(llm: LlmClient): ReflectionEngine {
   return {

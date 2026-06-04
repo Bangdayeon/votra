@@ -8,6 +8,9 @@ export type CreateCustomSkillInput = {
   content: string;
   patternSummary?: string;
   contextHint?: string;
+  hookEvent?: string;
+  hookMatcher?: string;
+  hookScript?: string;
 };
 
 export type UpsertCustomSkillInput = {
@@ -19,6 +22,9 @@ export type UpsertCustomSkillInput = {
   content: string;
   patternSummary?: string;
   contextHint?: string;
+  hookEvent?: string;
+  hookMatcher?: string;
+  hookScript?: string;
 };
 
 export type CustomSkillRepository = {

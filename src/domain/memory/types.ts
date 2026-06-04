@@ -66,6 +66,9 @@ export type ProjectCustomSkillRecord = {
   content: string;
   patternSummary: string | null;
   contextHint: string | null;
+  hookEvent: string | null;
+  hookMatcher: string | null;
+  hookScript: string | null;
   isEnabled: boolean;
   projectId: string;
   createdAt: Date;

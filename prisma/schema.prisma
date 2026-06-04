@@ -413,6 +413,12 @@ model ProjectCustomSkill {
   patternSummary String?  @db.Text
   /// 이 스킬을 언제 사용해야 하는지 트리거 힌트 (brief에서 에이전트에게 노출)
   contextHint    String?  @db.Text
+  /// Claude Code 훅 이벤트 종류 (null = 맥락형 스킬)
+  hookEvent      String?
+  /// 훅이 반응하는 툴 이름 (e.g. "Edit", "Bash", "mcp__votra-memory__finish_task")
+  hookMatcher    String?
+  /// 훅 실행 시 실행될 bash 스크립트 본문
+  hookScript     String?  @db.Text
   isEnabled      Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

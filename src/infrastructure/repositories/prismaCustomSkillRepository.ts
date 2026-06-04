@@ -22,6 +22,9 @@ function toRecord(row: {
   content: string;
   patternSummary: string | null;
   contextHint: string | null;
+  hookEvent: string | null;
+  hookMatcher: string | null;
+  hookScript: string | null;
   isEnabled: boolean;
   projectId: string;
   createdAt: Date;
@@ -44,6 +47,9 @@ export const prismaCustomSkillRepository: CustomSkillRepository = {
         content: input.content,
         patternSummary: input.patternSummary ?? null,
         contextHint: input.contextHint ?? null,
+        hookEvent: input.hookEvent ?? null,
+        hookMatcher: input.hookMatcher ?? null,
+        hookScript: input.hookScript ?? null,
       },
       update: {
         description: input.description,
@@ -51,6 +57,9 @@ export const prismaCustomSkillRepository: CustomSkillRepository = {
         content: input.content,
         patternSummary: input.patternSummary ?? null,
         contextHint: input.contextHint ?? null,
+        hookEvent: input.hookEvent ?? null,
+        hookMatcher: input.hookMatcher ?? null,
+        hookScript: input.hookScript ?? null,
       },
     });
     return toRecord(row);
@@ -78,6 +87,9 @@ export const prismaCustomSkillRepository: CustomSkillRepository = {
         content: input.content,
         patternSummary: input.patternSummary ?? null,
         contextHint: input.contextHint ?? null,
+        hookEvent: input.hookEvent ?? null,
+        hookMatcher: input.hookMatcher ?? null,
+        hookScript: input.hookScript ?? null,
       },
     });
     return toRecord(row);

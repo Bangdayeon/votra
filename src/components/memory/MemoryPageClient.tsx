@@ -19,6 +19,7 @@ type Tab = "context" | "skills";
 
 function SkillCard({ skill }: { skill: ProjectCustomSkillRecord }) {
   const [expanded, setExpanded] = useState(false);
+  const isHook = !!skill.hookEvent;
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       <button
@@ -30,20 +31,45 @@ function SkillCard({ skill }: { skill: ProjectCustomSkillRecord }) {
           <p className="text-sm font-medium truncate">{skill.name}</p>
           <p className="text-xs text-muted-foreground truncate">{skill.description}</p>
         </div>
-        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-          {skill.folder}
-        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {isHook && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              훅 {skill.hookEvent}
+            </span>
+          )}
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+            {skill.folder}
+          </span>
+        </div>
       </button>
       {expanded && (
-        <div className="border-t border-border px-4 pb-4 pt-3">
+        <div className="border-t border-border px-4 pb-4 pt-3 flex flex-col gap-2">
+          {isHook && (
+            <p className="text-[11px] text-muted-foreground">
+              <span className="font-medium">훅 대상:</span>{" "}
+              <code className="rounded bg-muted px-1 py-0.5">{skill.hookMatcher}</code>
+              {" "}툴 호출 시 실행
+            </p>
+          )}
           {skill.patternSummary && (
-            <p className="mb-2 text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               <span className="font-medium">패턴 근거:</span> {skill.patternSummary}
             </p>
           )}
-          <pre className="whitespace-pre-wrap text-xs text-foreground/80 font-mono leading-relaxed">
-            {skill.content}
-          </pre>
+          {isHook && skill.hookScript ? (
+            <pre className="whitespace-pre-wrap text-xs text-foreground/80 font-mono leading-relaxed rounded-lg bg-muted p-3">
+              {skill.hookScript}
+            </pre>
+          ) : (
+            <pre className="whitespace-pre-wrap text-xs text-foreground/80 font-mono leading-relaxed">
+              {skill.content}
+            </pre>
+          )}
+          {isHook && (
+            <p className="text-[10px] text-muted-foreground">
+              Claude Code에서 <code className="rounded bg-muted px-1">apply_hooks</code> 툴을 실행하면 로컬에 등록돼요.
+            </p>
+          )}
         </div>
       )}
     </div>

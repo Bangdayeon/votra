@@ -16,6 +16,9 @@ export type SkillSuggestion = {
   content: string;
   patternSummary: string;
   contextHint: string;
+  hookEvent?: string | null;
+  hookMatcher?: string | null;
+  hookScript?: string | null;
 };
 
 export type MemoryReflectionRecord = {

@@ -17,6 +17,10 @@ export async function applySkillSuggestions(
         folder: s.folder,
         content: s.content,
         patternSummary: s.patternSummary,
+        contextHint: s.contextHint,
+        hookEvent: s.hookEvent ?? undefined,
+        hookMatcher: s.hookMatcher ?? undefined,
+        hookScript: s.hookScript ?? undefined,
       }),
     ),
   );
