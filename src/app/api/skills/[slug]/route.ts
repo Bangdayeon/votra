@@ -25,7 +25,20 @@ export async function GET(req: Request, { params }: Params) {
   });
 
   if (!skill || !skill.isActive) {
-    return NextResponse.json({ ok: false, error: "스킬을 찾을 수 없어요." }, { status: 404 });
+    // fallback: 프로젝트 커스텀 스킬 확인
+    const customSkill = await prisma.projectCustomSkill.findUnique({
+      where: { projectId_slug: { projectId, slug } },
+    });
+    if (!customSkill || !customSkill.isEnabled) {
+      return NextResponse.json({ ok: false, error: "스킬을 찾을 수 없어요." }, { status: 404 });
+    }
+    return NextResponse.json({
+      ok: true,
+      slug: customSkill.slug,
+      name: customSkill.name,
+      contextHint: customSkill.description,
+      content: customSkill.content,
+    });
   }
 
   // 프로젝트별 enabled 상태 확인 (기본: 활성화)

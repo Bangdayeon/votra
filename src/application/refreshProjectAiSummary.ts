@@ -24,6 +24,7 @@ export async function refreshProjectAiSummary(
     tasks: TaskRepository;
     llm: LlmClient;
     git?: GitClient;
+    memoryContext?: string;
   },
 ): Promise<RefreshedProjectAiSummary> {
   const [settingsRow, recentByUpdatedAt, pendingTasks, inProgressTasks] = await Promise.all([
@@ -47,7 +48,7 @@ export async function refreshProjectAiSummary(
     ...recentDone.filter((t) => !seenIds.has(t.id)),
   ];
 
-  const generated = await getProjectAiSummary(settings, { llm: deps.llm }, mergedTasks, commits);
+  const generated = await getProjectAiSummary(settings, { llm: deps.llm }, mergedTasks, commits, deps.memoryContext);
 
   const saved = await deps.aiSummaries.upsert({
     projectId,

@@ -64,6 +64,7 @@ model User {
   acceptedInvites    ProjectInvite[] @relation("AcceptedByUser")
   tasks              Task[]
   taskFolders        TaskFolder[]
+  sessionLogs        SessionLog[]
 }
 
 // ────────────────────────────────────────────
@@ -124,6 +125,8 @@ model Project {
   skillConfigs         ProjectSkillConfig[]
   memoryReflections    ProjectMemoryReflection[]
   memoryContext        ProjectMemoryContext?
+  customSkills         ProjectCustomSkill[]
+  sessionLogs          SessionLog[]
 
   @@unique([ownerId, cwd])
   @@index([ownerId])
@@ -380,6 +383,8 @@ model ProjectMemoryReflection {
   suggestedTasks Json @default("[]")
   /// AI가 생성한 프로젝트 컨텍스트 요약. brief에서 LONG_TERM 태스크와 함께 활용.
   contextSummary String? @db.Text
+  /// AI가 제안한 커스텀 스킬 목록. [{name, description, folder, content, patternSummary}]
+  skillSuggestions Json @default("[]")
   /// 분석에 사용된 태스크 수
   analyzedTaskCount Int @default(0)
   /// 트리거 원인: "cron" | "threshold"
@@ -391,6 +396,33 @@ model ProjectMemoryReflection {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, createdAt])
+}
+
+// ────────────────────────────────────────────
+// PROJECT CUSTOM SKILL (프로젝트별 커스텀 스킬)
+// ────────────────────────────────────────────
+
+model ProjectCustomSkill {
+  id             String   @id @default(cuid())
+  slug           String
+  name           String
+  description    String
+  /// 스킬 그룹 폴더명 (UI에서 그룹핑)
+  folder         String   @default("기타")
+  content        String   @db.Text
+  /// AI가 감지한 패턴 요약 (AI 추천 출처인 경우에만)
+  patternSummary String?  @db.Text
+  /// 이 스킬을 언제 사용해야 하는지 트리거 힌트 (brief에서 에이전트에게 노출)
+  contextHint    String?  @db.Text
+  isEnabled      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, slug])
+  @@index([projectId])
 }
 
 // ────────────────────────────────────────────
@@ -433,4 +465,28 @@ model ProjectSkillConfig {
 
   @@unique([projectId, skillSlug])
   @@index([projectId])
+}
+
+// ────────────────────────────────────────────
+// SESSION LOG (세션 종료 시 AI 작업 맥락 SOP 기록)
+// ────────────────────────────────────────────
+
+model SessionLog {
+  id        String   @id @default(cuid())
+  /// LLM이 구조화한 SOP 마크다운 (상황/요구사항/작업/결과)
+  summary   String   @db.Text
+  aiTool    String   @default("unknown")
+  sessionId String?
+  updatedAt DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, sessionId])
+  @@index([projectId, createdAt(sort: Desc)])
+  @@index([userId])
 }

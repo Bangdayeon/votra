@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { pinTask } from "@/application/pinTask";
+import { trackTaskAccess } from "@/application/trackTaskAccess";
 import { updateTask } from "@/application/updateTask";
 import type { TaskStatusValue } from "@/domain/memory/types";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
@@ -27,6 +29,7 @@ export async function GET(
   const task = await prismaTaskRepository.findBySeq({ seq, projectId });
   if (!task) return NextResponse.json({ ok: false, error: "태스크를 찾을 수 없어요." }, { status: 404 });
 
+  void trackTaskAccess(task.id, task.memoryTier, { tasks: prismaTaskRepository }).catch(() => {});
   return NextResponse.json({ ok: true, task });
 }
 
@@ -53,6 +56,17 @@ export async function PATCH(
   }
 
   if (!isRecord(body)) return NextResponse.json({ ok: false, error: "body가 객체가 아니에요." }, { status: 400 });
+
+  // isPinned 핀 고정/해제
+  if (typeof body.isPinned === "boolean") {
+    const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+    if (!projectId) return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
+    const task = await prismaTaskRepository.findBySeq({ seq, projectId });
+    if (!task) return NextResponse.json({ ok: false, error: "태스크를 찾을 수 없어요." }, { status: 404 });
+    await pinTask(task.id, body.isPinned, { tasks: prismaTaskRepository });
+    emitProjectUpdate(projectId);
+    return NextResponse.json({ ok: true });
+  }
 
   const statusParam = typeof body.status === "string" ? body.status : undefined;
   const status =

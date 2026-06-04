@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { recallThoughts } from "@/application/recallThoughts";
+import { trackTaskAccess } from "@/application/trackTaskAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
@@ -33,6 +34,10 @@ export async function POST(req: Request) {
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+
+  void Promise.allSettled(
+    result.value.map((t) => trackTaskAccess(t.id, t.memoryTier, { tasks: prismaTaskRepository })),
+  );
   return NextResponse.json({ ok: true, results: result.value });
 }
 

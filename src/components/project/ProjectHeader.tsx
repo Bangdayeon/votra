@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, CheckSquare, ChevronRight, LayoutGrid, Layers, Settings, Sparkles, Trash2, Users } from "lucide-react";
+import { Bot, Brain, CheckSquare, ChevronRight, LayoutGrid, Layers, Settings, Sparkles, Trash2, Users } from "lucide-react";
 
 import { useProjects } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
@@ -102,6 +102,7 @@ export function ProjectHeader() {
 
   const isSettings = pathname.endsWith("/settings");
   const isTrash = pathname.endsWith("/trash");
+  const isMemory = pathname.endsWith("/memory");
   const activeKey: Tab | null = isSettings ? null : parseTab(searchParams.get("tab"));
   const settingsActiveKey: SettingsTab = isSettings
     ? parseSettingsTab(searchParams.get("tab"))
@@ -135,10 +136,10 @@ export function ProjectHeader() {
   return (
     <header className={cn(
       "sticky top-0 z-10 shrink-0 border-b border-border bg-background px-6 pt-4",
-      isTrash && "pb-4",
+      (isTrash || isMemory) && "pb-4",
     )}>
       {/* 프로젝트 아바타 + 이름 + 설정 */}
-      <div className={cn("flex items-center gap-3", !isTrash && "mb-3")}>
+      <div className={cn("flex items-center gap-3", !(isTrash || isMemory) && "mb-3")}>
         <Link href={`/${params.projectName}`} className="flex shrink-0">
           {project?.image ? (
             <Image
@@ -163,20 +164,22 @@ export function ProjectHeader() {
         >
           {title}
         </Link>
-        {!isSettings && !isTrash && project?.description && (
+        {!isSettings && !isTrash && !isMemory && project?.description && (
           <span className="hidden sm:inline shrink-0 text-xs text-gray-500">
             {project.description}
           </span>
         )}
-        {!isSettings && !isTrash && project?.lastCliSyncAt && (
+        {!isSettings && !isTrash && !isMemory && project?.lastCliSyncAt && (
           <span className="shrink-0 text-xs text-muted-foreground">
             {formatCliSyncDate(project.lastCliSyncAt)}
           </span>
         )}
-        {(isSettings || isTrash) && (
+        {(isSettings || isTrash || isMemory) && (
           <>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-xl font-semibold">{isSettings ? "설정" : "휴지통"}</span>
+            <span className="text-xl font-semibold">
+              {isSettings ? "설정" : isTrash ? "휴지통" : "장기 기억"}
+            </span>
           </>
         )}
 
@@ -185,7 +188,7 @@ export function ProjectHeader() {
             href={`/${params.projectName}/settings`}
             className={cn(
               "rounded-md p-1.5 transition-colors text-muted-foreground hover:text-foreground",
-              (isSettings || isTrash) && "opacity-0 pointer-events-none",
+              (isSettings || isTrash || isMemory) && "opacity-0 pointer-events-none",
             )}
             aria-label="설정"
           >
@@ -195,7 +198,7 @@ export function ProjectHeader() {
             href={`/${params.projectName}/trash`}
             className={cn(
               "rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground",
-              (isSettings || isTrash) && "opacity-0 pointer-events-none",
+              (isSettings || isTrash || isMemory) && "opacity-0 pointer-events-none",
             )}
             aria-label="휴지통"
           >
@@ -205,7 +208,7 @@ export function ProjectHeader() {
       </div>
 
       {/* 탭 */}
-      {!isTrash && <nav ref={navRef} className="relative flex items-end gap-1">
+      {!isTrash && !isMemory && <nav ref={navRef} className="relative flex items-end gap-1">
         {isSettings
           ? SETTINGS_TABS.map(({ label, key, icon: TabIcon }) => {
               const active = settingsActiveKey === key;

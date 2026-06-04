@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 
 import { finishTask } from "@/application/finishTask";
+import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
+import { runMemoryReflection } from "@/application/runMemoryReflection";
+import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
+import { prisma } from "@/infrastructure/db/prisma";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
+import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
+import { createGeminiContextEngine } from "@/infrastructure/llm/geminiContextEngine";
+import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
+import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
+import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function POST(
@@ -48,9 +57,36 @@ export async function POST(
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
   emitProjectUpdate(body.projectId);
+
+  void checkAndTriggerReflection(body.projectId).catch(() => {});
+  void learnAndUpdateContext(body.projectId, {
+    tasks: prismaTaskRepository,
+    context: prismaMemoryContextRepository,
+    engine: createGeminiContextEngine(geminiLlmClient),
+  }).catch(() => {});
+
   return NextResponse.json({ ok: true, task: result.value.task });
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+async function checkAndTriggerReflection(projectId: string): Promise<void> {
+  const projectRow = await prisma.project.findUnique({ where: { id: projectId }, select: { settings: true } });
+  if (!projectRow) return;
+
+  const settings = parseProjectSettings(projectRow.settings);
+  const latest = await prismaMemoryReflectionRepository.getLatest(projectId);
+  const sinceDate = latest ? latest.createdAt : new Date(0);
+
+  const count = await prismaTaskRepository.countActivitySince({ projectId, sinceDate });
+  if (count < settings.memory.reflectionThreshold) return;
+
+  const engine = createGeminiReflectionEngine(geminiLlmClient);
+  await runMemoryReflection(projectId, "threshold", {
+    tasks: prismaTaskRepository,
+    reflections: prismaMemoryReflectionRepository,
+    engine,
+  });
 }

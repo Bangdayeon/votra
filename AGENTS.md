@@ -84,3 +84,19 @@ Exceptions:
 - User-facing strings are Korean and friendly.
 - Before finishing: `npm run typecheck && npm run lint` must pass.
 - New dependencies require user approval.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues for this repository via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the default canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Domain docs use a single-context layout at the repository root. See `docs/agents/domain.md`.

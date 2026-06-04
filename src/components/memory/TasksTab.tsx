@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  Archive,
   Bookmark,
   Box,
+  Brain,
   Briefcase,
   CalendarDays,
   CheckSquare,
@@ -22,6 +24,8 @@ import {
   Layers,
   Loader2,
   MoreHorizontal,
+  Pin,
+  PinOff,
   Plus,
   RotateCcw,
   Search,
@@ -46,12 +50,15 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { createFolderAction } from "@/app/actions/createFolderAction";
+import { getMemoryReflectionsAction } from "@/app/actions/getMemoryReflectionsAction";
 import { createTaskAction, type CreateTaskInput } from "@/app/actions/createTaskAction";
+import { pinTaskAction } from "@/app/actions/pinTaskAction";
 import { deleteFolderAction } from "@/app/actions/deleteFolderAction";
 import { deleteTaskAction } from "@/app/actions/deleteTask";
 import { getProjectFoldersAction } from "@/app/actions/getProjectFolders";
@@ -970,8 +977,23 @@ function TaskRow({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [moveLoading, setMoveLoading] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
   const nextStatus = NEXT_STATUS[task.status];
   const priorityLevel = getTaskPriorityLevel(task.priority);
+
+  async function handleTogglePin(e: React.MouseEvent) {
+    e.stopPropagation();
+    setPinLoading(true);
+    try {
+      await pinTaskAction(projectId, task.id, !task.isPinned);
+      onUpdated({ ...task, isPinned: !task.isPinned, memoryTier: !task.isPinned ? "LONG_TERM" : "ACTIVE" });
+      toast.success(!task.isPinned ? "장기 기억으로 고정했어요." : "고정을 해제했어요.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "고정에 실패했어요.");
+    } finally {
+      setPinLoading(false);
+    }
+  }
 
   async function handleDelete() {
     setDeleteLoading(true);
@@ -1063,6 +1085,18 @@ function TaskRow({
           {task.title}
         </p>
         <div className="flex shrink-0 items-center gap-1.5">
+          {task.memoryTier === "LONG_TERM" && (
+            <span className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              <Pin className="size-3" />
+              장기
+            </span>
+          )}
+          {task.memoryTier === "ARCHIVED" && (
+            <span className="flex items-center gap-0.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+              <Archive className="size-3" />
+              보관
+            </span>
+          )}
           {priorityLevel > 0 && (
             <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", PRIORITY_STYLES[priorityLevel as 1 | 2 | 3 | 4])}>
               {PRIORITY_LABELS[priorityLevel as 1 | 2 | 3 | 4]}
@@ -1115,6 +1149,12 @@ function TaskRow({
               <span>
                 <span className="font-medium text-foreground">수정일</span>{" "}
                 {new Date(task.updatedAt).toLocaleDateString("ko-KR")}
+              </span>
+            )}
+            {task.lastAccessedAt && (
+              <span>
+                <span className="font-medium text-foreground">마지막 접근</span>{" "}
+                {new Date(task.lastAccessedAt).toLocaleDateString("ko-KR")}
               </span>
             )}
           </div>
@@ -1188,14 +1228,29 @@ function TaskRow({
                 </button>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}
-              className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
-            >
-              삭제
-            </Button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleTogglePin}
+                disabled={pinLoading}
+                className={cn(
+                  "flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-40",
+                  task.isPinned
+                    ? "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {pinLoading ? <Loader2 className="size-3.5 animate-spin" /> : task.isPinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
+                {task.isPinned ? "고정 해제" : "장기 기억 고정"}
+              </button>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}
+                className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+              >
+                삭제
+              </Button>
+            </div>
           </div>
 
           <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -1282,7 +1337,13 @@ export function TasksTab({
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [bulkCreateAndMove, setBulkCreateAndMove] = useState(false);
+  const [latestInsight, setLatestInsight] = useState<string | null>(null);
 
+  useEffect(() => {
+    getMemoryReflectionsAction(selected.id, 1)
+      .then((r) => setLatestInsight(r[0]?.contextSummary ?? null))
+      .catch(() => {});
+  }, [selected.id]);
 
   // filters (used in task list view)
   const [filterUser, setFilterUser] = useState<string>("ALL");
@@ -1686,6 +1747,41 @@ export function TasksTab({
                 </SortableContext>
               </DndContext>
             )}
+
+            {/* 장기 기억 요약 카드 */}
+            {(() => {
+              const longTermCount = tasks.filter((t) => t.memoryTier === "LONG_TERM").length;
+              return (
+                <Link
+                  href={`/${encodeURIComponent(selected.name)}/memory`}
+                  className="mt-2 flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50/50 px-4 py-3 transition-colors hover:bg-violet-100/60 dark:border-violet-800/40 dark:bg-violet-900/10 dark:hover:bg-violet-900/20"
+                >
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                    <Brain className="size-4 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-violet-900 dark:text-violet-200">장기 기억</span>
+                      {longTermCount > 0 && (
+                        <span className="rounded-full bg-violet-200 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-800/60 dark:text-violet-300">
+                          {longTermCount}개
+                        </span>
+                      )}
+                    </div>
+                    {latestInsight ? (
+                      <p className="mt-0.5 truncate text-xs text-violet-700/70 dark:text-violet-400/60">
+                        {latestInsight}
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-xs text-violet-700/50 dark:text-violet-400/40">
+                        중요한 태스크를 장기 기억으로 관리해요
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight className="size-4 shrink-0 text-violet-400 dark:text-violet-600" />
+                </Link>
+              );
+            })()}
 
             {tasks.length === 0 && folders.length === 0 && (
               <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">

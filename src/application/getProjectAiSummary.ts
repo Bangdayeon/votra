@@ -28,8 +28,9 @@ export async function getProjectAiSummary(
   deps: { llm: LlmClient },
   tasks: TaskRecord[] = [],
   commits: GitCommit[] = [],
+  memoryContext?: string,
 ): Promise<ProjectAiSummary> {
-  const prompt = buildPrompt(settings, tasks, commits);
+  const prompt = buildPrompt(settings, tasks, commits, memoryContext);
 
   const text = await deps.llm.complete({
     system: "You are a JSON-only responder. Output must be valid JSON matching the specified schema exactly. No markdown, no explanations, no extra text.",
@@ -40,7 +41,7 @@ export async function getProjectAiSummary(
   return parseAiSummary(text);
 }
 
-function buildPrompt(settings: ProjectSettings, tasks: TaskRecord[], commits: GitCommit[]): string {
+function buildPrompt(settings: ProjectSettings, tasks: TaskRecord[], commits: GitCommit[], memoryContext?: string): string {
   const customInstructions = settings.ai.analysisInstruction.trim();
   const customPart = customInstructions ? `[Additional instructions]\n${customInstructions}` : "";
 
@@ -70,9 +71,13 @@ function buildPrompt(settings: ProjectSettings, tasks: TaskRecord[], commits: Gi
     2,
   );
 
+  const memoryPart = memoryContext
+    ? `\n## 장기 기억 맥락\n${memoryContext.slice(0, 800)}`
+    : "";
+
   return DEFAULT_ANALYSIS_INSTRUCTION
     .replace(/\{taskData\}/g, taskData)
-    .replace(/\{customInstructions\}/g, customPart);
+    .replace(/\{customInstructions\}/g, customPart + memoryPart);
 }
 
 function parseAiSummary(text: string): ProjectAiSummary {

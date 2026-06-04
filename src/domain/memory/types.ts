@@ -1,5 +1,7 @@
 export type TaskStatusValue = "PENDING" | "IN_PROGRESS" | "DONE" | "CANCELLED";
 
+export type MemoryTierValue = "ACTIVE" | "LONG_TERM" | "ARCHIVED" | "TRASH";
+
 export type TaskSortBy = "priority" | "createdAt" | "updatedAt";
 
 export type TaskListDateField = "createdAt" | "updatedAt";
@@ -32,6 +34,10 @@ export type TaskRecord = {
   keyDecisions: string[];
   outcome: string | null;
   folderId: string | null;
+  memoryTier: MemoryTierValue;
+  accessCount: number;
+  lastAccessedAt: Date | null;
+  isPinned: boolean;
   createdAt: Date;
   updatedAt: Date;
   doneAt: Date | null;
@@ -60,4 +66,19 @@ export type SkillRecord = {
   content: string;
   isActive: boolean;
   enabled: boolean;
+};
+
+export type ProjectCustomSkillRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  folder: string;
+  content: string;
+  patternSummary: string | null;
+  contextHint: string | null;
+  isEnabled: boolean;
+  projectId: string;
+  createdAt: Date;
+  updatedAt: Date;
 };

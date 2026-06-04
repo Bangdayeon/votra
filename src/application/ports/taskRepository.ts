@@ -1,4 +1,4 @@
-import type { TaskRecord, TaskStatusValue } from "@/domain/memory/types";
+import type { MemoryTierValue, TaskRecord, TaskStatusValue } from "@/domain/memory/types";
 
 export type TaskCreateInput = {
   title: string;
@@ -32,6 +32,18 @@ export type TaskListFilter = {
   offset?: number;
 };
 
+export type DecayCandidate = {
+  id: string;
+  isPinned: boolean;
+  accessCount: number;
+  priority: number;
+  lastAccessedAt: Date | null;
+  doneAt: Date | null;
+  createdAt: Date;
+  deletedAt: Date | null;
+  memoryTier: MemoryTierValue;
+};
+
 export type TaskRepository = {
   create: (input: TaskCreateInput) => Promise<TaskRecord>;
   update: (input: TaskUpdateInput) => Promise<TaskRecord | null>;
@@ -53,4 +65,10 @@ export type TaskRepository = {
     userId: string;
     limit: number;
   }) => Promise<TaskRecord[]>;
+  trackAccess: (taskId: string) => Promise<void>;
+  batchUpdateMemoryTier: (updates: Array<{ id: string; tier: MemoryTierValue }>) => Promise<void>;
+  updateMemoryTier: (args: { taskId: string; tier: MemoryTierValue; isPinned?: boolean }) => Promise<void>;
+  listForDecay: (projectId: string) => Promise<DecayCandidate[]>;
+  listByMemoryTier: (args: { projectId: string; tier: MemoryTierValue; limit?: number }) => Promise<TaskRecord[]>;
+  countActivitySince: (args: { projectId: string; sinceDate: Date }) => Promise<number>;
 };

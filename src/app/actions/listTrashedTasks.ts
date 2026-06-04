@@ -10,6 +10,7 @@ const SELECT = {
   id: true, seq: true, projectId: true, title: true, description: true,
   status: true, module: true, priority: true, sortOrder: true, keyDecisions: true, outcome: true,
   folderId: true, createdAt: true, updatedAt: true, doneAt: true, deletedAt: true,
+  memoryTier: true, accessCount: true, lastAccessedAt: true, isPinned: true,
   user: { select: { id: true, name: true, profileImage: true, profileColor: true } },
 } as const;
 
@@ -17,7 +18,8 @@ function toRecord(r: {
   id: string; seq: number; projectId: string; title: string; description: string | null;
   status: string; module: string | null; priority: number; sortOrder: number; keyDecisions: string[];
   outcome: string | null; folderId: string | null; createdAt: Date; updatedAt: Date;
-  doneAt: Date | null; deletedAt: Date | null;
+  doneAt: Date | null; deletedAt: Date | null; memoryTier: string; accessCount: number;
+  lastAccessedAt: Date | null; isPinned: boolean;
   user: { id: string; name: string | null; profileImage: string | null; profileColor: string | null };
 }): TaskRecord {
   return {
@@ -28,6 +30,8 @@ function toRecord(r: {
     status: r.status as TaskRecord["status"],
     module: r.module, priority: r.priority, sortOrder: r.sortOrder,
     keyDecisions: r.keyDecisions, outcome: r.outcome, folderId: r.folderId,
+    memoryTier: r.memoryTier as TaskRecord["memoryTier"],
+    accessCount: r.accessCount, lastAccessedAt: r.lastAccessedAt, isPinned: r.isPinned,
     createdAt: r.createdAt, updatedAt: r.updatedAt, doneAt: r.doneAt, deletedAt: r.deletedAt,
   };
 }

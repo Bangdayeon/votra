@@ -34,7 +34,28 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
       ? rawHour
       : null;
 
-  return { ai: { analysisInstruction, nextTaskPrompt, autoRefreshHour } };
+  const mem = isRecord(raw.memory) ? raw.memory : {};
+
+  const activeToArchivedDays = toPositiveInt(mem.activeToArchivedDays, 30);
+  const archivedToTrashDays = toPositiveInt(mem.archivedToTrashDays, 30);
+  const reflectionThreshold = toPositiveInt(mem.reflectionThreshold, 5);
+  const longTermMinAccessCount = toPositiveInt(mem.longTermMinAccessCount, 3);
+  const longTermMinPriority = toPositiveInt(mem.longTermMinPriority, 7);
+
+  return {
+    ai: { analysisInstruction, nextTaskPrompt, autoRefreshHour },
+    memory: {
+      activeToArchivedDays,
+      archivedToTrashDays,
+      reflectionThreshold,
+      longTermMinAccessCount,
+      longTermMinPriority,
+    },
+  };
+}
+
+function toPositiveInt(v: unknown, fallback: number): number {
+  return typeof v === "number" && Number.isInteger(v) && v > 0 ? v : fallback;
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
