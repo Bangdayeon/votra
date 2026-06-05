@@ -1,12 +1,12 @@
 import type { CustomSkillRepository } from "@/application/ports/customSkillRepository";
-import type { ProjectCustomSkillRecord } from "@/domain/memory/types";
+import type { ProjectToolRecord } from "@/domain/memory/types";
 import type { Result } from "@/shared/lib/result";
 import { err, ok } from "@/shared/lib/result";
 
 export async function listCustomSkills(
   projectId: string,
   deps: { customSkills: CustomSkillRepository },
-): Promise<Result<ProjectCustomSkillRecord[], string>> {
+): Promise<Result<ProjectToolRecord[], string>> {
   try {
     const skills = await deps.customSkills.listByProject(projectId);
     return ok(skills);

@@ -1,9 +1,10 @@
-import type { ProjectCustomSkillRecord } from "@/domain/memory/types";
+import type { ProjectToolRecord } from "@/domain/memory/types";
 
+// backward-compat alias
 export function matchSkillsToTask(
-  task: { title: string; module?: string | null },
-  skills: ProjectCustomSkillRecord[],
-): ProjectCustomSkillRecord[] {
-  if (!task.module) return [];
-  return skills.filter((s) => s.slug === task.module);
+  task: { title: string; tool?: string | null },
+  skills: ProjectToolRecord[],
+): ProjectToolRecord[] {
+  if (!task.tool) return [];
+  return skills.filter((s) => s.slug === task.tool);
 }
