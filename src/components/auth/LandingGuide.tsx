@@ -8,11 +8,11 @@ import { AxhubSignInButton } from "@/components/auth/AxhubSignInButton";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { cn } from "@/lib/utils";
 
-const TABS = ["Haema 소셜 로그인", "MCP 설치", "brief, task"] as const;
+const TABS = ["소셜 로그인", "MCP 설치", "brief, task"] as const;
 type Tab = (typeof TABS)[number];
 
 export function LandingGuide() {
-  const [active, setActive] = useState<Tab>("Haema 소셜 로그인");
+  const [active, setActive] = useState<Tab>("소셜 로그인");
   const [visible, setVisible] = useState(true);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -71,7 +71,7 @@ export function LandingGuide() {
             visible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
           )}
         >
-          {active === "Haema 소셜 로그인" && <SocialLoginContent />}
+          {active === "소셜 로그인" && <SocialLoginContent />}
           {active === "MCP 설치" && <McpInstallContent />}
           {active === "brief, task" && <BriefTaskContent />}
         </div>

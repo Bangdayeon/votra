@@ -71,7 +71,7 @@ export default async function SignInPage({
             {VALUE_PROPS.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="flex flex-col items-center gap-3 rounded-xl bg-purple-50 p-6 text-center dark:bg-purple-950/20"
+                className="flex flex-col items-center gap-3 rounded-xl bg-primary/8 p-6 text-center dark:bg-primary/10"
               >
                 <Icon className="size-6 text-primary" />
                 <span className="text-sm font-medium">{title}</span>
@@ -101,7 +101,7 @@ export default async function SignInPage({
 
           <div className="flex flex-col items-center gap-4">
             <span className="text-2xl font-bold">✅ 해결 내용</span>
-            <div className="w-full rounded-2xl bg-purple-50 p-12 dark:bg-purple-950/20">
+            <div className="w-full rounded-2xl bg-primary/8 p-12 dark:bg-primary/10">
               <ul className="flex flex-col gap-5">
                 {SOLUTIONS.map((item) => (
                   <li key={item} className="flex items-start gap-2 text-base text-foreground/80">
