@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ChevronUp, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Info, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -219,9 +220,19 @@ export function ToolsTab({ selected }: { selected: Project }) {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
         <h2 className="text-base font-semibold">툴</h2>
-        <span className="text-xs text-muted-foreground">
-          AI 도구에서 <code className="rounded bg-muted px-1 py-0.5">load_tool</code>로 불러올 수 있어요.
-        </span>
+        <span className="text-xs text-muted-foreground">태스크 작업 시 자동으로 적용돼요.</span>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex cursor-default">
+                <Info className="size-3 text-muted-foreground/50" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[220px] text-xs">
+              태스크 생성 시 툴이 자동으로 매칭돼요. 동작이 마음에 들지 않으면 내용 수정을 요청하거나, <code className="rounded bg-muted px-1">load_tool</code>로 직접 불러올 수 있어요.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {loading ? (
