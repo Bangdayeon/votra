@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { getToolsAction } from "@/app/actions/getCustomSkillsAction";
 import { listTrashedTasksPageAction } from "@/app/actions/listTrashedTasks";
 import { purgeTaskAction } from "@/app/actions/purgeTask";
 import { restoreTaskAction } from "@/app/actions/restoreTask";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import type { TaskRecord, TaskStatusValue } from "@/domain/memory/types";
 import { cn } from "@/lib/utils";
+import { buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 
 const PRIORITY_LABELS: Record<1 | 2 | 3 | 4, string> = {
   1: "Low", 2: "Medium", 3: "High", 4: "Critical",
@@ -76,6 +78,7 @@ export function TrashPageClient({
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [toolColorMap, setToolColorMap] = useState<Map<string, string>>(new Map());
 
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -101,6 +104,10 @@ export function TrashPageClient({
       setLoading(false);
     }
   }, [projectId, search]);
+
+  useEffect(() => {
+    getToolsAction(projectId).then((tools) => setToolColorMap(buildToolColorMap(tools.map((t) => t.slug)))).catch(() => {});
+  }, [projectId]);
 
   // 검색 디바운스
   useEffect(() => {
@@ -334,7 +341,7 @@ export function TrashPageClient({
                     </span>
                   )}
                   {task.tool && (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", toolColorMap.get(task.tool) ?? "bg-muted text-muted-foreground")}>
                       {task.tool}
                     </span>
                   )}

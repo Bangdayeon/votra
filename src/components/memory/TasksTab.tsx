@@ -94,6 +94,7 @@ import { sortTasks } from "@/domain/memory/sortTasks";
 import type { FolderRecord, ProjectToolRecord, TaskSortBy } from "@/domain/memory/types";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
+import { buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 
 // ── folder icon / color palette ───────────────────────────────────────────────
 
@@ -264,6 +265,7 @@ function CreateTaskDialog({
   projectId,
   folders,
   defaultFolderId,
+  tools,
   onClose,
   onCreated,
 }: {
@@ -271,6 +273,7 @@ function CreateTaskDialog({
   projectId: string;
   folders: FolderRecord[];
   defaultFolderId: string | null;
+  tools: ProjectToolRecord[];
   onClose: () => void;
   onCreated: (task: TaskRecord) => void;
 }) {
@@ -280,7 +283,6 @@ function CreateTaskDialog({
   const [tool, setTool] = useState<string | null>(null);
   const [priority, setPriority] = useState(2);
   const [loading, setLoading] = useState(false);
-  const [tools, setTools] = useState<ProjectToolRecord[]>([]);
   const [toolLoading, setToolLoading] = useState(false);
   const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestSeq = useRef(0);
@@ -292,10 +294,8 @@ function CreateTaskDialog({
     setFolderId(defaultFolderId);
     setTool(null);
     setPriority(2);
-    setTools([]);
     setToolLoading(false);
-    getToolsAction(projectId).then(setTools).catch(() => {});
-  }, [open, defaultFolderId, projectId]);
+  }, [open, defaultFolderId]);
 
   useEffect(() => {
     if (suggestDebounce.current) clearTimeout(suggestDebounce.current);
@@ -956,6 +956,7 @@ function TaskRow({
   onUpdated,
   onDeleted,
   folders,
+  toolColorMap,
   isSelectMode,
   isSelected,
   onSelect,
@@ -967,6 +968,7 @@ function TaskRow({
   onUpdated: (updated: TaskRecord) => void;
   onDeleted: (id: string) => void;
   folders: FolderRecord[];
+  toolColorMap: Map<string, string>;
   isSelectMode?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
@@ -1101,7 +1103,7 @@ function TaskRow({
             </span>
           )}
           {task.tool && (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", toolColorMap.get(task.tool) ?? "bg-muted text-muted-foreground")}>
               {task.tool}
             </span>
           )}
@@ -1315,6 +1317,7 @@ export function TasksTab({
   const [tasks, setTasks] = useState<TaskRecord[]>(initialTasks ?? []);
   const [loading, setLoading] = useState(!initialTasks);
   const [folders, setFolders] = useState<FolderRecord[]>([]);
+  const [tools, setTools] = useState<ProjectToolRecord[]>([]);
 
   const [folderView, setFolderView] = useState<FolderView>(() => {
     const param = searchParams.get("folder");
@@ -1387,6 +1390,7 @@ export function TasksTab({
   }, [loadTasks]);
 
   useEffect(() => { loadFolders(); }, [loadFolders]);
+  useEffect(() => { getToolsAction(selected.id).then(setTools).catch(() => {}); }, [selected.id]);
 
   // Resolve folder ID from URL once folders are loaded
   const appliedInitialFolder = useRef(false);
@@ -1416,6 +1420,8 @@ export function TasksTab({
   }, [folderView, isActive, router, searchParams]);
 
   useProjectEvents(selected.id, () => { loadTasks(true); loadFolders(); });
+
+  const toolColorMap = useMemo(() => buildToolColorMap(tools.map((t) => t.slug)), [tools]);
 
   function handleUpdated(updated: TaskRecord) {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
@@ -1766,6 +1772,7 @@ export function TasksTab({
           projectId={selected.id}
           folders={folders}
           defaultFolderId={createTaskDefaultFolderId}
+          tools={tools}
           onClose={() => setCreateTaskOpen(false)}
           onCreated={handleTaskCreated}
         />
@@ -2000,6 +2007,7 @@ export function TasksTab({
               onUpdated={handleUpdated}
               onDeleted={handleDeleted}
               folders={folders}
+              toolColorMap={toolColorMap}
               isSelectMode={isSelectMode}
               isSelected={selectedIds.has(task.id)}
               onSelect={() => {
@@ -2143,6 +2151,7 @@ export function TasksTab({
         projectId={selected.id}
         folders={folders}
         defaultFolderId={createTaskDefaultFolderId}
+        tools={tools}
         onClose={() => setCreateTaskOpen(false)}
         onCreated={handleTaskCreated}
       />

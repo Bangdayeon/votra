@@ -6,7 +6,7 @@ CREATE INDEX "Task_projectId_tool_idx" ON "Task"("projectId", "tool");
 -- ProjectCustomSkill → ProjectTool
 ALTER TABLE "ProjectCustomSkill" RENAME TO "ProjectTool";
 ALTER TABLE "ProjectTool" RENAME CONSTRAINT "ProjectCustomSkill_pkey" TO "ProjectTool_pkey";
-ALTER TABLE "ProjectTool" RENAME CONSTRAINT "ProjectCustomSkill_projectId_slug_key" TO "ProjectTool_projectId_slug_key";
+ALTER INDEX "ProjectCustomSkill_projectId_slug_key" RENAME TO "ProjectTool_projectId_slug_key";
 ALTER TABLE "ProjectTool" RENAME CONSTRAINT "ProjectCustomSkill_projectId_fkey" TO "ProjectTool_projectId_fkey";
 DROP INDEX IF EXISTS "ProjectCustomSkill_projectId_idx";
 CREATE INDEX "ProjectTool_projectId_idx" ON "ProjectTool"("projectId");

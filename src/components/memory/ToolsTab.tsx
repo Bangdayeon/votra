@@ -9,6 +9,8 @@ import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getCustomS
 import { toggleToolAction } from "@/app/actions/toggleCustomSkillAction";
 import type { Project } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
+import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
+
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
 
@@ -47,10 +49,12 @@ function Toggle({
 function ToolRow({
   tool,
   projectId,
+  badgeColor,
   onToggled,
 }: {
   tool: ProjectToolRecord;
   projectId: string;
+  badgeColor: string;
   onToggled: (slug: string, isEnabled: boolean) => void;
 }) {
   const [pending, setPending] = useState(false);
@@ -78,6 +82,9 @@ function ToolRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">{tool.name}</p>
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", badgeColor)}>
+              {tool.slug}
+            </span>
             {tool.patternSummary && (
               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 AI 추천
@@ -125,11 +132,13 @@ function FolderSection({
   folder,
   tools,
   projectId,
+  colorMap,
   onToggled,
 }: {
   folder: string;
   tools: ProjectToolRecord[];
   projectId: string;
+  colorMap: Map<string, string>;
   onToggled: (slug: string, isEnabled: boolean) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -158,6 +167,7 @@ function FolderSection({
               key={tool.slug}
               tool={tool}
               projectId={projectId}
+              badgeColor={colorMap.get(tool.slug) ?? BADGE_COLORS[0]}
               onToggled={onToggled}
             />
           ))}
@@ -203,6 +213,8 @@ export function ToolsTab({ selected }: { selected: Project }) {
 
   const orderedFolders = useMemo(() => [...grouped.keys()].sort(), [grouped]);
 
+  const colorMap = useMemo(() => buildToolColorMap(tools.map((t) => t.slug)), [tools]);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
@@ -240,6 +252,7 @@ export function ToolsTab({ selected }: { selected: Project }) {
               folder={folder}
               tools={grouped.get(folder) ?? []}
               projectId={selected.id}
+              colorMap={colorMap}
               onToggled={handleToggled}
             />
           ))}
