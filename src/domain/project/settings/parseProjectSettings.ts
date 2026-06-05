@@ -42,6 +42,11 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
   const longTermMinAccessCount = toPositiveInt(mem.longTermMinAccessCount, 3);
   const longTermMinPriority = toPositiveInt(mem.longTermMinPriority, 7);
 
+  const rawIntegrations = isRecord(raw.integrations) ? raw.integrations : {};
+  const sources = Array.isArray(rawIntegrations.sources)
+    ? (rawIntegrations.sources as unknown[]).filter((s): s is string => typeof s === "string")
+    : [];
+
   return {
     ai: { analysisInstruction, nextTaskPrompt, autoRefreshHour },
     memory: {
@@ -51,6 +56,7 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
       longTermMinAccessCount,
       longTermMinPriority,
     },
+    integrations: { sources },
   };
 }
 

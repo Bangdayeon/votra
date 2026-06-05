@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Brain, CheckSquare, ChevronRight, LayoutGrid, Layers, Settings, Sparkles, Trash2, Users } from "lucide-react";
+import { Bot, Brain, CheckSquare, ChevronRight, LayoutGrid, Layers, Plug2, Settings, Sparkles, Trash2, Users } from "lucide-react";
 
 import { useProjects } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
@@ -22,9 +22,10 @@ type Tab = "overview" | "manage" | "tasks" | "tools" | "brain" | "team";
 const SETTINGS_TABS = [
   { label: "전체", key: "all", icon: Layers },
   { label: "홈", key: "overview", icon: LayoutGrid },
+  { label: "통합", key: "integrations", icon: Plug2 },
 ] as const;
 
-type SettingsTab = "all" | "overview" | "ai-management";
+type SettingsTab = "all" | "overview" | "integrations" | "ai-management";
 
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
@@ -37,6 +38,7 @@ function parseTab(value: string | null): Tab {
 
 function parseSettingsTab(value: string | null): SettingsTab {
   if (value === "overview") return "overview";
+  if (value === "integrations") return "integrations";
   if (value === "ai-management") return "ai-management";
   return "all";
 }

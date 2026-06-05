@@ -6,6 +6,7 @@ import { listFolders } from "@/application/listFolders";
 import { listMemoryReflections } from "@/application/listMemoryReflections";
 import { seedDefaultTools } from "@/application/seedDefaultTools";
 import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
+import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
   const [project, aiNextTask, aiSummary, foldersResult, longTermTasks, reflections, memoryContext, rawTools, latestReflectionRaw] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
-      select: { title: true, cwd: true },
+      select: { title: true, cwd: true, settings: true },
     }),
     prisma.projectAiNextTask.findUnique({ where: { projectId } }),
     prisma.projectAiSummary.findUnique({
@@ -73,6 +74,7 @@ export async function GET(req: Request) {
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
 
+  const projectSettings = parseProjectSettings(project.settings);
   const folders = foldersResult.ok ? foldersResult.value : [];
 
   const tools = toolsResult
@@ -107,6 +109,7 @@ export async function GET(req: Request) {
         : undefined,
       toolSuggestions: toolSuggestions.length > 0 ? toolSuggestions : undefined,
       memoryContext: memoryContext?.content ?? null,
+      enabledIntegrations: projectSettings.integrations.sources,
     },
   });
 }

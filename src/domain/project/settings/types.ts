@@ -20,6 +20,10 @@ export type ProjectSettings = {
     /** LONG_TERM 자동 승격 최소 우선순위(0-10). 기본 7. */
     longTermMinPriority: number;
   };
+  integrations: {
+    /** 활성화된 외부 서비스 슬러그 목록 (예: "notion", "slack", "github"). */
+    sources: string[];
+  };
 };
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
@@ -34,5 +38,8 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
     reflectionThreshold: 5,
     longTermMinAccessCount: 3,
     longTermMinPriority: 7,
+  },
+  integrations: {
+    sources: [],
   },
 };
