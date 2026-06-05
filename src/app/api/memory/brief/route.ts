@@ -99,7 +99,11 @@ export async function GET(req: Request) {
         lastAccessedAt: t.lastAccessedAt?.toISOString() ?? null,
       })),
       latestReflection: latestReflection
-        ? { contextSummary: latestReflection.contextSummary, insights: latestReflection.insights }
+        ? {
+            contextSummary: latestReflection.contextSummary,
+            insights: latestReflection.insights,
+            suggestedTasks: latestReflection.suggestedTasks,
+          }
         : undefined,
       toolSuggestions: toolSuggestions.length > 0 ? toolSuggestions : undefined,
       memoryContext: memoryContext?.content ?? null,
