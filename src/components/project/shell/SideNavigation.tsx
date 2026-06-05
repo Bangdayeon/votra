@@ -539,8 +539,8 @@ export function SideNavigation() {
                 priority
               />
               <span className="text-xl font-medium leading-none">
-                <span className="text-foreground">vo</span>
-                <span className="text-primary">tra</span>
+                <span className="text-foreground">hae</span>
+                <span className="text-primary">ma</span>
               </span>
             </div>
             <Button
