@@ -314,8 +314,10 @@ function InsightsSection({ projectId }: { projectId: string }) {
               {latest.suggestedTasks.map((t, i) => (
                 <div key={i} className="flex items-start gap-1.5 text-xs">
                   <span className="mt-0.5 shrink-0 text-muted-foreground">·</span>
-                  <span className="text-foreground/70">{t.title}</span>
-                  <span className="text-muted-foreground shrink-0">— {t.reason}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-foreground/70">{t.title}</span>
+                    {t.reason && <span className="text-muted-foreground"> — {t.reason}</span>}
+                  </div>
                 </div>
               ))}
             </div>
