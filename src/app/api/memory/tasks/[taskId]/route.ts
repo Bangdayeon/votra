@@ -90,11 +90,11 @@ export async function PATCH(
             ? body.description
             : undefined,
       status,
-      module:
-        body.module === null
+      tool:
+        body.tool === null
           ? null
-          : typeof body.module === "string"
-            ? body.module
+          : typeof body.tool === "string"
+            ? body.tool
             : undefined,
       priority: typeof body.priority === "number" ? body.priority : undefined,
       folderId:

@@ -12,11 +12,11 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { label: "개요", key: "overview", icon: LayoutGrid },
   { label: "태스크", key: "tasks", icon: CheckSquare },
-  { label: "스킬", key: "skills", icon: Sparkles },
+  { label: "툴", key: "tools", icon: Sparkles },
   { label: "팀작업", key: "team", icon: Users },
 ] as const;
 
-type Tab = "overview" | "manage" | "tasks" | "skills" | "team";
+type Tab = "overview" | "manage" | "tasks" | "tools" | "team";
 
 const SETTINGS_TABS = [
   { label: "전체", key: "all", icon: Layers },
@@ -28,7 +28,7 @@ type SettingsTab = "all" | "overview" | "ai-management";
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "tasks") return "tasks";
-  if (value === "skills") return "skills";
+  if (value === "tools") return "tools";
   if (value === "team") return "team";
   return "overview";
 }

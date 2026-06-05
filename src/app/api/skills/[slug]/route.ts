@@ -5,7 +5,7 @@ import { prisma } from "@/infrastructure/db/prisma";
 
 type Params = { params: Promise<{ slug: string }> };
 
-// GET /api/skills/:slug?projectId= — 스킬 content 반환
+// GET /api/skills/:slug?projectId= — backward compat, use /api/tools/:slug instead
 export async function GET(req: Request, { params }: Params) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
   if (!user) {
@@ -19,20 +19,20 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const skill = await prisma.projectCustomSkill.findUnique({
+  const tool = await prisma.projectTool.findUnique({
     where: { projectId_slug: { projectId, slug } },
   });
 
-  if (!skill || !skill.isEnabled) {
-    return NextResponse.json({ ok: false, error: "스킬을 찾을 수 없어요." }, { status: 404 });
+  if (!tool || !tool.isEnabled) {
+    return NextResponse.json({ ok: false, error: "툴을 찾을 수 없어요." }, { status: 404 });
   }
 
   return NextResponse.json({
     ok: true,
-    slug: skill.slug,
-    name: skill.name,
-    contextHint: skill.contextHint ?? skill.description,
-    content: skill.content,
+    slug: tool.slug,
+    name: tool.name,
+    contextHint: tool.contextHint ?? tool.description,
+    content: tool.content,
   });
 }
 
@@ -55,15 +55,15 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ ok: false, error: "enabled 값이 필요해요." }, { status: 400 });
   }
 
-  const existing = await prisma.projectCustomSkill.findUnique({
+  const existing = await prisma.projectTool.findUnique({
     where: { projectId_slug: { projectId, slug } },
     select: { slug: true },
   });
   if (!existing) {
-    return NextResponse.json({ ok: false, error: "스킬을 찾을 수 없어요." }, { status: 404 });
+    return NextResponse.json({ ok: false, error: "툴을 찾을 수 없어요." }, { status: 404 });
   }
 
-  await prisma.projectCustomSkill.update({
+  await prisma.projectTool.update({
     where: { projectId_slug: { projectId, slug } },
     data: { isEnabled: body.enabled as boolean },
   });

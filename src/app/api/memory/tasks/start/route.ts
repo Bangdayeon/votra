@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { startTask } from "@/application/startTask";
-import { matchSkillsToTask } from "@/domain/memory/matchSkillsToTask";
+import { matchToolsToTask } from "@/domain/memory/matchToolsToTask";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
-import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
+import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function POST(req: Request) {
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     {
       title: body.title,
       description: typeof body.description === "string" ? body.description : undefined,
-      module: typeof body.module === "string" ? body.module : undefined,
+      tool: typeof body.tool === "string" ? body.tool : undefined,
       priority: typeof body.priority === "number" ? body.priority : undefined,
       folderId: typeof body.folderId === "string" ? body.folderId : undefined,
       projectId: body.projectId,
@@ -44,12 +44,12 @@ export async function POST(req: Request) {
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   emitProjectUpdate(body.projectId);
 
-  const allSkills = await prismaCustomSkillRepository.listByProject(body.projectId);
-  const enabledSkills = allSkills.filter((s) => s.isEnabled);
-  const matchedSkills = matchSkillsToTask(
-    { title: result.value.title, module: result.value.module },
-    enabledSkills,
-  ).map((s) => ({ slug: s.slug, name: s.name, contextHint: s.contextHint }));
+  const allTools = await prismaToolRepository.listByProject(body.projectId);
+  const enabledTools = allTools.filter((t) => t.isEnabled);
+  const matchedSkills = matchToolsToTask(
+    { title: result.value.title, tool: result.value.tool },
+    enabledTools,
+  ).map((t) => ({ slug: t.slug, name: t.name, contextHint: t.contextHint }));
 
   return NextResponse.json({ ok: true, task: result.value, matchedSkills });
 }

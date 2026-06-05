@@ -4,11 +4,11 @@ import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
 import { getProjectBrief } from "@/application/getProjectBrief";
 import { listFolders } from "@/application/listFolders";
 import { listMemoryReflections } from "@/application/listMemoryReflections";
-import { seedDefaultSkills } from "@/application/seedDefaultSkills";
-import type { SkillSuggestion } from "@/domain/memory/memoryTierTypes";
+import { seedDefaultTools } from "@/application/seedDefaultTools";
+import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
-import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
+import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const [project, aiNextTask, aiSummary, foldersResult, longTermTasks, reflections, memoryContext, rawCustomSkills, latestReflectionRaw] = await Promise.all([
+  const [project, aiNextTask, aiSummary, foldersResult, longTermTasks, reflections, memoryContext, rawTools, latestReflectionRaw] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       select: { title: true, cwd: true },
@@ -40,11 +40,11 @@ export async function GET(req: Request) {
     prismaTaskRepository.listByMemoryTier({ projectId, tier: "LONG_TERM", limit: 10 }),
     listMemoryReflections(projectId, 1, { reflections: prismaMemoryReflectionRepository }),
     prismaMemoryContextRepository.findByProject(projectId),
-    prismaCustomSkillRepository.listByProject(projectId),
+    prismaToolRepository.listByProject(projectId),
     prisma.projectMemoryReflection.findFirst({
       where: { projectId },
       orderBy: { createdAt: "desc" },
-      select: { skillSuggestions: true },
+      select: { toolSuggestions: true },
     }),
   ]);
 
@@ -53,10 +53,10 @@ export async function GET(req: Request) {
   }
 
   // 새 프로젝트: 커스텀 스킬 0개이면 기본 스킬 lazy seeding
-  let customSkillsResult = rawCustomSkills;
-  if (customSkillsResult.length === 0) {
-    await seedDefaultSkills(projectId, { customSkills: prismaCustomSkillRepository });
-    customSkillsResult = await prismaCustomSkillRepository.listByProject(projectId);
+  let toolsResult = rawTools;
+  if (toolsResult.length === 0) {
+    await seedDefaultTools(projectId, { tools: prismaToolRepository });
+    toolsResult = await prismaToolRepository.listByProject(projectId);
   }
 
   const result = await getProjectBrief(
@@ -75,13 +75,13 @@ export async function GET(req: Request) {
 
   const folders = foldersResult.ok ? foldersResult.value : [];
 
-  const customSkills = customSkillsResult
+  const tools = toolsResult
     .filter((s) => s.isEnabled)
     .map((s) => ({ slug: s.slug, name: s.name, folder: s.folder, contextHint: s.contextHint ?? s.description }));
 
-  const existingSkillNames = new Set(customSkillsResult.map((s) => s.name.toLowerCase()));
-  const rawSuggestions = (latestReflectionRaw?.skillSuggestions as SkillSuggestion[]) ?? [];
-  const skillSuggestions = rawSuggestions.filter((s) => !existingSkillNames.has(s.name.toLowerCase()));
+  const existingToolNames = new Set(toolsResult.map((s) => s.name.toLowerCase()));
+  const rawSuggestions = (latestReflectionRaw?.toolSuggestions as ToolSuggestion[]) ?? [];
+  const toolSuggestions = rawSuggestions.filter((s) => !existingToolNames.has(s.name.toLowerCase()));
 
   const latestReflection = reflections[0];
 
@@ -90,7 +90,7 @@ export async function GET(req: Request) {
     brief: {
       ...result.value,
       folders,
-      customSkills,
+      tools,
       recommendedNextTasks: aiNextTask ? (aiNextTask.tasks as NextTask[]) : undefined,
       aiSummary: aiSummary ?? undefined,
       longTermTasks: longTermTasks.map((t) => ({
@@ -101,7 +101,7 @@ export async function GET(req: Request) {
       latestReflection: latestReflection
         ? { contextSummary: latestReflection.contextSummary, insights: latestReflection.insights }
         : undefined,
-      skillSuggestions: skillSuggestions.length > 0 ? skillSuggestions : undefined,
+      toolSuggestions: toolSuggestions.length > 0 ? toolSuggestions : undefined,
       memoryContext: memoryContext?.content ?? null,
     },
   });

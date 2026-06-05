@@ -10,7 +10,7 @@ export type { TaskRecord };
 export type CreateTaskInput = {
   title: string;
   description?: string;
-  module?: string;
+  tool?: string;
   priority: number;
   folderId?: string | null;
 };
@@ -25,7 +25,7 @@ export async function createTaskAction(
     {
       title: input.title,
       description: input.description,
-      module: input.module,
+      tool: input.tool,
       priority: input.priority,
       folderId: input.folderId ?? undefined,
       projectId,

@@ -1,4 +1,6 @@
-import type { ProjectCustomSkillRecord } from "@/domain/memory/types";
+import type { ProjectToolRecord } from "@/domain/memory/types";
+
+export type ProjectCustomSkillRecord = ProjectToolRecord;
 
 export type CreateCustomSkillInput = {
   projectId: string;
@@ -28,9 +30,9 @@ export type UpsertCustomSkillInput = {
 };
 
 export type CustomSkillRepository = {
-  create: (input: CreateCustomSkillInput) => Promise<ProjectCustomSkillRecord>;
-  upsertByName: (input: UpsertCustomSkillInput) => Promise<ProjectCustomSkillRecord>;
-  listByProject: (projectId: string) => Promise<ProjectCustomSkillRecord[]>;
-  findBySlug: (projectId: string, slug: string) => Promise<ProjectCustomSkillRecord | null>;
+  create: (input: CreateCustomSkillInput) => Promise<ProjectToolRecord>;
+  upsertByName: (input: UpsertCustomSkillInput) => Promise<ProjectToolRecord>;
+  listByProject: (projectId: string) => Promise<ProjectToolRecord[]>;
+  findBySlug: (projectId: string, slug: string) => Promise<ProjectToolRecord | null>;
   setEnabled: (projectId: string, slug: string, isEnabled: boolean) => Promise<void>;
 };

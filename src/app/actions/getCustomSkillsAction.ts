@@ -1,16 +1,21 @@
 "use server";
 
-import { listCustomSkills } from "@/application/listCustomSkills";
-import type { ProjectCustomSkillRecord } from "@/domain/memory/types";
+import { listTools } from "@/application/listTools";
+import type { ProjectToolRecord } from "@/domain/memory/types";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
-import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
+import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 
-export type { ProjectCustomSkillRecord };
+export type { ProjectToolRecord };
 
-export async function getCustomSkillsAction(projectId: string): Promise<ProjectCustomSkillRecord[]> {
+export async function getToolsAction(projectId: string): Promise<ProjectToolRecord[]> {
   const guard = await assertProjectMember(projectId);
   if (!guard.ok) throw new Error(guard.error);
-  const result = await listCustomSkills(projectId, { customSkills: prismaCustomSkillRepository });
+  const result = await listTools(projectId, { tools: prismaToolRepository });
   if (!result.ok) throw new Error(result.error);
   return result.value;
 }
+
+// backward-compat alias
+export const getCustomSkillsAction = getToolsAction;
+// backward-compat type alias
+export type ProjectCustomSkillRecord = ProjectToolRecord;

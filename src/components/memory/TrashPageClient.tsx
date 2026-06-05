@@ -333,9 +333,9 @@ export function TrashPageClient({
                       {PRIORITY_LABELS[pl as 1 | 2 | 3 | 4]}
                     </span>
                   )}
-                  {task.module && (
+                  {task.tool && (
                     <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      {task.module}
+                      {task.tool}
                     </span>
                   )}
                   <span className={cn(

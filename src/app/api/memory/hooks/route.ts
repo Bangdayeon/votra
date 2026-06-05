@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
-import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
+import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prisma } from "@/infrastructure/db/prisma";
 
 export async function GET(req: Request) {
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "프로젝트를 찾을 수 없어요." }, { status: 404 });
   }
 
-  const skills = await prismaCustomSkillRepository.listByProject(projectId);
+  const skills = await prismaToolRepository.listByProject(projectId);
   const hooks = skills
     .filter((s) => s.isEnabled && s.hookEvent && s.hookMatcher && s.hookScript)
     .map((s) => ({

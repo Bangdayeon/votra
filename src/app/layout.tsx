@@ -13,8 +13,8 @@ const pretendard = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Votra",
-  description: "Votra application",
+  title: "Haema",
+  description: "Haema application",
 };
 
 export default function RootLayout({

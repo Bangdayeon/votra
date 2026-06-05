@@ -9,6 +9,7 @@ import { prisma } from "@/infrastructure/db/prisma";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiContextEngine } from "@/infrastructure/llm/geminiContextEngine";
+import { createGeminiKeyDecisionsEngine } from "@/infrastructure/llm/geminiKeyDecisionsEngine";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
@@ -45,10 +46,13 @@ export async function POST(
   }
 
   const aiTool = typeof body.aiTool === "string" && body.aiTool ? body.aiTool : "unknown";
-  const keyDecisions = Array.isArray(body.keyDecisions)
+  const providedDecisions = Array.isArray(body.keyDecisions)
     ? (body.keyDecisions as unknown[]).filter((d): d is string => typeof d === "string")
     : undefined;
   const outcome = typeof body.outcome === "string" && body.outcome ? body.outcome : undefined;
+
+  const keyDecisions = providedDecisions ??
+    await createGeminiKeyDecisionsEngine(geminiLlmClient).extract({ summary: body.summary, outcome });
 
   const result = await finishTask(
     { seq, userId: user.id, projectId: body.projectId, summary: body.summary, aiTool, keyDecisions, outcome },

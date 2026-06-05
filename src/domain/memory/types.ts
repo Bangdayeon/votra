@@ -28,7 +28,7 @@ export type TaskRecord = {
   title: string;
   description: string | null;
   status: TaskStatusValue;
-  module: string | null;
+  tool: string | null;
   priority: number;
   sortOrder: number;
   keyDecisions: string[];
@@ -57,7 +57,7 @@ export type FolderRecord = {
   updatedAt: Date;
 };
 
-export type ProjectCustomSkillRecord = {
+export type ProjectToolRecord = {
   id: string;
   slug: string;
   name: string;

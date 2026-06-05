@@ -1,4 +1,4 @@
-# Votra — 도메인 비즈니스 문서 (에이전트용)
+# Haema — 도메인 비즈니스 문서 (에이전트용)
 
 AI 에이전트가 이 코드베이스의 비즈니스 로직을 빠르게 파악하기 위한 레퍼런스.
 코드 스타일/아키텍처 규칙은 `AGENTS.md` 참고.
@@ -7,7 +7,7 @@ AI 에이전트가 이 코드베이스의 비즈니스 로직을 빠르게 파�
 
 ## 서비스 개요
 
-Votra는 **개발자 팀을 위한 AI 기반 프로젝트 관리 플랫폼**이다.
+Haema는 **개발자 팀을 위한 AI 기반 프로젝트 관리 플랫폼**이다.
 
 - 웹 대시보드 (Next.js) + CLI MCP 서버 양방향 동기화
 - 태스크 추적, 핵심 결정 기록, AI 프로젝트 분석
@@ -80,7 +80,7 @@ folderId=null인 태스크 = "미분류" 그룹.
 ### PlatformSkill / ProjectSkillConfig
 ```
 PlatformSkill: slug(PK), name, description, category(coding|process|analysis),
-               contextHint, content(MD 본문), isActive(Votra 팀 전체 비활성화 가능)
+               contextHint, content(MD 본문), isActive(Haema 팀 전체 비활성화 가능)
 
 ProjectSkillConfig: (projectId, skillSlug) → enabled(사용자 토글, 기본 true)
 ```

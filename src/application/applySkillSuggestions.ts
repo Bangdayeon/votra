@@ -1,9 +1,9 @@
 import type { CustomSkillRepository } from "@/application/ports/customSkillRepository";
-import type { SkillSuggestion } from "@/domain/memory/memoryTierTypes";
+import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 
 export async function applySkillSuggestions(
   projectId: string,
-  suggestions: SkillSuggestion[],
+  suggestions: ToolSuggestion[],
   deps: { customSkills: CustomSkillRepository },
 ): Promise<void> {
   if (suggestions.length === 0) return;

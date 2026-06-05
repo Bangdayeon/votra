@@ -1,10 +1,10 @@
-import type { MemoryReflectionRecord, ReflectionInsight, ReflectionSuggestedTask, SkillSuggestion } from "@/domain/memory/memoryTierTypes";
+import type { MemoryReflectionRecord, ReflectionInsight, ReflectionSuggestedTask, ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 
 export type CreateReflectionInput = {
   projectId: string;
   insights: ReflectionInsight[];
   suggestedTasks: ReflectionSuggestedTask[];
-  skillSuggestions: SkillSuggestion[];
+  toolSuggestions: ToolSuggestion[];
   contextSummary: string | null;
   analyzedTaskCount: number;
   triggerReason: string;

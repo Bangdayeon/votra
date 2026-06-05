@@ -1,12 +1,12 @@
 "use server";
 
-import { applySkillSuggestions } from "@/application/applySkillSuggestions";
+import { applyToolSuggestions } from "@/application/applyToolSuggestions";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
 import type { MemoryReflectionRecord } from "@/domain/memory/memoryTierTypes";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
-import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
+import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
@@ -25,9 +25,9 @@ export async function triggerMemoryReflectionAction(
     engine,
   });
 
-  if (reflection.skillSuggestions.length > 0) {
-    await applySkillSuggestions(projectId, reflection.skillSuggestions, {
-      customSkills: prismaCustomSkillRepository,
+  if (reflection.toolSuggestions.length > 0) {
+    await applyToolSuggestions(projectId, reflection.toolSuggestions, {
+      tools: prismaToolRepository,
     }).catch(() => {});
   }
 

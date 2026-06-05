@@ -1,14 +1,17 @@
 "use server";
 
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
-import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
+import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 
-export async function toggleCustomSkillAction(
+export async function toggleToolAction(
   projectId: string,
   slug: string,
   isEnabled: boolean,
 ): Promise<void> {
   const guard = await assertProjectMember(projectId);
   if (!guard.ok) throw new Error(guard.error);
-  await prismaCustomSkillRepository.setEnabled(projectId, slug, isEnabled);
+  await prismaToolRepository.setEnabled(projectId, slug, isEnabled);
 }
+
+// backward-compat alias
+export const toggleCustomSkillAction = toggleToolAction;

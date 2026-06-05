@@ -1,4 +1,4 @@
-# AGENTS.md — Votra Code Style
+# AGENTS.md — Haema Code Style
 
 Shared rules for humans and AI agents. Precedence: user instruction > this doc > existing code.
 

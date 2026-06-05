@@ -1,6 +1,6 @@
 import type { MemoryReflectionRepository } from "@/application/ports/memoryReflectionRepository";
 import type { TaskRepository } from "@/application/ports/taskRepository";
-import type { MemoryReflectionRecord, ReflectionInsight, ReflectionSuggestedTask, SkillSuggestion } from "@/domain/memory/memoryTierTypes";
+import type { MemoryReflectionRecord, ReflectionInsight, ReflectionSuggestedTask, ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 
 export type ReflectionInput = {
   tasks: Array<{ seq: number; title: string; priority: number; keyDecisions: string[]; outcome: string | null }>;
@@ -11,7 +11,7 @@ export type ReflectionInput = {
 export type ReflectionOutput = {
   insights: ReflectionInsight[];
   suggestedTasks: ReflectionSuggestedTask[];
-  skillSuggestions: SkillSuggestion[];
+  toolSuggestions: ToolSuggestion[];
   contextSummary: string | null;
 };
 
@@ -54,7 +54,7 @@ export async function runMemoryReflection(
     projectId,
     insights: output.insights,
     suggestedTasks: output.suggestedTasks,
-    skillSuggestions: output.skillSuggestions,
+    toolSuggestions: output.toolSuggestions,
     contextSummary: output.contextSummary,
     analyzedTaskCount: allReferenceTasks.length,
     triggerReason,

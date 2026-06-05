@@ -15,7 +15,7 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
   "suggestedTasks": [
     { "title": "태스크 제목", "reason": "이유", "priority": "high" | "medium" | "low" }
   ],
-  "skillSuggestions": [
+  "toolSuggestions": [
     {
       "name": "스킬 이름",
       "description": "한 줄 설명",
@@ -37,7 +37,7 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
 - risk: 주의가 필요한 기술적 부채나 위험 요소
 - 인사이트는 3-5개, 추천 태스크는 1-3개로 제한
 - 이미 진행 중이거나 대기 중인 태스크와 겹치지 않는 새로운 작업만 추천
-- skillSuggestions: 동일한 작업 패턴이 3회 이상 반복된 경우에만 최대 2개 제안. 없으면 빈 배열 []. content는 에이전트가 바로 활용할 수 있는 구체적인 지침으로 작성.
+- toolSuggestions: 동일한 작업 패턴이 3회 이상 반복된 경우에만 최대 2개 제안. 없으면 빈 배열 []. content는 에이전트가 바로 활용할 수 있는 구체적인 지침으로 작성.
 - hookEvent/hookMatcher/hookScript: 기계적으로 강제할 수 있는 패턴(특정 툴 사용 전후)이면 설정하세요. PreToolUse = 툴 사용 직전 리마인더, PostToolUse = 툴 완료 후 검증, Stop = 세션 종료 전 체크. 순수 맥락/지식형 패턴이면 세 필드 모두 null. hookScript는 반드시 exit 0 (리마인더) 또는 명백한 오류 방지 시에만 exit 2 (차단). hookMatcher는 Claude Code 툴 이름 그대로 사용 (예: "Edit", "Bash", "Write").`;
 
 export function createGeminiReflectionEngine(llm: LlmClient): ReflectionEngine {
@@ -68,7 +68,7 @@ ${activeTasks || "(없음)"}
 ## 이전 컨텍스트 요약
 ${input.previousContextSummary ?? "(없음)"}
 
-위 정보를 바탕으로 프로젝트 메모리를 분석해 주세요. 특히 3회 이상 반복된 작업 패턴이 있다면 skillSuggestions에 포함해 주세요.`;
+위 정보를 바탕으로 프로젝트 메모리를 분석해 주세요. 특히 3회 이상 반복된 작업 패턴이 있다면 toolSuggestions에 포함해 주세요.`;
 
       const raw = await llm.complete({ system: SYSTEM, prompt, maxTokens: 2048 });
 
@@ -76,13 +76,13 @@ ${input.previousContextSummary ?? "(없음)"}
       try {
         parsed = JSON.parse(raw) as ReflectionOutput;
       } catch {
-        parsed = { insights: [], suggestedTasks: [], skillSuggestions: [], contextSummary: null };
+        parsed = { insights: [], suggestedTasks: [], toolSuggestions: [], contextSummary: null };
       }
 
       return {
         insights: Array.isArray(parsed.insights) ? parsed.insights : [],
         suggestedTasks: Array.isArray(parsed.suggestedTasks) ? parsed.suggestedTasks : [],
-        skillSuggestions: Array.isArray(parsed.skillSuggestions) ? parsed.skillSuggestions : [],
+        toolSuggestions: Array.isArray(parsed.toolSuggestions) ? parsed.toolSuggestions : [],
         contextSummary: typeof parsed.contextSummary === "string" ? parsed.contextSummary : null,
       };
     },

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { applySkillSuggestions } from "@/application/applySkillSuggestions";
+import { applyToolSuggestions } from "@/application/applyToolSuggestions";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
 import { refreshProjectAiSummary } from "@/application/refreshProjectAiSummary";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
@@ -8,7 +8,7 @@ import { prisma } from "@/infrastructure/db/prisma";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiContextEngine } from "@/infrastructure/llm/geminiContextEngine";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
-import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
+import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
@@ -33,9 +33,9 @@ export async function GET(req: Request) {
         engine: reflectionEngine,
       });
 
-      if (reflection.skillSuggestions.length > 0) {
-        await applySkillSuggestions(p.id, reflection.skillSuggestions, {
-          customSkills: prismaCustomSkillRepository,
+      if (reflection.toolSuggestions.length > 0) {
+        await applyToolSuggestions(p.id, reflection.toolSuggestions, {
+          tools: prismaToolRepository,
         });
       }
 

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { listCustomSkills } from "@/application/listCustomSkills";
+import { listTools } from "@/application/listTools";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
-import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
+import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 
 export async function GET(req: Request) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const result = await listCustomSkills(projectId, { customSkills: prismaCustomSkillRepository });
+  const result = await listTools(projectId, { tools: prismaToolRepository });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   return NextResponse.json({ ok: true, skills: result.value });
 }

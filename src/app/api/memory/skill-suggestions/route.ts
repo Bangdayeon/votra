@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import type { SkillSuggestion } from "@/domain/memory/memoryTierTypes";
+import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 
@@ -12,13 +12,13 @@ export async function GET(req: Request) {
   const projectId = searchParams.get("projectId");
   if (!projectId) return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
 
-  const [latestReflection, existingSkills] = await Promise.all([
+  const [latestReflection, existingTools] = await Promise.all([
     prisma.projectMemoryReflection.findFirst({
       where: { projectId },
       orderBy: { createdAt: "desc" },
-      select: { skillSuggestions: true },
+      select: { toolSuggestions: true },
     }),
-    prisma.projectCustomSkill.findMany({
+    prisma.projectTool.findMany({
       where: { projectId },
       select: { name: true },
     }),
@@ -28,8 +28,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, suggestions: [], count: 0 });
   }
 
-  const raw = (latestReflection.skillSuggestions as SkillSuggestion[]) ?? [];
-  const existingNames = new Set(existingSkills.map((s) => s.name.toLowerCase()));
+  const raw = (latestReflection.toolSuggestions as ToolSuggestion[]) ?? [];
+  const existingNames = new Set(existingTools.map((t) => t.name.toLowerCase()));
   const pending = raw.filter((s) => !existingNames.has(s.name.toLowerCase()));
 
   return NextResponse.json({ ok: true, suggestions: pending, count: pending.length });

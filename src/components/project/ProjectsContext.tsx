@@ -21,7 +21,7 @@ export type Project = {
   description?: string;
   /** 폴더 트리 — Prisma `Project.structure` JSON 의 `tree` 와 같은 형식 (현재는 undefined) */
   structure?: FolderNode[];
-  /** 로컬 폴더 절대경로 (예: "/Users/bibi/votra") — 파일 경로 표시 prefix */
+  /** 로컬 폴더 절대경로 (예: "/Users/bibi/haema") — 파일 경로 표시 prefix */
   cwd?: string;
   isOwner?: boolean;
   /** CLI 가 마지막으로 세션을 업로드한 시각 (ISO 8601) */

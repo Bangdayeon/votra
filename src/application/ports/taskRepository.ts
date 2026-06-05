@@ -3,7 +3,7 @@ import type { MemoryTierValue, TaskRecord, TaskStatusValue } from "@/domain/memo
 export type TaskCreateInput = {
   title: string;
   description?: string;
-  module?: string;
+  tool?: string;
   priority?: number;
   folderId?: string;
   projectId: string;
@@ -16,7 +16,7 @@ export type TaskUpdateInput = {
   title?: string;
   description?: string | null;
   status?: TaskStatusValue;
-  module?: string | null;
+  tool?: string | null;
   priority?: number;
   folderId?: string | null;
   keyDecisions?: string[];
@@ -27,7 +27,7 @@ export type TaskListFilter = {
   projectId: string;
   userId?: string;
   status?: TaskStatusValue;
-  module?: string;
+  tool?: string;
   limit?: number;
   offset?: number;
 };

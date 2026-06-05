@@ -62,11 +62,11 @@ import { pinTaskAction } from "@/app/actions/pinTaskAction";
 import { deleteFolderAction } from "@/app/actions/deleteFolderAction";
 import { deleteTaskAction } from "@/app/actions/deleteTask";
 import { getProjectFoldersAction } from "@/app/actions/getProjectFolders";
-import { getCustomSkillsAction } from "@/app/actions/getCustomSkillsAction";
+import { getToolsAction } from "@/app/actions/getCustomSkillsAction";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
 import { moveTaskToFolderAction } from "@/app/actions/moveTaskToFolderAction";
 import { reorderFoldersAction } from "@/app/actions/reorderFoldersAction";
-import { suggestTaskModuleAction } from "@/app/actions/suggestTaskModuleAction";
+import { suggestTaskToolAction } from "@/app/actions/suggestTaskToolAction";
 import { updateFolderAction } from "@/app/actions/updateFolderAction";
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { filterTasks } from "@/domain/memory/filterTasks";
 import { getTaskPriorityLevel } from "@/domain/memory/getTaskPriorityLevel";
 import { sortTasks } from "@/domain/memory/sortTasks";
-import type { FolderRecord, ProjectCustomSkillRecord, TaskSortBy } from "@/domain/memory/types";
+import type { FolderRecord, ProjectToolRecord, TaskSortBy } from "@/domain/memory/types";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 
@@ -279,11 +279,11 @@ function CreateTaskDialog({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [folderId, setFolderId] = useState<string | null>(defaultFolderId);
-  const [module, setModule] = useState<string | null>(null);
+  const [tool, setTool] = useState<string | null>(null);
   const [priority, setPriority] = useState(2);
   const [loading, setLoading] = useState(false);
-  const [skills, setSkills] = useState<ProjectCustomSkillRecord[]>([]);
-  const [moduleLoading, setModuleLoading] = useState(false);
+  const [tools, setTools] = useState<ProjectToolRecord[]>([]);
+  const [toolLoading, setToolLoading] = useState(false);
   const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestSeq = useRef(0);
 
@@ -292,11 +292,11 @@ function CreateTaskDialog({
     setTitle("");
     setDescription("");
     setFolderId(defaultFolderId);
-    setModule(null);
+    setTool(null);
     setPriority(2);
-    setSkills([]);
-    setModuleLoading(false);
-    getCustomSkillsAction(projectId).then(setSkills).catch(() => {});
+    setTools([]);
+    setToolLoading(false);
+    getToolsAction(projectId).then(setTools).catch(() => {});
   }, [open, defaultFolderId, projectId]);
 
   useEffect(() => {
@@ -304,14 +304,14 @@ function CreateTaskDialog({
     if (!title.trim()) return;
     const seq = ++suggestSeq.current;
     suggestDebounce.current = setTimeout(() => {
-      setModuleLoading(true);
-      suggestTaskModuleAction(projectId, title.trim(), description)
+      setToolLoading(true);
+      suggestTaskToolAction(projectId, title.trim(), description)
         .then((suggested) => {
           if (suggestSeq.current !== seq) return;
-          if (suggested) setModule(suggested);
+          if (suggested) setTool(suggested);
         })
         .catch(() => {})
-        .finally(() => { if (suggestSeq.current === seq) setModuleLoading(false); });
+        .finally(() => { if (suggestSeq.current === seq) setToolLoading(false); });
     }, 1500);
     return () => { if (suggestDebounce.current) clearTimeout(suggestDebounce.current); };
   }, [title, description, projectId]);
@@ -324,7 +324,7 @@ function CreateTaskDialog({
       const input: CreateTaskInput = {
         title: title.trim(),
         description: description.trim() || undefined,
-        module: module ?? undefined,
+        tool: tool ?? undefined,
         priority,
         folderId,
       };
@@ -339,7 +339,7 @@ function CreateTaskDialog({
     }
   }
 
-  const activeSkills = skills.filter((s) => s.isEnabled);
+  const activeTools = tools.filter((t) => t.isEnabled);
   const currentFolderName = folderId
     ? (folders.find((f) => f.id === folderId)?.name ?? "알 수 없음")
     : "미분류";
@@ -434,11 +434,11 @@ function CreateTaskDialog({
               </div>
             </div>
 
-            {/* 모듈 */}
-            {activeSkills.length > 0 && (
+            {/* 툴 */}
+            {activeTools.length > 0 && (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">모듈</label>
+                  <label className="text-xs font-medium text-muted-foreground">툴</label>
                   <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -447,11 +447,11 @@ function CreateTaskDialog({
                         </span>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-[200px] text-xs">
-                        태스크가 속한 기능 영역이에요. 프로젝트에 등록된 스킬 중 하나를 선택하면 태스크를 모듈별로 분류할 수 있어요.
+                        태스크가 속한 기능 영역이에요. 프로젝트에 등록된 툴 중 하나를 선택하면 태스크를 툴별로 분류할 수 있어요.
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  {moduleLoading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+                  {toolLoading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -459,29 +459,29 @@ function CreateTaskDialog({
                       type="button"
                       className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                     >
-                      <span className={module ? "text-foreground" : "text-muted-foreground"}>
-                        {module
-                          ? (activeSkills.find((s) => s.slug === module)?.name ?? module)
-                          : "모듈 선택 (선택)"}
+                      <span className={tool ? "text-foreground" : "text-muted-foreground"}>
+                        {tool
+                          ? (activeTools.find((t) => t.slug === tool)?.name ?? tool)
+                          : "툴 선택 (선택)"}
                       </span>
                       <ChevronDown className="size-3.5 text-muted-foreground" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
                     <DropdownMenuItem
-                      onClick={() => setModule(null)}
-                      className={cn("gap-2", !module && "font-medium")}
+                      onClick={() => setTool(null)}
+                      className={cn("gap-2", !tool && "font-medium")}
                     >
                       선택 안 함
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    {activeSkills.map((s) => (
+                    {activeTools.map((t) => (
                       <DropdownMenuItem
-                        key={s.slug}
-                        onClick={() => setModule(s.slug)}
-                        className={cn("gap-2", module === s.slug && "font-medium")}
+                        key={t.slug}
+                        onClick={() => setTool(t.slug)}
+                        className={cn("gap-2", tool === t.slug && "font-medium")}
                       >
-                        {s.name}
+                        {t.name}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -1102,9 +1102,9 @@ function TaskRow({
               {PRIORITY_LABELS[priorityLevel as 1 | 2 | 3 | 4]}
             </span>
           )}
-          {task.module && (
+          {task.tool && (
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              {task.module}
+              {task.tool}
             </span>
           )}
         </div>

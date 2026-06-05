@@ -9,7 +9,7 @@ export type ReflectionSuggestedTask = {
   priority: "high" | "medium" | "low";
 };
 
-export type SkillSuggestion = {
+export type ToolSuggestion = {
   name: string;
   description: string;
   folder: string;
@@ -26,7 +26,7 @@ export type MemoryReflectionRecord = {
   projectId: string;
   insights: ReflectionInsight[];
   suggestedTasks: ReflectionSuggestedTask[];
-  skillSuggestions: SkillSuggestion[];
+  toolSuggestions: ToolSuggestion[];
   contextSummary: string | null;
   analyzedTaskCount: number;
   triggerReason: string;

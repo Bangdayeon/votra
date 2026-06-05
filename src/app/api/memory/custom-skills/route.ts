@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { createCustomSkill } from "@/application/createCustomSkill";
-import { listCustomSkills } from "@/application/listCustomSkills";
+import { createTool } from "@/application/createTool";
+import { listTools } from "@/application/listTools";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
-import { prismaCustomSkillRepository } from "@/infrastructure/repositories/prismaCustomSkillRepository";
+import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 
+// backward compat: use /api/memory/tools instead
 export async function GET(req: Request) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
   if (!user) return NextResponse.json({ ok: false, error: "인증이 필요해요." }, { status: 401 });
@@ -13,7 +14,7 @@ export async function GET(req: Request) {
   const projectId = searchParams.get("projectId");
   if (!projectId) return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
 
-  const result = await listCustomSkills(projectId, { customSkills: prismaCustomSkillRepository });
+  const result = await listTools(projectId, { tools: prismaToolRepository });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
 
   return NextResponse.json({ ok: true, skills: result.value });
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId, name, description, folder, content가 필요해요." }, { status: 400 });
   }
 
-  const result = await createCustomSkill(
+  const result = await createTool(
     {
       projectId: body.projectId as string,
       name: body.name as string,
@@ -38,11 +39,11 @@ export async function POST(req: Request) {
       patternSummary: typeof body.patternSummary === "string" ? body.patternSummary : undefined,
       contextHint: typeof body.contextHint === "string" ? body.contextHint : undefined,
     },
-    { customSkills: prismaCustomSkillRepository },
+    { tools: prismaToolRepository },
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
 
-  return NextResponse.json({ ok: true, skill: result.value });
+  return NextResponse.json({ ok: true, skill: result.value, tool: result.value });
 }
 
 export async function PATCH(req: Request) {
@@ -59,6 +60,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ ok: false, error: "isEnabled 값이 필요해요." }, { status: 400 });
   }
 
-  await prismaCustomSkillRepository.setEnabled(projectId, slug, body.isEnabled as boolean);
+  await prismaToolRepository.setEnabled(projectId, slug, body.isEnabled as boolean);
   return NextResponse.json({ ok: true, slug, isEnabled: body.isEnabled });
 }

@@ -24,7 +24,7 @@ function makeTask(overrides: Partial<TaskRecord> & { id: string }): TaskRecord {
     title: "태스크",
     description: null,
     status: "PENDING",
-    module: null,
+    tool: null,
     priority: 0,
     sortOrder: 0,
     keyDecisions: [],

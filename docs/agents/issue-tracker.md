@@ -5,7 +5,7 @@ This repository uses **GitHub Issues** as the source of truth for issue tracking
 ## Location
 
 - Tracker: GitHub Issues on the repository remote
-- Repo: `Bangdayeon/votra`
+- Repo: `Bangdayeon/haema`
 - CLI: `gh`
 
 ## Operational rules for agent skills

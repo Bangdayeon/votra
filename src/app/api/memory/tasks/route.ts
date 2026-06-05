@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     {
       title: body.title,
       description: typeof body.description === "string" ? body.description : undefined,
-      module: typeof body.module === "string" ? body.module : undefined,
+      tool: typeof body.tool === "string" ? body.tool : undefined,
       priority: typeof body.priority === "number" ? body.priority : undefined,
       folderId: typeof body.folderId === "string" ? body.folderId : undefined,
       projectId: body.projectId,
@@ -64,10 +64,10 @@ export async function GET(req: Request) {
       ? (statusParam as TaskStatusValue)
       : undefined;
 
-  const moduleFilter = searchParams.get("module") ?? undefined;
+  const toolFilter = searchParams.get("tool") ?? undefined;
 
   const result = await listTasks(
-    { projectId, userId: user.id, status, module: moduleFilter },
+    { projectId, userId: user.id, status, tool: toolFilter },
     { tasks: prismaTaskRepository },
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
