@@ -2,12 +2,15 @@
 
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
 import { createProposalTasks } from "@/application/createProposalTasks";
+import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
 import type { MemoryReflectionRecord } from "@/domain/memory/memoryTierTypes";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
+import { createGeminiContextEngine } from "@/infrastructure/llm/geminiContextEngine";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
+import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
@@ -37,6 +40,12 @@ export async function triggerMemoryReflectionAction(
       tasks: prismaTaskRepository,
     }).catch(() => {});
   }
+
+  await learnAndUpdateContext(projectId, {
+    tasks: prismaTaskRepository,
+    context: prismaMemoryContextRepository,
+    engine: createGeminiContextEngine(geminiLlmClient),
+  }).catch(() => {});
 
   return reflection;
 }
