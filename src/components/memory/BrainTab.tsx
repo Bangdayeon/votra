@@ -2,6 +2,7 @@
 
 import { BookOpen, ChevronDown, ChevronUp, Loader2, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { getMemoryContextAction, type MemoryContextRecord } from "@/app/actions/getMemoryContextAction";
 import { getMemoryReflectionsAction } from "@/app/actions/getMemoryReflectionsAction";
@@ -81,8 +82,8 @@ function ContextSection({ projectId }: { projectId: string }) {
       await triggerMemoryReflectionAction(projectId);
       const updated = await getMemoryContextAction(projectId);
       setCtx(updated);
-    } catch {
-      // 실패 시 조용히 무시
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "분석에 실패했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
       setTriggering(false);
     }
@@ -231,8 +232,8 @@ function InsightsSection({ projectId }: { projectId: string }) {
       const result = await triggerMemoryReflectionAction(projectId);
       setReflections((prev) => [result, ...(prev ?? [])]);
       setExpanded(true);
-    } catch {
-      // 분석 실패는 조용히 무시
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "분석에 실패했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
       setTriggering(false);
     }
