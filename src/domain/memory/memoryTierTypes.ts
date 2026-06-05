@@ -21,12 +21,19 @@ export type ToolSuggestion = {
   hookScript?: string | null;
 };
 
+export type ToolEnrichment = {
+  targetToolName: string;
+  addToContent: string;
+  reason: string;
+};
+
 export type MemoryReflectionRecord = {
   id: string;
   projectId: string;
   insights: ReflectionInsight[];
   suggestedTasks: ReflectionSuggestedTask[];
   toolSuggestions: ToolSuggestion[];
+  toolEnrichments: ToolEnrichment[];
   contextSummary: string | null;
   analyzedTaskCount: number;
   triggerReason: string;

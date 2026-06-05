@@ -1,10 +1,12 @@
 import type { MemoryReflectionRepository } from "@/application/ports/memoryReflectionRepository";
 import type { TaskRepository } from "@/application/ports/taskRepository";
-import type { MemoryReflectionRecord, ReflectionInsight, ReflectionSuggestedTask, ToolSuggestion } from "@/domain/memory/memoryTierTypes";
+import type { ToolRepository } from "@/application/ports/toolRepository";
+import type { MemoryReflectionRecord, ReflectionInsight, ReflectionSuggestedTask, ToolEnrichment, ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 
 export type ReflectionInput = {
   tasks: Array<{ seq: number; title: string; priority: number; keyDecisions: string[]; outcome: string | null }>;
   activeTasks: Array<{ seq: number; title: string }>;
+  existingTools: Array<{ name: string; description: string; folder: string; content: string }>;
   previousContextSummary: string | null;
 };
 
@@ -12,6 +14,7 @@ export type ReflectionOutput = {
   insights: ReflectionInsight[];
   suggestedTasks: ReflectionSuggestedTask[];
   toolSuggestions: ToolSuggestion[];
+  toolEnrichments: ToolEnrichment[];
   contextSummary: string | null;
 };
 
@@ -25,14 +28,16 @@ export async function runMemoryReflection(
   deps: {
     tasks: TaskRepository;
     reflections: MemoryReflectionRepository;
+    tools: ToolRepository;
     engine: ReflectionEngine;
   },
 ): Promise<MemoryReflectionRecord> {
-  const [doneTasks, longTermTasks, activeTasks, latest] = await Promise.all([
+  const [doneTasks, longTermTasks, activeTasks, latest, allTools] = await Promise.all([
     deps.tasks.listByFilter({ projectId, status: "DONE", limit: 50 }),
     deps.tasks.listByMemoryTier({ projectId, tier: "LONG_TERM", limit: 20 }),
     deps.tasks.listByFilter({ projectId, limit: 20 }),
     deps.reflections.getLatest(projectId),
+    deps.tools.listByProject(projectId),
   ]);
 
   // 중복 제거: LONG_TERM 중 DONE 상태인 것은 doneTasks에 이미 포함될 수 있음
@@ -47,6 +52,7 @@ export async function runMemoryReflection(
   const output = await deps.engine.analyze({
     tasks: allReferenceTasks,
     activeTasks: activeNonDone.map((t) => ({ seq: t.seq, title: t.title })),
+    existingTools: allTools.map((t) => ({ name: t.name, description: t.description, folder: t.folder, content: t.content })),
     previousContextSummary: latest?.contextSummary ?? null,
   });
 
@@ -55,6 +61,7 @@ export async function runMemoryReflection(
     insights: output.insights,
     suggestedTasks: output.suggestedTasks,
     toolSuggestions: output.toolSuggestions,
+    toolEnrichments: output.toolEnrichments,
     contextSummary: output.contextSummary,
     analyzedTaskCount: allReferenceTasks.length,
     triggerReason,

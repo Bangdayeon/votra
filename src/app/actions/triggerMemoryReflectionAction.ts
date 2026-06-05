@@ -1,5 +1,6 @@
 "use server";
 
+import { applyToolEnrichments } from "@/application/applyToolEnrichments";
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
 import { createProposalTasks } from "@/application/createProposalTasks";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
@@ -26,11 +27,18 @@ export async function triggerMemoryReflectionAction(
   const reflection = await runMemoryReflection(projectId, "threshold", {
     tasks: prismaTaskRepository,
     reflections: prismaMemoryReflectionRepository,
+    tools: prismaToolRepository,
     engine,
   });
 
   if (reflection.toolSuggestions.length > 0) {
     await applyToolSuggestions(projectId, reflection.toolSuggestions, {
+      tools: prismaToolRepository,
+    }).catch(() => {});
+  }
+
+  if (reflection.toolEnrichments.length > 0) {
+    await applyToolEnrichments(projectId, reflection.toolEnrichments, {
       tools: prismaToolRepository,
     }).catch(() => {});
   }

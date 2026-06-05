@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { applyToolEnrichments } from "@/application/applyToolEnrichments";
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
 import { createProposalTasks } from "@/application/createProposalTasks";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
@@ -36,11 +37,18 @@ export async function GET(req: Request) {
       const reflection = await runMemoryReflection(p.id, "cron", {
         tasks: prismaTaskRepository,
         reflections: prismaMemoryReflectionRepository,
+        tools: prismaToolRepository,
         engine: reflectionEngine,
       });
 
       if (reflection.toolSuggestions.length > 0) {
         await applyToolSuggestions(p.id, reflection.toolSuggestions, {
+          tools: prismaToolRepository,
+        });
+      }
+
+      if (reflection.toolEnrichments.length > 0) {
+        await applyToolEnrichments(p.id, reflection.toolEnrichments, {
           tools: prismaToolRepository,
         });
       }

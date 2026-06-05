@@ -8,6 +8,7 @@ import type {
   MemoryReflectionRecord,
   ReflectionInsight,
   ReflectionSuggestedTask,
+  ToolEnrichment,
   ToolSuggestion,
 } from "@/domain/memory/memoryTierTypes";
 import { prisma } from "@/infrastructure/db/prisma";
@@ -18,6 +19,7 @@ function toRecord(row: {
   insights: unknown;
   suggestedTasks: unknown;
   toolSuggestions: unknown;
+  toolEnrichments: unknown;
   contextSummary: string | null;
   analyzedTaskCount: number;
   triggerReason: string;
@@ -29,6 +31,7 @@ function toRecord(row: {
     insights: (row.insights as ReflectionInsight[]) ?? [],
     suggestedTasks: (row.suggestedTasks as ReflectionSuggestedTask[]) ?? [],
     toolSuggestions: (row.toolSuggestions as ToolSuggestion[]) ?? [],
+    toolEnrichments: (row.toolEnrichments as ToolEnrichment[]) ?? [],
     contextSummary: row.contextSummary,
     analyzedTaskCount: row.analyzedTaskCount,
     triggerReason: row.triggerReason,
@@ -44,6 +47,7 @@ export const prismaMemoryReflectionRepository: MemoryReflectionRepository = {
         insights: input.insights,
         suggestedTasks: input.suggestedTasks,
         toolSuggestions: input.toolSuggestions,
+        toolEnrichments: input.toolEnrichments,
         contextSummary: input.contextSummary,
         analyzedTaskCount: input.analyzedTaskCount,
         triggerReason: input.triggerReason,

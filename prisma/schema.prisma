@@ -384,6 +384,8 @@ model ProjectMemoryReflection {
   contextSummary String? @db.Text
   /// AI가 제안한 커스텀 툴 목록. [{name, description, folder, content, patternSummary}]
   toolSuggestions Json @default("[]")
+  /// AI가 기존 툴에 보강을 제안한 목록. [{targetToolName, addToContent, reason}]
+  toolEnrichments Json @default("[]")
   /// 분석에 사용된 태스크 수
   analyzedTaskCount Int @default(0)
   /// 트리거 원인: "cron" | "threshold"

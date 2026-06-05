@@ -28,6 +28,13 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
       "hookScript": "#!/bin/bash\necho '⚠️ SOP: [규칙 설명]'\nexit 0"
     }
   ],
+  "toolEnrichments": [
+    {
+      "targetToolName": "보강할 기존 툴의 정확한 이름",
+      "addToContent": "기존 content 끝에 추가할 마크다운 섹션 (300자 이내)",
+      "reason": "왜 이 내용이 기존 툴에 빠져 있었는지 한 문장"
+    }
+  ],
   "contextSummary": "이 프로젝트의 현재 상태와 핵심 맥락을 2-3문장으로 요약"
 }
 
@@ -37,7 +44,12 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
 - risk: 주의가 필요한 기술적 부채나 위험 요소
 - 인사이트는 3-5개, 추천 태스크는 1-3개로 제한
 - 이미 진행 중이거나 대기 중인 태스크와 겹치지 않는 새로운 작업만 추천
-- toolSuggestions: 동일한 작업 패턴이 3회 이상 반복된 경우에만 최대 2개 제안. 없으면 빈 배열 []. content는 에이전트가 바로 활용할 수 있는 구체적인 지침으로 작성.
+- toolSuggestions vs toolEnrichments 결정 규칙:
+  1. 패턴이 3회 이상 반복됐을 때만 고려.
+  2. 기존 툴(아래 목록)의 domain/folder와 겹치면 → toolSuggestions 금지. 대신 기존 툴 content에 없는 내용이 있으면 toolEnrichments로 보강.
+  3. 기존 툴로 전혀 커버 안 되는 완전히 새 도메인일 때만 toolSuggestions에 추가 (최대 1개).
+  4. 기존 툴 content를 먼저 확인하고 이미 언급된 내용이면 toolEnrichments도 생략.
+  5. 확실하지 않으면 둘 다 빈 배열 [].
 - hookEvent/hookMatcher/hookScript: 기계적으로 강제할 수 있는 패턴(특정 툴 사용 전후)이면 설정하세요. PreToolUse = 툴 사용 직전 리마인더, PostToolUse = 툴 완료 후 검증, Stop = 세션 종료 전 체크. 순수 맥락/지식형 패턴이면 세 필드 모두 null. hookScript는 반드시 exit 0 (리마인더) 또는 명백한 오류 방지 시에만 exit 2 (차단). hookMatcher는 Claude Code 툴 이름 그대로 사용 (예: "Edit", "Bash", "Write").`;
 
 export function createGeminiReflectionEngine(llm: LlmClient): ReflectionEngine {
@@ -59,16 +71,27 @@ export function createGeminiReflectionEngine(llm: LlmClient): ReflectionEngine {
         .map((t) => `- #${t.seq} ${t.title}`)
         .join("\n");
 
+      const existingToolsList = input.existingTools.length > 0
+        ? input.existingTools.map((t) =>
+            `### ${t.name} (${t.folder})\n설명: ${t.description}\n현재 content 요약: ${t.content.slice(0, 300)}${t.content.length > 300 ? "..." : ""}`
+          ).join("\n\n")
+        : "(없음)";
+
       const prompt = `## 완료된 태스크 (${input.tasks.length}개)
 ${taskList}
 
 ## 현재 진행/대기 중인 태스크
 ${activeTasks || "(없음)"}
 
+## 기존 툴 목록 (중복 생성 금지 — 보강이 필요하면 toolEnrichments 사용)
+${existingToolsList}
+
 ## 이전 컨텍스트 요약
 ${input.previousContextSummary ?? "(없음)"}
 
-위 정보를 바탕으로 프로젝트 메모리를 분석해 주세요. 특히 3회 이상 반복된 작업 패턴이 있다면 toolSuggestions에 포함해 주세요.`;
+위 정보를 바탕으로 프로젝트 메모리를 분석해 주세요.
+- 기존 툴 domain과 겹치는 패턴은 toolSuggestions 금지. 기존 툴에 빠진 내용이 있으면 toolEnrichments로 보강하세요.
+- 완전히 새 도메인일 때만 toolSuggestions에 최대 1개 추가하세요.`;
 
       const raw = await llm.complete({ system: SYSTEM, prompt, maxTokens: 2048 });
 
@@ -76,13 +99,14 @@ ${input.previousContextSummary ?? "(없음)"}
       try {
         parsed = JSON.parse(raw) as ReflectionOutput;
       } catch {
-        parsed = { insights: [], suggestedTasks: [], toolSuggestions: [], contextSummary: null };
+        parsed = { insights: [], suggestedTasks: [], toolSuggestions: [], toolEnrichments: [], contextSummary: null };
       }
 
       return {
         insights: Array.isArray(parsed.insights) ? parsed.insights : [],
         suggestedTasks: Array.isArray(parsed.suggestedTasks) ? parsed.suggestedTasks : [],
         toolSuggestions: Array.isArray(parsed.toolSuggestions) ? parsed.toolSuggestions : [],
+        toolEnrichments: Array.isArray(parsed.toolEnrichments) ? parsed.toolEnrichments : [],
         contextSummary: typeof parsed.contextSummary === "string" ? parsed.contextSummary : null,
       };
     },
