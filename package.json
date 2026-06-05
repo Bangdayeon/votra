@@ -18,7 +18,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "seed:skills": "npx tsx scripts/seed-skills.ts"
+    "seed:skills": "npx tsx scripts/seed-skills.ts",
+    "sync:skills": "npx tsx scripts/sync-default-skills.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
