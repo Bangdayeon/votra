@@ -6,6 +6,7 @@ export type CreateToolInput = {
   description: string;
   folder: string;
   content: string;
+  isBuiltIn?: boolean;
   patternSummary?: string;
   contextHint?: string;
   hookEvent?: string;
@@ -20,6 +21,7 @@ export type UpsertToolInput = {
   description: string;
   folder: string;
   content: string;
+  isBuiltIn?: boolean;
   patternSummary?: string;
   contextHint?: string;
   hookEvent?: string;

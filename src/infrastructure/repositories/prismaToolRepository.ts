@@ -26,6 +26,7 @@ function toRecord(row: {
   hookMatcher: string | null;
   hookScript: string | null;
   isEnabled: boolean;
+  isBuiltIn: boolean;
   projectId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -45,6 +46,7 @@ export const prismaToolRepository: ToolRepository = {
         description: input.description,
         folder: input.folder,
         content: input.content,
+        isBuiltIn: input.isBuiltIn ?? false,
         patternSummary: input.patternSummary ?? null,
         contextHint: input.contextHint ?? null,
         hookEvent: input.hookEvent ?? null,
@@ -55,6 +57,7 @@ export const prismaToolRepository: ToolRepository = {
         description: input.description,
         folder: input.folder,
         content: input.content,
+        isBuiltIn: input.isBuiltIn ?? false,
         patternSummary: input.patternSummary ?? null,
         contextHint: input.contextHint ?? null,
         hookEvent: input.hookEvent ?? null,
@@ -85,6 +88,7 @@ export const prismaToolRepository: ToolRepository = {
         description: input.description,
         folder: input.folder,
         content: input.content,
+        isBuiltIn: input.isBuiltIn ?? false,
         patternSummary: input.patternSummary ?? null,
         contextHint: input.contextHint ?? null,
         hookEvent: input.hookEvent ?? null,

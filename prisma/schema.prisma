@@ -422,6 +422,7 @@ model ProjectTool {
   /// 훅 실행 시 실행될 bash 스크립트 본문
   hookScript     String?  @db.Text
   isEnabled      Boolean  @default(true)
+  isBuiltIn      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

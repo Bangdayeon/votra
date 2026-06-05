@@ -13,6 +13,7 @@ export async function seedDefaultTools(
       description: tool.description,
       folder: tool.folder,
       content: tool.content,
+      isBuiltIn: true,
       contextHint: tool.contextHint,
     });
   }

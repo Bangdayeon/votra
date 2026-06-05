@@ -70,6 +70,7 @@ export type ProjectToolRecord = {
   hookMatcher: string | null;
   hookScript: string | null;
   isEnabled: boolean;
+  isBuiltIn: boolean;
   projectId: string;
   createdAt: Date;
   updatedAt: Date;

@@ -8,6 +8,7 @@ export type CreateCustomSkillInput = {
   description: string;
   folder: string;
   content: string;
+  isBuiltIn?: boolean;
   patternSummary?: string;
   contextHint?: string;
   hookEvent?: string;
@@ -22,6 +23,7 @@ export type UpsertCustomSkillInput = {
   description: string;
   folder: string;
   content: string;
+  isBuiltIn?: boolean;
   patternSummary?: string;
   contextHint?: string;
   hookEvent?: string;

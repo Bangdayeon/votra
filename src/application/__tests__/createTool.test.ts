@@ -18,6 +18,7 @@ function makeTool(overrides?: Partial<ProjectToolRecord>): ProjectToolRecord {
     hookMatcher: null,
     hookScript: null,
     isEnabled: true,
+    isBuiltIn: false,
     projectId: "proj-1",
     createdAt: new Date(),
     updatedAt: new Date(),

@@ -13,6 +13,7 @@ export async function seedDefaultSkills(
       description: skill.description,
       folder: skill.folder,
       content: skill.content,
+      isBuiltIn: true,
       contextHint: skill.contextHint,
     });
   }

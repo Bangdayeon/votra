@@ -1,73 +1,26 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ChevronUp, Loader2 } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronRight, ChevronUp, Loader2, Plus, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { getCustomSkillsAction, type ProjectCustomSkillRecord } from "@/app/actions/getCustomSkillsAction";
-import { toggleCustomSkillAction } from "@/app/actions/toggleCustomSkillAction";
+import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getCustomSkillsAction";
+import { createSkillAction } from "@/app/actions/createSkillAction";
 import type { Project } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
-
-// ── Toggle ────────────────────────────────────────────────────────────────────
-
-function Toggle({
-  checked,
-  onChange,
-  disabled,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      disabled={disabled}
-      className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "bg-primary" : "bg-muted-foreground/30",
-      )}
-    >
-      <span
-        className={cn(
-          "pointer-events-none inline-block size-3.5 rounded-full bg-white shadow-sm transition-transform",
-          checked ? "translate-x-[18px]" : "translate-x-[3px]",
-        )}
-      />
-    </button>
-  );
-}
+import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 
 // ── SkillRow ──────────────────────────────────────────────────────────────────
 
 function SkillRow({
   skill,
-  projectId,
-  onToggled,
+  badgeColor,
 }: {
-  skill: ProjectCustomSkillRecord;
-  projectId: string;
-  onToggled: (slug: string, isEnabled: boolean) => void;
+  skill: ProjectToolRecord;
+  badgeColor: string;
 }) {
-  const [pending, setPending] = useState(false);
   const [expanded, setExpanded] = useState(false);
-
-  async function handleToggle(isEnabled: boolean) {
-    setPending(true);
-    onToggled(skill.slug, isEnabled); // optimistic
-    try {
-      await toggleCustomSkillAction(projectId, skill.slug, isEnabled);
-    } catch (err) {
-      onToggled(skill.slug, !isEnabled); // rollback
-      toast.error(err instanceof Error ? err.message : "스킬 설정 변경에 실패했어요.");
-    } finally {
-      setPending(false);
-    }
-  }
 
   return (
     <div className="rounded-lg border border-border bg-card">
@@ -76,11 +29,14 @@ function SkillRow({
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-medium">{skill.name}</p>
-            {skill.patternSummary && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                AI 추천
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", badgeColor)}>
+              {skill.slug}
+            </span>
+            {skill.isBuiltIn && (
+              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                기본
               </span>
             )}
           </div>
@@ -90,17 +46,8 @@ function SkillRow({
               {skill.contextHint}
             </p>
           )}
-          {expanded && skill.patternSummary && (
-            <p className="mt-1 text-xs text-amber-600/80 dark:text-amber-500/80">
-              패턴: {skill.patternSummary}
-            </p>
-          )}
         </div>
-        <div className="flex shrink-0 items-center gap-2 pt-0.5">
-          {pending && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
-          <div onClick={(e) => e.stopPropagation()}>
-            <Toggle checked={skill.isEnabled} onChange={handleToggle} disabled={pending} />
-          </div>
+        <div className="flex shrink-0 items-center gap-1 pt-0.5">
           {expanded
             ? <ChevronUp className="size-3.5 text-muted-foreground" />
             : <ChevronDown className="size-3.5 text-muted-foreground" />
@@ -124,16 +71,13 @@ function SkillRow({
 function FolderSection({
   folder,
   skills,
-  projectId,
-  onToggled,
+  colorMap,
 }: {
   folder: string;
-  skills: ProjectCustomSkillRecord[];
-  projectId: string;
-  onToggled: (slug: string, isEnabled: boolean) => void;
+  skills: ProjectToolRecord[];
+  colorMap: Map<string, string>;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const enabledCount = skills.filter((s) => s.isEnabled).length;
 
   return (
     <div className="flex flex-col gap-2">
@@ -146,9 +90,7 @@ function FolderSection({
           : <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
         }
         <span className="text-sm font-semibold">{folder}</span>
-        <span className="text-xs text-muted-foreground">
-          {enabledCount}/{skills.length} 활성화
-        </span>
+        <span className="text-xs text-muted-foreground">{skills.length}개</span>
       </button>
 
       {!collapsed && (
@@ -157,8 +99,7 @@ function FolderSection({
             <SkillRow
               key={skill.slug}
               skill={skill}
-              projectId={projectId}
-              onToggled={onToggled}
+              badgeColor={colorMap.get(skill.slug) ?? BADGE_COLORS[0]}
             />
           ))}
         </div>
@@ -167,16 +108,144 @@ function FolderSection({
   );
 }
 
+// ── AddSkillForm ──────────────────────────────────────────────────────────────
+
+function AddSkillForm({
+  projectId,
+  existingFolders,
+  onAdded,
+  onCancel,
+}: {
+  projectId: string;
+  existingFolders: string[];
+  onAdded: (skill: ProjectToolRecord) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [folder, setFolder] = useState("기타");
+  const [content, setContent] = useState("");
+  const [pending, setPending] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    nameRef.current?.focus();
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !content.trim()) return;
+    setPending(true);
+    try {
+      const result = await createSkillAction(projectId, {
+        name: name.trim(),
+        description: description.trim(),
+        folder: folder.trim() || "기타",
+        content: content.trim(),
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      onAdded(result.value);
+      toast.success("스킬이 추가됐어요.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "스킬 추가에 실패했어요.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card px-4 py-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">새 스킬 추가</span>
+        <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+          <X className="size-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-muted-foreground">이름 *</label>
+          <input
+            ref={nameRef}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Backend Engineer"
+            required
+            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-muted-foreground">폴더</label>
+          <input
+            list="skill-folders"
+            value={folder}
+            onChange={(e) => setFolder(e.target.value)}
+            placeholder="개발"
+            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+          />
+          <datalist id="skill-folders">
+            {existingFolders.map((f) => <option key={f} value={f} />)}
+          </datalist>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-muted-foreground">설명</label>
+        <input
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="이 스킬이 하는 일을 간단히 설명해요"
+          className="rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-muted-foreground">내용 *</label>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="에이전트에게 전달할 지침을 마크다운으로 작성하세요"
+          required
+          rows={6}
+          className="rounded-md border border-border bg-background px-3 py-1.5 font-mono text-xs leading-relaxed outline-none focus:ring-1 focus:ring-ring resize-y"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          취소
+        </button>
+        <button
+          type="submit"
+          disabled={pending || !name.trim() || !content.trim()}
+          className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        >
+          {pending && <Loader2 className="size-3.5 animate-spin" />}
+          스킬 추가
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ── SkillsTab ─────────────────────────────────────────────────────────────────
 
 export function SkillsTab({ selected }: { selected: Project }) {
-  const [skills, setSkills] = useState<ProjectCustomSkillRecord[]>([]);
+  const [skills, setSkills] = useState<ProjectToolRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getCustomSkillsAction(selected.id)
+    getToolsAction(selected.id)
       .then((data) => {
         if (!cancelled) setSkills(data);
       })
@@ -187,12 +256,13 @@ export function SkillsTab({ selected }: { selected: Project }) {
     return () => { cancelled = true; };
   }, [selected.id]);
 
-  function handleToggled(slug: string, isEnabled: boolean) {
-    setSkills((prev) => prev.map((s) => s.slug === slug ? { ...s, isEnabled } : s));
+  function handleAdded(skill: ProjectToolRecord) {
+    setSkills((prev) => [...prev, skill]);
+    setShowAdd(false);
   }
 
   const grouped = useMemo(() => {
-    const map = new Map<string, ProjectCustomSkillRecord[]>();
+    const map = new Map<string, ProjectToolRecord[]>();
     for (const skill of skills) {
       const bucket = map.get(skill.folder) ?? [];
       bucket.push(skill);
@@ -203,14 +273,31 @@ export function SkillsTab({ selected }: { selected: Project }) {
 
   const orderedFolders = useMemo(() => [...grouped.keys()].sort(), [grouped]);
 
+  const colorMap = useMemo(() => buildToolColorMap(skills.map((s) => s.slug)), [skills]);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
+        <BookOpen className="size-4 shrink-0 text-muted-foreground" />
         <h2 className="text-base font-semibold">스킬</h2>
-        <span className="text-xs text-muted-foreground">
-          AI 도구에서 <code className="rounded bg-muted px-1 py-0.5">load_skill</code>로 불러올 수 있어요.
-        </span>
+        <span className="text-xs text-muted-foreground">에이전트가 태스크 작업 시 로드하는 역할 지침이에요.</span>
+        <button
+          onClick={() => setShowAdd((v) => !v)}
+          className="ml-auto flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Plus className="size-3.5" />
+          스킬 추가
+        </button>
       </div>
+
+      {showAdd && (
+        <AddSkillForm
+          projectId={selected.id}
+          existingFolders={orderedFolders}
+          onAdded={handleAdded}
+          onCancel={() => setShowAdd(false)}
+        />
+      )}
 
       {loading ? (
         <div className="flex flex-col gap-6">
@@ -222,7 +309,7 @@ export function SkillsTab({ selected }: { selected: Project }) {
               </div>
               <div className="flex flex-col gap-2">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-[68px] w-full rounded-lg" />
+                  <Skeleton key={i} className="h-[60px] w-full rounded-lg" />
                 ))}
               </div>
             </div>
@@ -239,8 +326,7 @@ export function SkillsTab({ selected }: { selected: Project }) {
               key={folder}
               folder={folder}
               skills={grouped.get(folder) ?? []}
-              projectId={selected.id}
-              onToggled={handleToggled}
+              colorMap={colorMap}
             />
           ))}
         </div>
