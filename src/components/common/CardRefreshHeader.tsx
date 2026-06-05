@@ -2,8 +2,8 @@
 
 import { Loader2, RefreshCw } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 type Props = {
   title: string;
@@ -24,30 +24,27 @@ export function CardRefreshHeader({
   const busy = Boolean(loading || refreshing);
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between gap-1">
-      <div className="flex w-full items-center justify-between gap-3 lg:w-auto lg:justify-start">
-        <h3 className="text-xl font-semibold">{title}</h3>
-        {onRefresh && (
-          <Button
-            type="button"
-            size="xs"
-            variant="outline"
-            disabled={busy}
-            onClick={onRefresh}
-          >
-            {refreshing ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <RefreshCw className="size-4" />
-            )}
-          </Button>
-        )}
-      </div>
+      <h3 className="text-xl font-semibold">{title}</h3>
       {loading ? (
         <Skeleton className="self-end h-3 w-28 lg:self-auto" />
       ) : (
-        <p className="self-end text-xs text-muted-foreground lg:self-auto">
+        <button
+          type="button"
+          disabled={!onRefresh || busy}
+          onClick={onRefresh}
+          className={cn(
+            "self-end lg:self-auto flex items-center gap-1 text-xs text-muted-foreground",
+            onRefresh && !busy && "cursor-pointer hover:text-foreground transition-colors",
+            (!onRefresh || busy) && "cursor-default",
+          )}
+        >
+          {onRefresh && (
+            refreshing
+              ? <Loader2 className="size-3 animate-spin" />
+              : <RefreshCw className="size-3" />
+          )}
           마지막 업데이트: {formatRefreshedAt(refreshedAt)}
-        </p>
+        </button>
       )}
     </div>
   );
