@@ -38,18 +38,23 @@ const INSIGHT_TYPE_STYLE: Record<string, string> = {
 
 function Section({
   label,
+  description,
   meta,
   children,
 }: {
   label: string;
+  description: string;
   meta?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-        {meta && <span className="text-[11px] text-muted-foreground">{meta}</span>}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+          <p className="text-xs text-muted-foreground/60">{description}</p>
+        </div>
+        {meta && <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span>}
       </div>
       <div className="rounded-xl border border-border bg-card">{children}</div>
     </div>
@@ -60,6 +65,7 @@ function Section({
 
 function ContextSection({ projectId }: { projectId: string }) {
   const [ctx, setCtx] = useState<MemoryContextRecord | null | undefined>(undefined);
+  const [triggering, setTriggering] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,9 +75,22 @@ function ContextSection({ projectId }: { projectId: string }) {
     return () => { cancelled = true; };
   }, [projectId]);
 
+  async function handleTrigger() {
+    setTriggering(true);
+    try {
+      await triggerMemoryReflectionAction(projectId);
+      const updated = await getMemoryContextAction(projectId);
+      setCtx(updated);
+    } catch {
+      // 실패 시 조용히 무시
+    } finally {
+      setTriggering(false);
+    }
+  }
+
   if (ctx === undefined) {
     return (
-      <Section label="맥락">
+      <Section label="맥락" description="에이전트가 매 세션 기본으로 알고 있는 프로젝트 지식">
         <Skeleton className="m-4 h-20 w-auto rounded-lg" />
       </Section>
     );
@@ -79,11 +98,20 @@ function ContextSection({ projectId }: { projectId: string }) {
 
   if (!ctx) {
     return (
-      <Section label="맥락">
-        <div className="flex flex-col items-center gap-1 py-8 text-xs text-muted-foreground">
-          <BookOpen className="mb-1 size-5 opacity-30" strokeWidth={1.5} />
-          <p>아직 축적된 맥락이 없어요.</p>
-          <p className="opacity-70">태스크를 완료하면 AI가 자동으로 학습해요.</p>
+      <Section label="맥락" description="에이전트가 매 세션 기본으로 알고 있는 프로젝트 지식">
+        <div className="flex items-center gap-3 px-4 py-5">
+          <BookOpen className="size-4 shrink-0 text-muted-foreground/30" strokeWidth={1.5} />
+          <p className="flex-1 text-xs text-muted-foreground">
+            아직 축적된 맥락이 없어요. 태스크를 완료하거나 지금 분석을 실행하면 생성돼요.
+          </p>
+          <button
+            onClick={handleTrigger}
+            disabled={triggering}
+            className="shrink-0 flex items-center gap-1 rounded-md bg-muted px-2.5 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-muted/80 disabled:opacity-50"
+          >
+            {triggering ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+            지금 분석
+          </button>
         </div>
       </Section>
     );
@@ -92,6 +120,7 @@ function ContextSection({ projectId }: { projectId: string }) {
   return (
     <Section
       label="맥락"
+      description="에이전트가 매 세션 기본으로 알고 있는 프로젝트 지식"
       meta={`v${ctx.version} · ${daysAgoLabel(ctx.updatedAt)} 업데이트`}
     >
       <p className="px-4 py-3 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap">
@@ -105,6 +134,7 @@ function ContextSection({ projectId }: { projectId: string }) {
 
 function KeyDecisionsSection({ projectId }: { projectId: string }) {
   const [decisions, setDecisions] = useState<KeyDecisionRecord[] | undefined>(undefined);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,7 +148,7 @@ function KeyDecisionsSection({ projectId }: { projectId: string }) {
 
   if (decisions === undefined) {
     return (
-      <Section label="핵심 결정">
+      <Section label="핵심 결정" description="태스크 완료 시 저장된 설계 결정 — recall()로 검색 가능">
         <div className="flex flex-col gap-2 p-4">
           {["w-4/5", "w-3/5", "w-11/12"].map((w, i) => (
             <Skeleton key={i} className={`h-4 rounded ${w}`} />
@@ -130,7 +160,7 @@ function KeyDecisionsSection({ projectId }: { projectId: string }) {
 
   if (decisions.length === 0) {
     return (
-      <Section label="핵심 결정">
+      <Section label="핵심 결정" description="태스크 완료 시 저장된 설계 결정 — recall()로 검색 가능">
         <p className="px-4 py-8 text-center text-xs text-muted-foreground">
           아직 기록된 결정이 없어요.
         </p>
@@ -141,26 +171,40 @@ function KeyDecisionsSection({ projectId }: { projectId: string }) {
   return (
     <Section
       label="핵심 결정"
-      meta={`recall() · ${totalDecisions}개`}
+      description="태스크 완료 시 저장된 설계 결정 — recall()로 검색 가능"
     >
-      <div className="divide-y divide-border">
-        {decisions.map((task) => (
-          <div key={task.seq} className="px-4 py-2.5">
-            <p className="mb-1 text-xs font-medium text-foreground/70">
-              <span className="mr-1.5 text-muted-foreground">#{task.seq}</span>
-              {task.title}
-            </p>
-            <ul className="flex flex-col gap-0.5">
-              {task.keyDecisions.map((d, i) => (
-                <li key={i} className="flex items-start gap-1.5 text-xs text-foreground/60">
-                  <span className="mt-0.5 shrink-0 text-muted-foreground">·</span>
-                  {d}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left"
+      >
+        <span className="flex-1 text-sm text-foreground/80">
+          결정 {totalDecisions}개 · {decisions.length}개 태스크
+        </span>
+        {expanded
+          ? <ChevronUp className="size-3.5 shrink-0 text-muted-foreground" />
+          : <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />}
+      </button>
+
+      {expanded && (
+        <div className="border-t border-border divide-y divide-border">
+          {decisions.map((task) => (
+            <div key={task.seq} className="px-4 py-2.5">
+              <p className="mb-1 text-xs font-medium text-foreground/70">
+                <span className="mr-1.5 text-muted-foreground">#{task.seq}</span>
+                {task.title}
+              </p>
+              <ul className="flex flex-col gap-0.5">
+                {task.keyDecisions.map((d, i) => (
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-foreground/60">
+                    <span className="mt-0.5 shrink-0 text-muted-foreground">·</span>
+                    {d}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
     </Section>
   );
 }
@@ -196,7 +240,7 @@ function InsightsSection({ projectId }: { projectId: string }) {
 
   if (reflections === undefined) {
     return (
-      <Section label="인사이트">
+      <Section label="인사이트" description="완료된 태스크에서 AI가 발견한 패턴과 위험">
         <Skeleton className="m-4 h-16 w-auto rounded-lg" />
       </Section>
     );
@@ -204,7 +248,7 @@ function InsightsSection({ projectId }: { projectId: string }) {
 
   if (reflections.length === 0) {
     return (
-      <Section label="인사이트">
+      <Section label="인사이트" description="완료된 태스크에서 AI가 발견한 패턴과 위험">
         <div className="flex items-center gap-3 px-4 py-4">
           <Sparkles className="size-4 shrink-0 text-amber-400 opacity-60" />
           <p className="flex-1 text-xs text-muted-foreground">
@@ -230,6 +274,7 @@ function InsightsSection({ projectId }: { projectId: string }) {
   return (
     <Section
       label="인사이트"
+      description="완료된 태스크에서 AI가 발견한 패턴과 위험"
       meta={`${daysAgoLabel(latest.createdAt)} · ${latest.analyzedTaskCount}개 태스크`}
     >
       <button
