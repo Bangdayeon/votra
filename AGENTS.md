@@ -87,7 +87,16 @@ Exceptions:
 
 ---
 
-## Agent skills
+## 7. Brain / MCP 개발 규칙
+
+- `brief` 응답에는 태스크 통계(진행중·대기·완료)·활성 폴더 목록 포함 필수
+- `start_task` 응답에는 `matchedSkills` 포함 필수
+- 새 엔티티·중요 메타데이터 추가 시 `brief`·`start_task` 응답에도 함께 반영
+- CLI/MCP 확장 정보는 에이전트가 읽을 수 있도록 명확히 출력
+
+---
+
+## 8. Agent skills
 
 ### Issue tracker
 
