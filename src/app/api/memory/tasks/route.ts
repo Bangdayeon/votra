@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 
 import { addTask } from "@/application/addTask";
 import { listTasks } from "@/application/listTasks";
+import { suggestFolder } from "@/domain/memory/suggestFolder";
 import type { TaskStatusValue } from "@/domain/memory/types";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
+import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 const VALID_STATUSES: TaskStatusValue[] = ["PENDING", "IN_PROGRESS", "DONE", "CANCELLED"];
@@ -30,13 +32,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "title이 필요해요." }, { status: 400 });
   }
 
+  let resolvedFolderId: string | undefined =
+    typeof body.folderId === "string" && body.folderId ? body.folderId : undefined;
+  let suggestedFolder: { id: string; name: string } | null = null;
+
+  if (!resolvedFolderId) {
+    try {
+      const folders = await prismaTaskFolderRepository.listByProject(body.projectId);
+      const suggested = suggestFolder(
+        { title: body.title, module: typeof body.tool === "string" ? body.tool : null },
+        folders,
+      );
+      if (suggested) {
+        resolvedFolderId = suggested;
+        suggestedFolder = folders.find((f) => f.id === suggested) ?? null;
+      }
+    } catch { /* best-effort */ }
+  }
+
   const result = await addTask(
     {
       title: body.title,
       description: typeof body.description === "string" ? body.description : undefined,
       tool: typeof body.tool === "string" ? body.tool : undefined,
       priority: typeof body.priority === "number" ? body.priority : undefined,
-      folderId: typeof body.folderId === "string" ? body.folderId : undefined,
+      folderId: resolvedFolderId,
       projectId: body.projectId,
       userId: user.id,
     },
@@ -45,7 +65,7 @@ export async function POST(req: Request) {
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   emitProjectUpdate(body.projectId);
-  return NextResponse.json({ ok: true, task: result.value });
+  return NextResponse.json({ ok: true, task: result.value, suggestedFolder });
 }
 
 export async function GET(req: Request) {

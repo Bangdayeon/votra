@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 
 import { startTask } from "@/application/startTask";
 import { matchToolsToTask } from "@/domain/memory/matchToolsToTask";
+import { suggestFolder } from "@/domain/memory/suggestFolder";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
+import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
@@ -28,13 +30,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "title이 필요해요." }, { status: 400 });
   }
 
+  let resolvedFolderId: string | undefined =
+    typeof body.folderId === "string" && body.folderId ? body.folderId : undefined;
+  let suggestedFolder: { id: string; name: string } | null = null;
+
+  if (!resolvedFolderId) {
+    try {
+      const folders = await prismaTaskFolderRepository.listByProject(body.projectId);
+      const suggested = suggestFolder(
+        { title: body.title, module: typeof body.tool === "string" ? body.tool : null },
+        folders,
+      );
+      if (suggested) {
+        resolvedFolderId = suggested;
+        suggestedFolder = folders.find((f) => f.id === suggested) ?? null;
+      }
+    } catch { /* best-effort */ }
+  }
+
   const result = await startTask(
     {
       title: body.title,
       description: typeof body.description === "string" ? body.description : undefined,
       tool: typeof body.tool === "string" ? body.tool : undefined,
       priority: typeof body.priority === "number" ? body.priority : undefined,
-      folderId: typeof body.folderId === "string" ? body.folderId : undefined,
+      folderId: resolvedFolderId,
       projectId: body.projectId,
       userId: user.id,
     },
@@ -51,7 +71,7 @@ export async function POST(req: Request) {
     enabledTools,
   ).map((t) => ({ slug: t.slug, name: t.name, contextHint: t.contextHint }));
 
-  return NextResponse.json({ ok: true, task: result.value, matchedSkills });
+  return NextResponse.json({ ok: true, task: result.value, matchedSkills, suggestedFolder });
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
