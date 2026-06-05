@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
+import { createProposalTasks } from "@/application/createProposalTasks";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
 import { refreshProjectAiSummary } from "@/application/refreshProjectAiSummary";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
@@ -21,7 +22,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  const projects = await prisma.project.findMany({ select: { id: true } });
+  const projects = await prisma.project.findMany({
+    select: {
+      id: true,
+      members: { where: { role: "OWNER" }, select: { userId: true }, take: 1 },
+    },
+  });
   const reflectionEngine = createGeminiReflectionEngine(geminiLlmClient);
   const contextEngine = createGeminiContextEngine(geminiLlmClient);
 
@@ -37,6 +43,13 @@ export async function GET(req: Request) {
         await applyToolSuggestions(p.id, reflection.toolSuggestions, {
           tools: prismaToolRepository,
         });
+      }
+
+      const ownerId = p.members[0]?.userId;
+      if (ownerId && reflection.suggestedTasks.length > 0) {
+        await createProposalTasks(p.id, ownerId, reflection.suggestedTasks, {
+          tasks: prismaTaskRepository,
+        }).catch(() => {});
       }
 
       await learnAndUpdateContext(p.id, {

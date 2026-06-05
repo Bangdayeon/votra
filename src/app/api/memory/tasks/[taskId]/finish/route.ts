@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { createProposalTasks } from "@/application/createProposalTasks";
 import { finishTask } from "@/application/finishTask";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
@@ -62,7 +63,7 @@ export async function POST(
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
   emitProjectUpdate(body.projectId);
 
-  void checkAndTriggerReflection(body.projectId).catch(() => {});
+  void checkAndTriggerReflection(body.projectId, user.id).catch(() => {});
   void learnAndUpdateContext(body.projectId, {
     tasks: prismaTaskRepository,
     context: prismaMemoryContextRepository,
@@ -76,7 +77,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-async function checkAndTriggerReflection(projectId: string): Promise<void> {
+async function checkAndTriggerReflection(projectId: string, userId: string): Promise<void> {
   const projectRow = await prisma.project.findUnique({ where: { id: projectId }, select: { settings: true } });
   if (!projectRow) return;
 
@@ -88,9 +89,15 @@ async function checkAndTriggerReflection(projectId: string): Promise<void> {
   if (count < settings.memory.reflectionThreshold) return;
 
   const engine = createGeminiReflectionEngine(geminiLlmClient);
-  await runMemoryReflection(projectId, "threshold", {
+  const reflection = await runMemoryReflection(projectId, "threshold", {
     tasks: prismaTaskRepository,
     reflections: prismaMemoryReflectionRepository,
     engine,
   });
+
+  if (reflection.suggestedTasks.length > 0) {
+    await createProposalTasks(projectId, userId, reflection.suggestedTasks, {
+      tasks: prismaTaskRepository,
+    }).catch(() => {});
+  }
 }

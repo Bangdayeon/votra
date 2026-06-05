@@ -1,6 +1,7 @@
 "use server";
 
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
+import { createProposalTasks } from "@/application/createProposalTasks";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
 import type { MemoryReflectionRecord } from "@/domain/memory/memoryTierTypes";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
@@ -28,6 +29,12 @@ export async function triggerMemoryReflectionAction(
   if (reflection.toolSuggestions.length > 0) {
     await applyToolSuggestions(projectId, reflection.toolSuggestions, {
       tools: prismaToolRepository,
+    }).catch(() => {});
+  }
+
+  if (reflection.suggestedTasks.length > 0) {
+    await createProposalTasks(projectId, guard.userId, reflection.suggestedTasks, {
+      tasks: prismaTaskRepository,
     }).catch(() => {});
   }
 
