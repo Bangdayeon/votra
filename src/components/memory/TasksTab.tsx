@@ -4,7 +4,6 @@ import {
   Archive,
   Bookmark,
   Box,
-  Brain,
   Briefcase,
   CalendarDays,
   CheckSquare,
@@ -56,7 +55,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { createFolderAction } from "@/app/actions/createFolderAction";
-import { getMemoryReflectionsAction } from "@/app/actions/getMemoryReflectionsAction";
 import { createTaskAction, type CreateTaskInput } from "@/app/actions/createTaskAction";
 import { pinTaskAction } from "@/app/actions/pinTaskAction";
 import { deleteFolderAction } from "@/app/actions/deleteFolderAction";
@@ -1337,14 +1335,6 @@ export function TasksTab({
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [bulkCreateAndMove, setBulkCreateAndMove] = useState(false);
-  const [latestInsight, setLatestInsight] = useState<string | null>(null);
-
-  useEffect(() => {
-    getMemoryReflectionsAction(selected.id, 1)
-      .then((r) => setLatestInsight(r[0]?.contextSummary ?? null))
-      .catch(() => {});
-  }, [selected.id]);
-
   // filters (used in task list view)
   const [filterUser, setFilterUser] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("ALL");
@@ -1748,40 +1738,6 @@ export function TasksTab({
               </DndContext>
             )}
 
-            {/* 장기 기억 요약 카드 */}
-            {(() => {
-              const longTermCount = tasks.filter((t) => t.memoryTier === "LONG_TERM").length;
-              return (
-                <Link
-                  href={`/${encodeURIComponent(selected.name)}/memory`}
-                  className="mt-2 flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50/50 px-4 py-3 transition-colors hover:bg-violet-100/60 dark:border-violet-800/40 dark:bg-violet-900/10 dark:hover:bg-violet-900/20"
-                >
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
-                    <Brain className="size-4 text-violet-600 dark:text-violet-400" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-violet-900 dark:text-violet-200">장기 기억</span>
-                      {longTermCount > 0 && (
-                        <span className="rounded-full bg-violet-200 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-800/60 dark:text-violet-300">
-                          {longTermCount}개
-                        </span>
-                      )}
-                    </div>
-                    {latestInsight ? (
-                      <p className="mt-0.5 truncate text-xs text-violet-700/70 dark:text-violet-400/60">
-                        {latestInsight}
-                      </p>
-                    ) : (
-                      <p className="mt-0.5 text-xs text-violet-700/50 dark:text-violet-400/40">
-                        중요한 태스크를 장기 기억으로 관리해요
-                      </p>
-                    )}
-                  </div>
-                  <ChevronRight className="size-4 shrink-0 text-violet-400 dark:text-violet-600" />
-                </Link>
-              );
-            })()}
 
             {tasks.length === 0 && folders.length === 0 && (
               <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
