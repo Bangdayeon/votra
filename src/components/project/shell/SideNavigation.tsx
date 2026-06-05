@@ -262,7 +262,15 @@ export function SideNavigation() {
     const parsed = saved ? parseFloat(saved) : NaN;
     if (!isNaN(parsed)) setDividerPct(Math.max(15, Math.min(80, parsed)));
   }, []);
-  const [localProjects, setLocalProjects] = useState<Project[]>(projects);
+  const [localProjects, _setLocalProjects] = useState<Project[]>(projects);
+  const localProjectsRef = useRef(localProjects);
+  function setLocalProjects(updater: React.SetStateAction<Project[]>) {
+    _setLocalProjects((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      localProjectsRef.current = next;
+      return next;
+    });
+  }
 
   const asideRef = useRef<HTMLElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -298,18 +306,18 @@ export function SideNavigation() {
     overId: string,
     originalIsFavorite: boolean,
   ) {
-    // localProjects는 onDragOver로 이미 최신 상태
-    const activeProject = localProjects.find((p) => p.id === activeId);
-    const overProject = localProjects.find((p) => p.id === overId);
+    // localProjectsRef.current: onDragOver의 setLocalProjects가 React 커밋 전이어도 항상 최신값
+    const current = localProjectsRef.current;
+    const activeProject = current.find((p) => p.id === activeId);
+    const overProject = current.find((p) => p.id === overId);
     if (!activeProject || !overProject) return;
 
     const currentIsFavorite = activeProject.isFavorite;
     const sectionChanged = currentIsFavorite !== originalIsFavorite;
 
-    // 현재 섹션 기준으로 재정렬
     const section = currentIsFavorite
-      ? localProjects.filter((p) => p.isFavorite)
-      : localProjects.filter((p) => !p.isFavorite);
+      ? current.filter((p) => p.isFavorite)
+      : current.filter((p) => !p.isFavorite);
 
     const oldIdx = section.findIndex((p) => p.id === activeId);
     const newIdx = section.findIndex((p) => p.id === overId);
@@ -323,8 +331,10 @@ export function SideNavigation() {
     }
 
     const reordered = oldIdx !== -1 ? arrayMove(section, oldIdx, newIdx) : section;
-    const newFavs = currentIsFavorite ? reordered : favoriteProjects;
-    const newRegs = currentIsFavorite ? regularProjects : reordered;
+    const currentFavs = current.filter((p) => p.isFavorite);
+    const currentRegs = current.filter((p) => !p.isFavorite);
+    const newFavs = currentIsFavorite ? reordered : currentFavs;
+    const newRegs = currentIsFavorite ? currentRegs : reordered;
     setLocalProjects([...newFavs, ...newRegs]);
 
     const realIds = reordered.filter((p) => !isDummy(p.id)).map((p) => p.id);
