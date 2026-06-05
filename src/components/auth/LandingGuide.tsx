@@ -8,11 +8,11 @@ import { AxhubSignInButton } from "@/components/auth/AxhubSignInButton";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { cn } from "@/lib/utils";
 
-const TABS = ["votra 소셜 로그인", "MCP 설치", "brief, task"] as const;
+const TABS = ["Haema 소셜 로그인", "MCP 설치", "brief, task"] as const;
 type Tab = (typeof TABS)[number];
 
 export function LandingGuide() {
-  const [active, setActive] = useState<Tab>("votra 소셜 로그인");
+  const [active, setActive] = useState<Tab>("Haema 소셜 로그인");
   const [visible, setVisible] = useState(true);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -36,7 +36,7 @@ export function LandingGuide() {
     <section className="px-4 py-24">
       <div className="mx-auto flex max-w-4xl flex-col gap-12">
         <header className="text-center">
-          <h2 className="text-2xl font-bold sm:text-3xl">votra 3분만에 시작하기</h2>
+          <h2 className="text-2xl font-bold sm:text-3xl">Haema 3분만에 시작하기</h2>
         </header>
 
         <div className="relative flex justify-center gap-2">
@@ -60,7 +60,7 @@ export function LandingGuide() {
             </button>
           ))}
           <div
-            className="absolute bottom-0 h-[3px] rounded-full bg-purple-600 transition-all duration-300"
+            className="absolute bottom-0 h-[3px] rounded-full bg-primary transition-all duration-300"
             style={{ left: indicator.left, width: indicator.width }}
           />
         </div>
@@ -71,7 +71,7 @@ export function LandingGuide() {
             visible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
           )}
         >
-          {active === "votra 소셜 로그인" && <SocialLoginContent />}
+          {active === "Haema 소셜 로그인" && <SocialLoginContent />}
           {active === "MCP 설치" && <McpInstallContent />}
           {active === "brief, task" && <BriefTaskContent />}
         </div>
@@ -130,7 +130,7 @@ function SocialLoginContent() {
       </div>
       <Image
         src="/assets/images/guide/tab-overview.png"
-        alt="votra 대시보드 미리보기"
+        alt="Haema 대시보드 미리보기"
         width={600}
         height={400}
         className="w-full rounded-xl shadow-lg"
@@ -143,22 +143,22 @@ function McpInstallContent() {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6">
       <Step n={1} label="CLI 설치">
-        <CodeCopy code="npm install -g @votra/cli" />
+        <CodeCopy code="npm install -g @haema/cli" />
       </Step>
 
       <Step n={2} label="MCP 서버 등록">
         <span className="mt-1 text-xs text-muted-foreground">
           연결할 에이전트를 지정해서 등록해요. 여러 에이전트에 동시에 등록할 수 있어요.
         </span>
-        <CodeCopy code="votra install" />
+        <CodeCopy code="haema install" />
         <span className="text-xs text-muted-foreground">기본값은 claude예요.</span>
         <div className="mt-1 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 rounded-lg bg-muted p-3 font-mono text-xs">
           {[
-            ["votra install cursor", "Cursor"],
-            ["votra install gemini", "Gemini CLI"],
-            ["votra install codex", "Codex"],
-            ["votra install antigravity", "Antigravity"],
-            ["votra install all", "모든 에이전트에 한번에 등록"],
+            ["haema install cursor", "Cursor"],
+            ["haema install gemini", "Gemini CLI"],
+            ["haema install codex", "Codex"],
+            ["haema install antigravity", "Antigravity"],
+            ["haema install all", "모든 에이전트에 한번에 등록"],
           ].map(([cmd, desc]) => (
             <Fragment key={cmd}>
               <code className="text-foreground">{cmd}</code>
@@ -172,10 +172,10 @@ function McpInstallContent() {
         <span className="mt-1 text-xs text-muted-foreground">
           프로젝트 루트에서 새 세션을 열고 아래 명령어를 말해보세요.
         </span>
-        <CodeCopy code="votra signin" />
+        <CodeCopy code="haema signin" />
         <Image
           src="/images/guide/tab-mcp-signin.png"
-          alt="votra signin 예시"
+          alt="Haema signin 예시"
           width={600}
           height={360}
           className="mt-2 w-full rounded-xl"

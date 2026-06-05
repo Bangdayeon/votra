@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
   if (!project) {
     return NextResponse.json(
-      { ok: false, error: `cwd '${cwd}'에 해당하는 프로젝트를 찾을 수 없어요. 먼저 votra upload를 실행해주세요.` },
+      { ok: false, error: `cwd '${cwd}'에 해당하는 프로젝트를 찾을 수 없어요. 먼저 haema upload를 실행해주세요.` },
       { status: 404 },
     );
   }

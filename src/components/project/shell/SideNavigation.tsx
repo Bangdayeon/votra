@@ -424,8 +424,8 @@ export function SideNavigation() {
         <aside className="group hidden sm:flex h-screen w-full flex-col overflow-hidden border-r border-border bg-background">
           <div className="relative flex items-center justify-center px-4 py-4">
             <Image
-              src="/assets/images/logo.svg"
-              alt="votra logo"
+              src="/assets/images/logo.png"
+              alt="Haema logo"
               width={32}
               height={32}
               priority
@@ -469,8 +469,8 @@ export function SideNavigation() {
           <div className="flex items-center justify-between gap-3 px-4 py-4">
             <div className="flex items-center gap-3">
               <Image
-                src="/assets/images/logo.svg"
-                alt="votra logo"
+                src="/assets/images/logo.png"
+                alt="Haema logo"
                 width={32}
                 height={32}
                 priority
@@ -532,8 +532,8 @@ export function SideNavigation() {
           <div className="flex items-center justify-between gap-3 px-4 py-4">
             <div className="flex items-center gap-3">
               <Image
-                src="/assets/images/logo.svg"
-                alt="votra logo"
+                src="/assets/images/logo.png"
+                alt="Haema logo"
                 width={32}
                 height={32}
                 priority

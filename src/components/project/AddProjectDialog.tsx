@@ -47,7 +47,7 @@ export function AddProjectDialog({ onAdded, children }: Props) {
         <DialogHeader>
           <DialogTitle>프로젝트 추가</DialogTitle>
           <DialogDescription>
-            votra MCP 를 설치하고 AI agent 에게 brief 를 시키면 프로젝트가 자동으로 추가돼요.
+            Haema MCP 를 설치하고 AI agent 에게 brief 를 시키면 프로젝트가 자동으로 추가돼요.
           </DialogDescription>
         </DialogHeader>
 
@@ -56,13 +56,13 @@ export function AddProjectDialog({ onAdded, children }: Props) {
             index={1}
             source="terminal"
             title="CLI 설치 (최초 1회)"
-            command="npm i -g @votra/cli@latest"
+            command="npm i -g @haema/cli@latest"
           />
           <Step
             index={2}
             source="terminal"
             title="MCP 설치 (최초 1회)"
-            command="votra install"
+            command="haema install"
           />
           <Step
             index={3}

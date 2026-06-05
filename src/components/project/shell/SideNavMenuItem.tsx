@@ -87,7 +87,7 @@ export function SideNavMenuItem({
       </span>
     );
     const compactClassName = cn(
-      "inline-flex items-center justify-center size-9 cursor-pointer rounded-full p-0 transition-shadow hover:bg-accent",
+      "inline-flex items-center justify-center size-9 cursor-pointer rounded-md p-0 transition-shadow hover:bg-accent",
       ringCls,
       className,
     );
@@ -112,7 +112,7 @@ export function SideNavMenuItem({
         title={title}
         aria-label={title}
         className={cn(
-          "size-9 cursor-pointer rounded-full p-0 transition-shadow",
+          "size-9 cursor-pointer rounded-md p-0 transition-shadow",
           ringCls,
           className,
         )}
@@ -129,10 +129,10 @@ export function SideNavMenuItem({
     onUnfavorite !== undefined;
 
   const rowClassName = cn(
-    "inline-flex items-center gap-2 w-full cursor-pointer justify-start rounded-full px-1 py-2 text-sm font-normal hover:bg-accent hover:text-accent-foreground",
+    "inline-flex items-center gap-2 w-full cursor-pointer justify-start rounded-md px-2 py-2 text-sm font-normal hover:bg-accent hover:text-accent-foreground",
     hasMenu && "pr-9",
     selected &&
-      "bg-primary/15 font-semibold text-primary hover:bg-primary/20 hover:text-primary",
+      "bg-primary/10 font-medium text-foreground hover:bg-primary/15",
     className,
   );
 
@@ -219,7 +219,7 @@ function RowMenu({
           aria-label={`${title} 메뉴`}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "absolute right-2 top-[47%] flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-opacity hover:bg-purple-300 hover:text-foreground focus:opacity-100",
+            "absolute right-2 top-[47%] flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground focus:opacity-100",
             "opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100",
           )}
         >

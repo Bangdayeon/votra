@@ -43,7 +43,7 @@ export default async function CliSigninPage({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold">votra CLI 연결</h1>
+        <h1 className="text-xl font-semibold">Haema CLI 연결</h1>
         <p className="text-sm text-muted-foreground">
           이 계정으로 CLI 에 사용할 API 키를 발급해요. 허용하면 키가 콜백
           URL 로 전달돼요.

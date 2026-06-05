@@ -337,7 +337,7 @@ const SERVICE_FEATURES: {
       {
         title: "태스크 현황 조회",
         lines: [
-          "votra-memory MCP를 통해 에이전트가 등록한 태스크를 관리해요.",
+          "haema-memory MCP를 통해 에이전트가 등록한 태스크를 관리해요.",
           "폴더별로 분리하여 태스크 흐름을 한눈에 파악할 수 있어요.",
         ],
       },
@@ -367,15 +367,15 @@ const SERVICE_FEATURES: {
 ];
 
 const CLI_STEPS = [
-  { step: "1", title: "CLI 설치", code: "npm install -g @votra/cli" },
-  { step: "2", title: "MCP 서버 등록", code: "votra install" },
+  { step: "1", title: "CLI 설치", code: "npm install -g @haema/cli" },
+  { step: "2", title: "MCP 서버 등록", code: "haema install" },
 ] as const;
 
 const CLI_COMMANDS = [
   {
-    cmd: "votra install",
-    desc: "AI 도구에 votra MCP 서버 자동 등록",
-    usage: "votra install [claude|cursor|gemini|codex|all]",
+    cmd: "haema install",
+    desc: "AI 도구에 Haema MCP 서버 자동 등록",
+    usage: "haema install [claude|cursor|gemini|codex|all]",
   },
 ] as const;
 
@@ -383,17 +383,17 @@ const MCP_SETUP_STEPS = [
   {
     step: "1",
     title: "CLI 설치",
-    code: "npm install -g @votra/cli",
+    code: "npm install -g @haema/cli",
   },
   {
     step: "2",
     title: "MCP 서버 등록",
-    code: "votra install",
+    code: "haema install",
   },
   {
     step: "3",
     title: "로그인",
-    code: "Claude Code 재시작 후 signin 툴로 votra 계정에 로그인해요",
+    code: "Claude Code 재시작 후 signin 툴로 Haema 계정에 로그인해요",
   },
 ] as const;
 
@@ -409,7 +409,7 @@ const MCP_TOOLS: { tool: string; desc: string }[] = [
   { tool: "log_session", desc: "세션 종료 전 작업 요약 저장" },
   { tool: "upload_prompt", desc: "CLAUDE.md·AGENTS.md·SKILL.md 업로드" },
   { tool: "load_skill", desc: "컨텍스트별 스킬 지침 로드" },
-  { tool: "signin", desc: "브라우저 OAuth로 votra 계정 로그인" },
+  { tool: "signin", desc: "브라우저 OAuth로 Haema 계정 로그인" },
   { tool: "whoami", desc: "현재 로그인 계정 확인" },
   { tool: "signout", desc: "로그아웃 및 인증 정보 삭제" },
 ];
@@ -420,7 +420,7 @@ function GuidePane() {
       <header>
         <h2 className="text-xl font-semibold">사용 안내</h2>
         <p className="mt-1.5">
-          votra는 작업 내용을 자동 저장하여 세션 간 기억상실 문제를 해결합니다.
+          Haema는 작업 내용을 자동 저장하여 세션 간 기억상실 문제를 해결합니다.
         </p>
         <p className="mt-1.5">
           또한 최신 커밋 기록과 작업 내용을 기반으로 프로젝트 현황을 요약하고 다음 작업을 추천합니다.
@@ -469,7 +469,7 @@ function GuidePane() {
       <section className="flex flex-col gap-4">
         <h3 className="text-base font-semibold">CLI 연동 방법</h3>
         <p className="text-sm text-muted-foreground">
-          votra CLI를 설치하고 <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">votra install</code> 명령어로 MCP 서버를 AI 도구에 등록해요.
+          Haema CLI를 설치하고 <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">haema install</code> 명령어로 MCP 서버를 AI 도구에 등록해요.
         </p>
         <ol className="flex flex-col gap-2">
           {CLI_STEPS.map(({ step, title, code }) => (
@@ -485,7 +485,7 @@ function GuidePane() {
           ))}
         </ol>
         <p className="text-xs text-muted-foreground">
-          등록 후 Claude Code를 재시작하면 votra-memory MCP 서버가 활성화돼요. 이후 signin 툴로 votra 계정에 로그인하세요.
+          등록 후 Claude Code를 재시작하면 haema-memory MCP 서버가 활성화돼요. 이후 signin 툴로 Haema 계정에 로그인하세요.
         </p>
       </section>
 
@@ -525,7 +525,7 @@ function GuidePane() {
           <h3 className="text-base font-semibold">MCP 서버 연동</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          votra MCP 서버가 연결되면 AI 에이전트가 태스크·메모리를 프로젝트와 직접 연동해 관리해요. Claude Code, Cursor, Gemini CLI, Codex를 지원해요.
+          Haema MCP 서버가 연결되면 AI 에이전트가 태스크·메모리를 프로젝트와 직접 연동해 관리해요. Claude Code, Cursor, Gemini CLI, Codex를 지원해요.
         </p>
 
         <div className="flex flex-col gap-3">
@@ -546,7 +546,7 @@ function GuidePane() {
             ))}
           </ol>
           <p className="text-xs text-muted-foreground">
-            <code className="font-mono">votra install all</code>을 실행하면 Claude Code, Cursor, Gemini CLI, Codex 모두에 등록해요. 완료 후 AI 도구를 재시작하면 돼요.
+            <code className="font-mono">haema install all</code>을 실행하면 Claude Code, Cursor, Gemini CLI, Codex 모두에 등록해요. 완료 후 AI 도구를 재시작하면 돼요.
           </p>
         </div>
 

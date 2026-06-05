@@ -10,7 +10,7 @@ export function EmptyProjectsState() {
     <div className="flex flex-col gap-6 h-full items-center justify-center px-8 py-6">
       <div className="flex flex-col gap-1 text-center text-sm text-muted-foreground">
         <p>아직 등록된 프로젝트가 없어요.</p>
-        <p>votra MCP 를 설치하고 AI agent 에게 brief 를 시키면 프로젝트가 자동으로 추가돼요.</p>
+        <p>Haema MCP 를 설치하고 AI agent 에게 brief 를 시키면 프로젝트가 자동으로 추가돼요.</p>
       </div>
 
       <ol className="flex w-full max-w-md flex-col gap-4 mt-4">
@@ -18,13 +18,13 @@ export function EmptyProjectsState() {
           index={1}
           source="terminal"
           title="CLI 설치 (최초 1회)"
-          command="npm i -g @votra/cli@latest"
+          command="npm i -g @haema/cli@latest"
         />
         <Step
           index={2}
           source="terminal"
           title="MCP 설치 (최초 1회)"
-          command="votra install"
+          command="haema install"
         />
         <Step
           index={3}

@@ -29,7 +29,7 @@ export async function approveCliSigninAction(
 
   const token = await issueApiKeyForCli({
     userId: user.id,
-    name: "votra CLI",
+    name: "Haema CLI",
   });
 
   const url = new URL(callback);

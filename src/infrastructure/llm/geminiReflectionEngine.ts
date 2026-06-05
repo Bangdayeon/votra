@@ -24,7 +24,7 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
       "patternSummary": "이 패턴이 3회 이상 반복된 근거 (태스크 번호 포함)",
       "contextHint": "이 스킬을 사용해야 하는 상황을 한 문장으로 (예: 외부 API 연동 태스크 시작 전에 사용)",
       "hookEvent": "PreToolUse | PostToolUse | Stop | null",
-      "hookMatcher": "툴 이름 (예: Edit, Bash, Write, mcp__votra-memory__finish_task) 또는 null",
+      "hookMatcher": "툴 이름 (예: Edit, Bash, Write, mcp__haema-memory__finish_task) 또는 null",
       "hookScript": "#!/bin/bash\necho '⚠️ SOP: [규칙 설명]'\nexit 0"
     }
   ],

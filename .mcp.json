@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "haema-memory": {
+      "command": "/Users/bibi/.nvm/versions/node/v24.15.0/bin/haema",
+      "args": [],
+      "env": {}
+    }
+  }
+}

@@ -58,7 +58,7 @@ export default async function SignInPage({
         <div className="flex w-full max-w-2xl flex-col gap-6">
           <div className="mx-auto flex w-full max-w-md flex-col gap-6">
             <div className="flex flex-col items-center gap-4 text-center">
-              <h1 className="text-5xl font-bold tracking-tight" style={{ color: "#7B1FA2" }}>votra</h1>
+              <h1 className="text-5xl font-bold tracking-tight" style={{ color: "#1EAB84" }}>Haema</h1>
               <span className="w-full border-b border-border pb-6 text-xs text-muted-foreground">태스크 단위로 연결하는 AI 세션 기억</span>
             </div>
 

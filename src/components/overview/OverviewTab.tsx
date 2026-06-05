@@ -113,8 +113,8 @@ export function OverviewTab({
   // 탭 전환·페이지 새로고침 시 재실행되지 않게 한다.
   // 두 호출을 순차 실행해서 동시 LLM 연결로 인한 HTTP 연결 풀 포화를 방지한다.
   useEffect(() => {
-    const summaryKey = `votra-ai-init-${selected.id}`;
-    const tasksKey = `votra-tasks-init-${selected.id}`;
+    const summaryKey = `haema-ai-init-${selected.id}`;
+    const tasksKey = `haema-tasks-init-${selected.id}`;
     if (aiLoading || nextTasksLoading || aiRefreshing || nextTasksRefreshing) return;
 
     const needsSummary = aiSummary === null && !isInitialized(summaryKey);
