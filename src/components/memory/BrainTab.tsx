@@ -51,7 +51,7 @@ function Section({
     <div className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+          <p className="text-sm font-semibold text-foreground">{label}</p>
           <p className="text-xs text-muted-foreground/60">{description}</p>
         </div>
         {meta && <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span>}
