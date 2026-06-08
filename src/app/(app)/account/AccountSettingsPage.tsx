@@ -10,6 +10,7 @@ import {
   Moon,
   Plug,
   RotateCcw,
+  Sparkles,
   Sun,
   Terminal,
   UserCog,
@@ -23,17 +24,21 @@ import { toast } from "sonner";
 import { resetAccountAction } from "@/app/actions/resetAccount";
 import { signOutAction } from "@/app/actions/signOut";
 import { updateUserNameAction } from "@/app/actions/updateUserName";
+import { CommandsTab } from "@/components/memory/CommandsTab";
+import { ToolsTab } from "@/components/memory/ToolsTab";
 import { useCurrentUser } from "@/components/project/shell/CurrentUserContext";
 import { useTheme, type ThemeSetting } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-type MenuKey = "account" | "guide";
+type MenuKey = "account" | "guide" | "tools" | "commands";
 
 const MENU: { key: MenuKey; label: string; icon: React.ElementType }[] = [
   { key: "account", label: "계정 설정", icon: UserCog },
   { key: "guide", label: "안내", icon: BookOpen },
+  { key: "tools", label: "툴", icon: Sparkles },
+  { key: "commands", label: "커맨드", icon: Terminal },
 ];
 
 function tabHref(key: MenuKey): string {
@@ -45,7 +50,10 @@ export function AccountSettingsPage() {
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab");
   const active: MenuKey =
-    rawTab === "guide" ? "guide" : "account";
+    rawTab === "guide" ? "guide"
+    : rawTab === "tools" ? "tools"
+    : rawTab === "commands" ? "commands"
+    : "account";
 
   const navRef = useRef<HTMLElement>(null);
   const tabRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
@@ -102,10 +110,23 @@ export function AccountSettingsPage() {
 
       <div className="custom-scrollbar flex-1 overflow-y-auto px-8 pt-8 pb-12">
         <div className="mx-auto w-full max-w-2xl">
-          {active === "account" ? (
-            <AccountPane />
-          ) : (
-            <GuidePane />
+          {active === "account" && <AccountPane />}
+          {active === "guide" && <GuidePane />}
+          {active === "tools" && (
+            <div className="flex flex-col gap-4">
+              <p className="text-xs text-muted-foreground">
+                AI 에이전트가 내부적으로 자동 매칭해서 활용하는 도구예요. 리플렉션이 자동 생성하거나 직접 추가할 수 있어요.
+              </p>
+              <ToolsTab />
+            </div>
+          )}
+          {active === "commands" && (
+            <div className="flex flex-col gap-4">
+              <p className="text-xs text-muted-foreground">
+                대화 중 /명령어 형태로 직접 호출하는 슬래시 커맨드예요. 반복 작업을 정의해두고 언제든 호출할 수 있어요.
+              </p>
+              <CommandsTab />
+            </div>
           )}
         </div>
       </div>

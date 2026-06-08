@@ -244,7 +244,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => router.push("/settings?tab=tools")}
+              onClick={() => router.push("/account")}
               className="w-full justify-start gap-2"
             >
               <Settings className="size-4" />
@@ -288,7 +288,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
       <AccountMenu
         align="end"
         side="top"
-        onOpenSettings={() => router.push("/settings?tab=tools")}
+        onOpenSettings={() => router.push("/account")}
         trigger={
           <Button
             type="button"
