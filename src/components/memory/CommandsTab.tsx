@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { getCommandsAction, type ProjectCommandRecord } from "@/app/actions/getCustomCommandsAction";
 import { createCommandAction } from "@/app/actions/createCommandAction";
 import { deleteCommandAction } from "@/app/actions/deleteCommandAction";
+import { restoreCommandsAction } from "@/app/actions/restoreCommandsAction";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -251,6 +252,39 @@ function AddCommandForm({
   );
 }
 
+// ── DeleteConfirmModal ────────────────────────────────────────────────────────
+
+function DeleteConfirmModal({
+  count,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  count: number;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onCancel}>
+      <div
+        className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-sm font-semibold">커맨드 {count}개를 삭제할까요?</p>
+        <p className="mt-1.5 text-xs text-muted-foreground">삭제 후 토스트의 실행 취소 버튼으로 되돌릴 수 있어요.</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>취소</Button>
+          <Button variant="destructive" size="sm" onClick={onConfirm} disabled={loading} className="gap-1.5">
+            {loading && <Loader2 className="size-3.5 animate-spin" />}
+            삭제
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── CommandsTab ───────────────────────────────────────────────────────────────
 
 export function CommandsTab() {
@@ -259,6 +293,7 @@ export function CommandsTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
@@ -291,17 +326,38 @@ export function CommandsTab() {
     setSelectedIds(new Set());
   }
 
-  async function handleBulkDelete() {
+  function handleBulkDelete() {
     if (selectedIds.size === 0) return;
-    setDeleteLoading(true);
+    setShowDeleteConfirm(true);
+  }
+
+  async function handleConfirmDelete() {
     const ids = Array.from(selectedIds);
+    const deletedItems = commands.filter((c) => ids.includes(c.id));
+    setDeleteLoading(true);
+    setShowDeleteConfirm(false);
     setCommands((prev) => prev.filter((c) => !ids.includes(c.id)));
     setSelectedIds(new Set());
     setIsSelectMode(false);
     const results = await Promise.all(ids.map((id) => deleteCommandAction(id)));
     const failed = results.filter((r) => !r.ok).length;
-    if (failed > 0) toast.error(`${failed}개 삭제에 실패했어요.`);
     setDeleteLoading(false);
+    if (failed > 0) {
+      toast.error(`${failed}개 삭제에 실패했어요.`);
+    } else {
+      toast.success(`${deletedItems.length}개 삭제됐어요.`, {
+        action: { label: "실행 취소", onClick: () => handleUndo(deletedItems) },
+        duration: 6000,
+      });
+    }
+  }
+
+  function handleUndo(deletedItems: ProjectCommandRecord[]) {
+    restoreCommandsAction(deletedItems).then((result) => {
+      if (!result.ok) { toast.error(result.error ?? "복원에 실패했어요."); return; }
+      setCommands((prev) => [...prev, ...result.restored]);
+      toast.success(`${result.restored.length}개 복원됐어요.`);
+    });
   }
 
   const grouped = useMemo(() => {
@@ -317,6 +373,15 @@ export function CommandsTab() {
   const orderedFolders = useMemo(() => [...grouped.keys()].sort(), [grouped]);
 
   return (
+    <>
+      {showDeleteConfirm && (
+        <DeleteConfirmModal
+          count={selectedIds.size}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+          loading={deleteLoading}
+        />
+      )}
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
         <BookOpen className="size-4 shrink-0 text-muted-foreground" />
@@ -412,5 +477,6 @@ export function CommandsTab() {
         </div>
       )}
     </div>
+    </>
   );
 }
