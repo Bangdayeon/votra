@@ -12,6 +12,7 @@ import {
   type UpdateMemoryContextInput,
   updateMemoryContextAction,
 } from "@/app/actions/updateMemoryContextAction";
+import { IntegrationsPanel } from "@/components/memory/IntegrationsPanel";
 import type { Project } from "@/components/project/ProjectsContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -385,6 +386,7 @@ export function BrainTab({ selected }: { selected: Project }) {
     <div className="flex flex-col gap-6">
       <BriefPreviewSection projectId={selected.id} />
       <KeyDecisionsPanel projectId={selected.id} />
+      <IntegrationsPanel projectId={selected.id} isOwner={selected.isOwner ?? false} />
     </div>
   );
 }
