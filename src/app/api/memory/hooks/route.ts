@@ -24,15 +24,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "프로젝트를 찾을 수 없어요." }, { status: 404 });
   }
 
-  const skills = await prismaToolRepository.listByProject(projectId);
-  const hooks = skills
-    .filter((s) => s.isEnabled && s.hookEvent && s.hookMatcher && s.hookScript)
-    .map((s) => ({
-      slug: s.slug,
-      name: s.name,
-      hookEvent: s.hookEvent!,
-      hookMatcher: s.hookMatcher!,
-      hookScript: s.hookScript!,
+  const tools = await prismaToolRepository.listByProject(projectId);
+  const hooks = tools
+    .filter((t) => t.isEnabled && t.hookEvent && t.hookMatcher && t.hookScript)
+    .map((t) => ({
+      slug: t.slug,
+      name: t.name,
+      hookEvent: t.hookEvent!,
+      hookMatcher: t.hookMatcher!,
+      hookScript: t.hookScript!,
     }));
 
   return NextResponse.json({ ok: true, hooks });

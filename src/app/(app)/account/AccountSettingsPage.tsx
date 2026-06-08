@@ -408,7 +408,7 @@ const MCP_TOOLS: { tool: string; desc: string }[] = [
   { tool: "task_detail", desc: "태스크 상세 정보 조회" },
   { tool: "log_session", desc: "세션 종료 전 작업 요약 저장" },
   { tool: "upload_prompt", desc: "CLAUDE.md·AGENTS.md·SKILL.md 업로드" },
-  { tool: "load_skill", desc: "컨텍스트별 스킬 지침 로드" },
+  { tool: "load_skill", desc: "컨텍스트별 커맨드 지침 로드" },
   { tool: "signin", desc: "브라우저 OAuth로 Haema 계정 로그인" },
   { tool: "whoami", desc: "현재 로그인 계정 확인" },
   { tool: "signout", desc: "로그아웃 및 인증 정보 삭제" },

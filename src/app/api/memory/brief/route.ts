@@ -53,7 +53,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "프로젝트를 찾을 수 없어요." }, { status: 404 });
   }
 
-  // 새 프로젝트: 커스텀 스킬 0개이면 기본 스킬 lazy seeding
+  // 새 프로젝트: 커스텀 커맨드 0개이면 기본 커맨드 lazy seeding
   let toolsResult = rawTools;
   if (toolsResult.length === 0) {
     await seedDefaultTools(projectId, { tools: prismaToolRepository });

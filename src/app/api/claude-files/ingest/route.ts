@@ -24,7 +24,7 @@ function toSlug(displayPath: string): string {
 }
 
 function toDescription(kind: FileKind, scope: string): string {
-  const kindLabel = kind === "CLAUDE" ? "Claude 지침" : kind === "AGENTS" ? "에이전트 지침" : "커스텀 스킬";
+  const kindLabel = kind === "CLAUDE" ? "Claude 지침" : kind === "AGENTS" ? "에이전트 지침" : "커스텀 커맨드";
   const scopeLabel = scope === "global" ? "전역" : scope === "project-root" ? "프로젝트 루트" : "서브디렉토리";
   return `${kindLabel} (${scopeLabel})`;
 }
@@ -32,7 +32,7 @@ function toDescription(kind: FileKind, scope: string): string {
 function toContextHint(kind: FileKind, displayPath: string): string {
   if (kind === "CLAUDE") return `Claude Code 지침: ${displayPath}`;
   if (kind === "AGENTS") return `에이전트 협업 규칙: ${displayPath}`;
-  return `커스텀 스킬 정의: ${displayPath}`;
+  return `커스텀 커맨드 정의: ${displayPath}`;
 }
 
 export async function POST(req: Request) {

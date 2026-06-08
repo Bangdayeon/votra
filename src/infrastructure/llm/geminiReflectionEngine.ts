@@ -5,7 +5,7 @@ import type { LlmClient } from "@/application/ports/llmClient";
 
 const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전문가입니다.
 주어진 완료된 태스크 목록을 분석하여 프로젝트의 패턴, 인사이트, 위험 요소를 파악하고,
-다음에 집중해야 할 작업과 재사용 가능한 스킬을 추천합니다.
+다음에 집중해야 할 작업과 재사용 가능한 커맨드를 추천합니다.
 
 응답은 반드시 다음 JSON 형식으로만 작성하세요:
 {
@@ -17,12 +17,12 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
   ],
   "toolSuggestions": [
     {
-      "name": "스킬 이름",
+      "name": "커맨드 이름",
       "description": "한 줄 설명",
       "folder": "폴더명 (예: 리팩토링, 테스트, 배포, API연동)",
-      "content": "## 스킬 지침\n에이전트가 바로 따를 수 있는 단계별 마크다운 지침 (500자 이내)",
+      "content": "## 커맨드 지침\n에이전트가 바로 따를 수 있는 단계별 마크다운 지침 (500자 이내)",
       "patternSummary": "이 패턴이 3회 이상 반복된 근거 (태스크 번호 포함)",
-      "contextHint": "이 스킬을 사용해야 하는 상황을 한 문장으로 (예: 외부 API 연동 태스크 시작 전에 사용)",
+      "contextHint": "이 커맨드를 사용해야 하는 상황을 한 문장으로 (예: 외부 API 연동 태스크 시작 전에 사용)",
       "hookEvent": "PreToolUse | PostToolUse | Stop | null",
       "hookMatcher": "툴 이름 (예: Edit, Bash, Write, mcp__haema-memory__finish_task) 또는 null",
       "hookScript": "#!/bin/bash\necho '⚠️ SOP: [규칙 설명]'\nexit 0"
