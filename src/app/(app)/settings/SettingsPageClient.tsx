@@ -1,5 +1,6 @@
 "use client";
 
+import { Brain, LayoutGrid } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -481,7 +482,7 @@ function SettingsForm({
 
         {activeTab === "overview" && (
           <>
-            <PageGroup label="홈 탭">
+            <PageGroup label="홈" icon={LayoutGrid}>
               <Section
                 title="최근 태스크"
                 description="홈 탭의 최근 태스크 요약을 생성할 때 고려할 사항을 작성해요."
@@ -585,7 +586,9 @@ function SettingsForm({
               </Section>
             </PageGroup>
 
-            <PageGroup label="브레인 탭">
+            <div className="border-t border-border" />
+
+            <PageGroup label="브레인" icon={Brain}>
               <Section
                 title="핵심 결정 추출 지침"
                 description="태스크를 완료할 때 AI가 핵심 결정을 추출하는 기준을 추가해요."
@@ -848,16 +851,18 @@ function SessionDataInfo({
 
 function PageGroup({
   label,
+  icon: Icon,
   children,
 }: {
   label: string;
+  icon: React.ElementType;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <span className="shrink-0 text-xs font-medium text-muted-foreground">{label}</span>
-        <div className="flex-1 border-t border-border" />
+      <div className="flex items-center gap-2 mb-2">
+        <Icon className="size-5 shrink-0" />
+        <span className="text-xl font-semibold">{label}</span>
       </div>
       {children}
     </div>
