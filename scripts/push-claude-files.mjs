@@ -10,6 +10,7 @@
  * 프로젝트 (cwd) 에 해당하는 세션 ingest 가 먼저 끝나 있어야 해요.
  */
 
+import { readFileSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, relative, sep } from "node:path";
@@ -44,11 +45,17 @@ const NESTED_FILE_KIND = {
 
 const args = parseArgs(process.argv.slice(2));
 const cwd = args.cwd ?? process.cwd();
-const endpoint = (args.endpoint ?? process.env.VOTRA_ENDPOINT ?? "http://localhost:3000").replace(/\/$/, "");
-const apiKey = process.env.VOTRA_API_KEY;
+
+let authFile = null;
+try {
+  authFile = JSON.parse(readFileSync(join(homedir(), ".haema", "auth.json"), "utf8"));
+} catch {}
+
+const endpoint = (args.endpoint ?? process.env.VOTRA_ENDPOINT ?? authFile?.appUrl ?? "http://localhost:3000").replace(/\/$/, "");
+const apiKey = process.env.VOTRA_API_KEY ?? authFile?.apiKey;
 
 if (!apiKey) {
-  console.error("VOTRA_API_KEY 환경변수가 비어 있어요. scripts/create-api-key.mjs 로 발급하세요.");
+  console.error("API 키가 없어요. ~/.haema/auth.json 에 appUrl/apiKey 를 설정하거나 VOTRA_API_KEY 환경변수를 설정하세요.");
   process.exit(2);
 }
 

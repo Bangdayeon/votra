@@ -87,7 +87,28 @@ Exceptions:
 
 ---
 
-## 7. Brain / MCP 개발 규칙
+## 7. 툴(Tool) vs 커맨드(Command) — 절대 혼용 금지
+
+이 두 개념은 완전히 다른 엔티티입니다. 혼용하면 잘못된 코드가 생성됩니다.
+
+| 구분 | Tool (`ProjectTool`) | Command (`ProjectCommand`) |
+|---|---|---|
+| **DB 테이블** | `ProjectTool` | `ProjectCommand` |
+| **사용 주체** | AI 에이전트 내부 | 유저 직접 호출 |
+| **생성 주체** | AI 리플렉션 자동 생성 | **유저만** 생성 가능 |
+| **슬래시 명령** | 없음 | `/command-name` 형태로 호출 |
+| **hookEvent/hookScript** | 있음 | **없음** |
+| **AI 자동 생성** | ✅ 허용 (`applyToolSuggestions`) | ❌ **절대 금지** |
+
+**규칙**:
+- `applyToolSuggestions` / `applyToolEnrichments` 는 AI 리플렉션 트리거에 연결 → OK
+- `applyCommandSuggestions` 는 AI 리플렉션 트리거에 절대 연결하지 않음
+- Command 관련 코드 수정 시 `prismaToolRepository` 를 참조하지 않음
+- Tool 관련 코드 수정 시 `prismaCommandRepository` 를 참조하지 않음
+
+---
+
+## 8. Brain / MCP 개발 규칙
 
 - `brief` 응답에는 태스크 통계(진행중·대기·완료)·활성 폴더 목록 포함 필수
 - `start_task` 응답에는 `matchedSkills` 포함 필수
@@ -96,7 +117,7 @@ Exceptions:
 
 ---
 
-## 8. Agent skills
+## 9. Agent skills
 
 ### Issue tracker
 
