@@ -12,9 +12,6 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
   "insights": [
     { "type": "pattern" | "insight" | "risk", "text": "한국어 설명" }
   ],
-  "suggestedTasks": [
-    { "title": "태스크 제목", "reason": "이유", "priority": "high" | "medium" | "low" }
-  ],
   "toolSuggestions": [
     {
       "name": "커맨드 이름",
@@ -42,8 +39,7 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
 - pattern: 반복되는 작업 패턴이나 기술적 경향
 - insight: 프로젝트 진행에서 발견된 중요한 사실
 - risk: 주의가 필요한 기술적 부채나 위험 요소
-- 인사이트는 3-5개, 추천 태스크는 1-3개로 제한
-- 이미 진행 중이거나 대기 중인 태스크와 겹치지 않는 새로운 작업만 추천
+- 인사이트는 3-5개로 제한
 - toolSuggestions vs toolEnrichments 결정 규칙:
   1. 패턴이 3회 이상 반복됐을 때만 고려.
   2. 기존 툴(아래 목록)의 domain/folder와 겹치면 → toolSuggestions 금지. 대신 기존 툴 content에 없는 내용이 있으면 toolEnrichments로 보강.
@@ -99,12 +95,11 @@ ${input.previousContextSummary ?? "(없음)"}
       try {
         parsed = JSON.parse(raw) as ReflectionOutput;
       } catch {
-        parsed = { insights: [], suggestedTasks: [], toolSuggestions: [], toolEnrichments: [], contextSummary: null };
+        parsed = { insights: [], toolSuggestions: [], toolEnrichments: [], contextSummary: null };
       }
 
       return {
         insights: Array.isArray(parsed.insights) ? parsed.insights : [],
-        suggestedTasks: Array.isArray(parsed.suggestedTasks) ? parsed.suggestedTasks : [],
         toolSuggestions: Array.isArray(parsed.toolSuggestions) ? parsed.toolSuggestions : [],
         toolEnrichments: Array.isArray(parsed.toolEnrichments) ? parsed.toolEnrichments : [],
         contextSummary: typeof parsed.contextSummary === "string" ? parsed.contextSummary : null,
