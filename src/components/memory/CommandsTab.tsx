@@ -429,7 +429,7 @@ export function CommandsTab() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <h2 className="text-base font-semibold">커맨드</h2>
+          <h2 className="text-xl font-semibold">커맨드</h2>
           <div className="ml-auto flex items-center gap-1.5">
             <button
               onClick={() => {

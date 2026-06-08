@@ -452,7 +452,7 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-          <h2 className="text-base font-semibold">툴</h2>
+          <h2 className="text-xl font-semibold">툴</h2>
           {projectId && (
             <div className="ml-auto flex items-center gap-1.5">
               <button
