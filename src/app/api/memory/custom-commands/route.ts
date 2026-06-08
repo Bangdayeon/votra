@@ -5,7 +5,6 @@ import { listTools } from "@/application/listTools";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 
-// backward compat: use /api/memory/tools instead
 export async function GET(req: Request) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
   if (!user) return NextResponse.json({ ok: false, error: "인증이 필요해요." }, { status: 401 });
@@ -17,7 +16,7 @@ export async function GET(req: Request) {
   const result = await listTools(projectId, { tools: prismaToolRepository });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
 
-  return NextResponse.json({ ok: true, skills: result.value });
+  return NextResponse.json({ ok: true, commands: result.value });
 }
 
 export async function POST(req: Request) {
@@ -43,7 +42,7 @@ export async function POST(req: Request) {
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
 
-  return NextResponse.json({ ok: true, skill: result.value, tool: result.value });
+  return NextResponse.json({ ok: true, command: result.value, tool: result.value });
 }
 
 export async function PATCH(req: Request) {
