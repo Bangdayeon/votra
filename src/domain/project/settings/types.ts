@@ -1,5 +1,8 @@
 export const AI_ANALYSIS_INSTRUCTION_MAX = 8000;
 export const AI_NEXT_TASK_PROMPT_MAX = 1000;
+export const AI_KEY_DECISION_INSTRUCTION_MAX = 300;
+export const AI_REFLECTION_INSTRUCTION_MAX = 500;
+export const AI_CONTEXT_INSTRUCTION_MAX = 300;
 
 export type ProjectSettings = {
   ai: {
@@ -7,6 +10,9 @@ export type ProjectSettings = {
     nextTaskPrompt: string;
     /** 매일 자동 업데이트할 KST 시각 (0–23). null = 사용 안함. */
     autoRefreshHour: number | null;
+    keyDecisionInstruction: string;
+    reflectionInstruction: string;
+    contextInstruction: string;
   };
   memory: {
     /** ACTIVE → ARCHIVED 전환까지 미접근 일수. 기본 30. */
@@ -31,6 +37,9 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
     analysisInstruction: "",
     nextTaskPrompt: "",
     autoRefreshHour: null,
+    keyDecisionInstruction: "",
+    reflectionInstruction: "",
+    contextInstruction: "",
   },
   memory: {
     activeToArchivedDays: 30,

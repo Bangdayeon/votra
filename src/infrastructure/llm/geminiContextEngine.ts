@@ -3,7 +3,7 @@ import "server-only";
 import type { ContextEngine } from "@/application/learnAndUpdateContext";
 import type { LlmClient } from "@/application/ports/llmClient";
 
-const SYSTEM = `당신은 소프트웨어 프로젝트의 자기학습 AI 메모리 시스템입니다.
+const BASE_SYSTEM = `당신은 소프트웨어 프로젝트의 자기학습 AI 메모리 시스템입니다.
 완료된 태스크들을 분석해 프로젝트 맥락을 이해하고, plain text로 축적합니다.
 
 반드시 다음 JSON 형식으로만 응답하세요:
@@ -17,7 +17,9 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 자기학습 AI 메모
 - 기술 스택, 아키텍처 결정, 반복 패턴, 핵심 제약, 주요 마일스톤 포함
 장기 보존 선정 기준: 우선순위 7 이상, 핵심 결정 포함, 구조적으로 중요한 태스크`;
 
-export function createGeminiContextEngine(llm: LlmClient): ContextEngine {
+export function createGeminiContextEngine(llm: LlmClient, instruction?: string): ContextEngine {
+  const customPart = instruction?.trim() ? `\n\n[추가 지침]\n${instruction.trim()}` : "";
+  const SYSTEM = BASE_SYSTEM + customPart;
   return {
     async learn({ tasks, previousContext }) {
       const taskList = tasks

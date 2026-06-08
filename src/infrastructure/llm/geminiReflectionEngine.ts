@@ -3,7 +3,7 @@ import "server-only";
 import type { ReflectionEngine, ReflectionInput, ReflectionOutput } from "@/application/runMemoryReflection";
 import type { LlmClient } from "@/application/ports/llmClient";
 
-const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전문가입니다.
+const BASE_SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전문가입니다.
 주어진 완료된 태스크 목록을 분석하여 프로젝트의 패턴, 인사이트, 위험 요소를 파악하고,
 다음에 집중해야 할 작업과 재사용 가능한 커맨드를 추천합니다.
 
@@ -48,7 +48,9 @@ const SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전�
   5. 확실하지 않으면 둘 다 빈 배열 [].
 - hookEvent/hookMatcher/hookScript: 기계적으로 강제할 수 있는 패턴(특정 툴 사용 전후)이면 설정하세요. PreToolUse = 툴 사용 직전 리마인더, PostToolUse = 툴 완료 후 검증, Stop = 세션 종료 전 체크. 순수 맥락/지식형 패턴이면 세 필드 모두 null. hookScript는 반드시 exit 0 (리마인더) 또는 명백한 오류 방지 시에만 exit 2 (차단). hookMatcher는 Claude Code 툴 이름 그대로 사용 (예: "Edit", "Bash", "Write").`;
 
-export function createGeminiReflectionEngine(llm: LlmClient): ReflectionEngine {
+export function createGeminiReflectionEngine(llm: LlmClient, instruction?: string): ReflectionEngine {
+  const customPart = instruction?.trim() ? `\n\n[추가 지침]\n${instruction.trim()}` : "";
+  const SYSTEM = BASE_SYSTEM + customPart;
   return {
     async analyze(input: ReflectionInput): Promise<ReflectionOutput> {
       const taskList = input.tasks

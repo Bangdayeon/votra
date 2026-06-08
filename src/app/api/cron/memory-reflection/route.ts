@@ -5,6 +5,7 @@ import { applyToolSuggestions } from "@/application/applyToolSuggestions";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
 import { refreshProjectAiSummary } from "@/application/refreshProjectAiSummary";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
+import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { prisma } from "@/infrastructure/db/prisma";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiContextEngine } from "@/infrastructure/llm/geminiContextEngine";
@@ -26,14 +27,17 @@ export async function GET(req: Request) {
   const projects = await prisma.project.findMany({
     select: {
       id: true,
+      settings: true,
       members: { where: { role: "OWNER" }, select: { userId: true }, take: 1 },
     },
   });
-  const reflectionEngine = createGeminiReflectionEngine(geminiLlmClient);
-  const contextEngine = createGeminiContextEngine(geminiLlmClient);
 
   const results = await Promise.allSettled(
     projects.map(async (p) => {
+      const settings = parseProjectSettings(p.settings);
+      const reflectionEngine = createGeminiReflectionEngine(geminiLlmClient, settings.ai.reflectionInstruction);
+      const contextEngine = createGeminiContextEngine(geminiLlmClient, settings.ai.contextInstruction);
+
       const reflection = await runMemoryReflection(p.id, "cron", {
         tasks: prismaTaskRepository,
         reflections: prismaMemoryReflectionRepository,

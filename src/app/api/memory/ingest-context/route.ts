@@ -56,7 +56,10 @@ export async function POST(req: Request) {
       ? (body.type as ContextType)
       : undefined;
 
-  const keyDecisions = await createGeminiKeyDecisionsEngine(geminiLlmClient).extract({
+  const projectRow = await prisma.project.findUnique({ where: { id: body.projectId }, select: { settings: true } });
+  const settings = parseProjectSettings(projectRow?.settings);
+
+  const keyDecisions = await createGeminiKeyDecisionsEngine(geminiLlmClient, settings.ai.keyDecisionInstruction).extract({
     summary: body.title,
     outcome: body.content.slice(0, 3000),
   });
@@ -81,7 +84,7 @@ export async function POST(req: Request) {
   void learnAndUpdateContext(body.projectId, {
     tasks: prismaTaskRepository,
     context: prismaMemoryContextRepository,
-    engine: createGeminiContextEngine(geminiLlmClient),
+    engine: createGeminiContextEngine(geminiLlmClient, settings.ai.contextInstruction),
   }).catch(() => {});
 
   return NextResponse.json({ ok: true, task: result.value.task, extractedDecisions: keyDecisions.length });

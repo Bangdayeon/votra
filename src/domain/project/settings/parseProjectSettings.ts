@@ -1,6 +1,9 @@
 import {
   AI_ANALYSIS_INSTRUCTION_MAX,
+  AI_CONTEXT_INSTRUCTION_MAX,
+  AI_KEY_DECISION_INSTRUCTION_MAX,
   AI_NEXT_TASK_PROMPT_MAX,
+  AI_REFLECTION_INSTRUCTION_MAX,
   DEFAULT_PROJECT_SETTINGS,
   type ProjectSettings,
 } from "@/domain/project/settings/types";
@@ -34,6 +37,21 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
       ? rawHour
       : null;
 
+  const keyDecisionInstruction =
+    typeof ai.keyDecisionInstruction === "string"
+      ? ai.keyDecisionInstruction.slice(0, AI_KEY_DECISION_INSTRUCTION_MAX)
+      : "";
+
+  const reflectionInstruction =
+    typeof ai.reflectionInstruction === "string"
+      ? ai.reflectionInstruction.slice(0, AI_REFLECTION_INSTRUCTION_MAX)
+      : "";
+
+  const contextInstruction =
+    typeof ai.contextInstruction === "string"
+      ? ai.contextInstruction.slice(0, AI_CONTEXT_INSTRUCTION_MAX)
+      : "";
+
   const mem = isRecord(raw.memory) ? raw.memory : {};
 
   const activeToArchivedDays = toPositiveInt(mem.activeToArchivedDays, 30);
@@ -48,7 +66,7 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
     : [];
 
   return {
-    ai: { analysisInstruction, nextTaskPrompt, autoRefreshHour },
+    ai: { analysisInstruction, nextTaskPrompt, autoRefreshHour, keyDecisionInstruction, reflectionInstruction, contextInstruction },
     memory: {
       activeToArchivedDays,
       archivedToTrashDays,

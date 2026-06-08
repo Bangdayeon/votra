@@ -54,8 +54,11 @@ export async function POST(
     : undefined;
   const outcome = typeof body.outcome === "string" && body.outcome ? body.outcome : undefined;
 
+  const projectRow = await prisma.project.findUnique({ where: { id: body.projectId }, select: { settings: true } });
+  const settings = parseProjectSettings(projectRow?.settings);
+
   const keyDecisions = providedDecisions ??
-    await createGeminiKeyDecisionsEngine(geminiLlmClient).extract({ summary: body.summary, outcome });
+    await createGeminiKeyDecisionsEngine(geminiLlmClient, settings.ai.keyDecisionInstruction).extract({ summary: body.summary, outcome });
 
   const result = await finishTask(
     { seq, userId: user.id, projectId: body.projectId, summary: body.summary, aiTool, keyDecisions, outcome },
@@ -96,7 +99,7 @@ async function checkAndTriggerReflection(projectId: string, userId: string): Pro
   const count = await prismaTaskRepository.countActivitySince({ projectId, sinceDate });
   if (count < settings.memory.reflectionThreshold) return;
 
-  const engine = createGeminiReflectionEngine(geminiLlmClient);
+  const engine = createGeminiReflectionEngine(geminiLlmClient, settings.ai.reflectionInstruction);
   const reflection = await runMemoryReflection(projectId, "threshold", {
     tasks: prismaTaskRepository,
     reflections: prismaMemoryReflectionRepository,

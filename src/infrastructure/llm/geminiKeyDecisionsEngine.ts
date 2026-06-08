@@ -6,7 +6,7 @@ export type KeyDecisionsEngine = {
   extract(input: { summary: string; outcome?: string }): Promise<string[]>;
 };
 
-const SYSTEM = `당신은 소프트웨어 태스크 완료 기록 전문가입니다.
+const BASE_SYSTEM = `당신은 소프트웨어 태스크 완료 기록 전문가입니다.
 주어진 작업 요약과 결과에서 재사용 가능한 핵심 결정 사항을 추출하세요.
 
 반드시 다음 JSON 형식으로만 응답하세요:
@@ -18,7 +18,9 @@ const SYSTEM = `당신은 소프트웨어 태스크 완료 기록 전문가입�
 - 주의해야 할 제약이나 트레이드오프
 - 3-5개, 한국어, 1문장씩`;
 
-export function createGeminiKeyDecisionsEngine(llm: LlmClient): KeyDecisionsEngine {
+export function createGeminiKeyDecisionsEngine(llm: LlmClient, instruction?: string): KeyDecisionsEngine {
+  const customPart = instruction?.trim() ? `\n\n[추가 지침]\n${instruction.trim()}` : "";
+  const SYSTEM = BASE_SYSTEM + customPart;
   return {
     async extract({ summary, outcome }) {
       try {
