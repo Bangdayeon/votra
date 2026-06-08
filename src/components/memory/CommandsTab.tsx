@@ -1,12 +1,13 @@
 "use client";
 
-import { BookOpen, ChevronDown, ChevronRight, ChevronUp, Loader2, Plus, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronRight, ChevronUp, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { getCommandsAction, type ProjectCommandRecord } from "@/app/actions/getCustomCommandsAction";
 import { createCommandAction } from "@/app/actions/createCommandAction";
+import { deleteCommandAction } from "@/app/actions/deleteCommandAction";
 import { cn } from "@/lib/utils";
 import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 
@@ -15,11 +16,25 @@ import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 function CommandRow({
   command,
   badgeColor,
+  onDeleted,
 }: {
   command: ProjectCommandRecord;
   badgeColor: string;
+  onDeleted: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    setPending(true);
+    onDeleted(command.id); // optimistic
+    const result = await deleteCommandAction(command.id);
+    if (!result.ok) {
+      toast.error(result.error ?? "커맨드 삭제에 실패했어요.");
+    }
+    setPending(false);
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card">
@@ -41,7 +56,18 @@ function CommandRow({
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{command.description}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-1 pt-0.5">
+        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+          {pending && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+          {!command.isBuiltIn && (
+            <button
+              onClick={handleDelete}
+              disabled={pending}
+              className="rounded p-0.5 text-muted-foreground/40 transition-colors hover:text-destructive disabled:pointer-events-none"
+              aria-label="커맨드 삭제"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          )}
           {expanded
             ? <ChevronUp className="size-3.5 text-muted-foreground" />
             : <ChevronDown className="size-3.5 text-muted-foreground" />
@@ -66,10 +92,12 @@ function FolderSection({
   folder,
   commands,
   colorMap,
+  onDeleted,
 }: {
   folder: string;
   commands: ProjectCommandRecord[];
   colorMap: Map<string, string>;
+  onDeleted: (id: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -94,6 +122,7 @@ function FolderSection({
               key={command.slug}
               command={command}
               badgeColor={colorMap.get(command.slug) ?? BADGE_COLORS[0]}
+              onDeleted={onDeleted}
             />
           ))}
         </div>
@@ -253,6 +282,10 @@ export function CommandsTab() {
     setShowAdd(false);
   }
 
+  function handleDeleted(id: string) {
+    setCommands((prev) => prev.filter((c) => c.id !== id));
+  }
+
   const grouped = useMemo(() => {
     const map = new Map<string, ProjectCommandRecord[]>();
     for (const command of commands) {
@@ -318,6 +351,7 @@ export function CommandsTab() {
               folder={folder}
               commands={grouped.get(folder) ?? []}
               colorMap={colorMap}
+              onDeleted={handleDeleted}
             />
           ))}
         </div>

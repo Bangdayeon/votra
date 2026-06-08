@@ -92,4 +92,8 @@ export const prismaCommandRepository: CommandRepository = {
     });
     return row ? toRecord(row) : null;
   },
+
+  async deleteById(id: string) {
+    await prisma.projectCommand.delete({ where: { id } });
+  },
 };
