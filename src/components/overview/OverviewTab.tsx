@@ -52,9 +52,9 @@ export function OverviewTab({
       setAiSummary((prev) =>
         prev ? { ...prev, nextTasks: result.tasks, refreshedAt: result.refreshedAt } : prev,
       );
-      toast.success("제안 작업이 업데이트됐어요.");
+      toast.success("AI 제안 태스크가 업데이트됐어요.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "제안 작업 업데이트에 실패했어요.");
+      toast.error(err instanceof Error ? err.message : "AI 제안 태스크 업데이트에 실패했어요.");
     } finally {
       setNextTasksRefreshing(false);
     }
@@ -71,7 +71,7 @@ export function OverviewTab({
   return (
     <div className="flex pb-6 flex-col gap-6">
       <Card>
-        <h3 className="text-xl font-semibold">현재 태스크</h3>
+        <h3 className="text-xl font-semibold">최근 태스크</h3>
         <section className="mt-4">
           {previewTasks.length === 0 ? (
             <p className="text-sm text-muted-foreground">진행 중이거나 대기 중인 태스크가 없어요.</p>
@@ -91,7 +91,7 @@ export function OverviewTab({
 
       <Card>
         <CardRefreshHeader
-          title="💬 제안 작업"
+          title="AI 제안 태스크"
           refreshedAt={aiSummary?.refreshedAt ?? null}
           loading={aiLoading}
           refreshing={nextTasksRefreshing}

@@ -66,7 +66,7 @@ export function AiSummaryCard({
 
       {!loading && nextTasks.length > 0 && (
         <section className="mt-5 border-t pt-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">제안 작업</p>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">제안 작업</p>
           <ul className="flex flex-col gap-4">
             {nextTasks.map((task, i) => (
               <NextTaskItem key={i} task={task} />
@@ -77,7 +77,7 @@ export function AiSummaryCard({
 
       {!loading && warnings.length > 0 && (
         <section className="mt-5 border-t pt-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">주의사항</p>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">주의사항</p>
           <ul className="flex flex-col gap-3">
             {warnings.map((w, i) => (
               <li key={i} className="flex flex-col gap-1">

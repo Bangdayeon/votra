@@ -1,27 +1,20 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Loader2, Pencil, Search, Sparkles } from "lucide-react";
+import { Loader2, Pencil, Search } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type { BriefPreviewData } from "@/app/actions/getBriefPreviewAction";
 import { getBriefPreviewAction } from "@/app/actions/getBriefPreviewAction";
 import { getMemoryContextAction } from "@/app/actions/getMemoryContextAction";
-import { getMemoryReflectionsAction } from "@/app/actions/getMemoryReflectionsAction";
-import { getProjectAiSummaryAction } from "@/app/actions/getProjectAiSummary";
 import { getProjectKeyDecisionsAction, type KeyDecisionRecord } from "@/app/actions/getProjectKeyDecisionsAction";
-import { refreshProjectAiSummaryAction } from "@/app/actions/refreshProjectAiSummary";
-import { triggerMemoryReflectionAction } from "@/app/actions/triggerMemoryReflectionAction";
 import {
   type UpdateMemoryContextInput,
   updateMemoryContextAction,
 } from "@/app/actions/updateMemoryContextAction";
-import type { CachedProjectAiSummary } from "@/application/getCachedProjectAiSummary";
-import { AiSummaryCard } from "@/components/overview/AiSummaryCard";
 import type { Project } from "@/components/project/ProjectsContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { MemoryReflectionRecord } from "@/domain/memory/memoryTierTypes";
 import { cn } from "@/lib/utils";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -33,18 +26,6 @@ function daysAgoLabel(date: Date | string | null): string {
   if (d === 1) return "어제";
   return `${d}일 전`;
 }
-
-const INSIGHT_TYPE_LABEL: Record<string, string> = {
-  pattern: "패턴",
-  insight: "인사이트",
-  risk: "위험",
-};
-
-const INSIGHT_TYPE_STYLE: Record<string, string> = {
-  pattern: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  insight: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  risk: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-};
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
 
@@ -63,8 +44,8 @@ function Section({
     <div className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <p className="text-sm font-semibold text-foreground">{label}</p>
-          <p className="text-xs text-muted-foreground/60">{description}</p>
+          <p className="text-base font-semibold text-foreground">{label}</p>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         {meta && <span className="shrink-0 text-xs text-muted-foreground">{meta}</span>}
       </div>
@@ -229,7 +210,7 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
         {/* 맥락 */}
         <div className="px-4 py-3">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">맥락</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">맥락</p>
             <button
               onClick={() => setContextEditOpen(true)}
               className="rounded p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
@@ -239,7 +220,7 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
             </button>
           </div>
           {hasContext ? (
-            <div className="flex flex-col gap-1 text-sm text-foreground/70">
+            <div className="flex flex-col gap-1 text-sm text-foreground">
               {context.serviceDescription && <span><span className="text-muted-foreground">서비스: </span>{context.serviceDescription}</span>}
               {context.techStack && <span><span className="text-muted-foreground">기술: </span>{context.techStack}</span>}
               {context.targetUsers && <span><span className="text-muted-foreground">대상: </span>{context.targetUsers}</span>}
@@ -257,11 +238,11 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
 
         {/* 진행중 태스크 */}
         <div className="px-4 py-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">진행중 태스크</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">진행중 태스크</p>
           {inProgressTasks.length > 0 ? (
             <ul className="flex flex-col gap-1">
               {inProgressTasks.map((t) => (
-                <li key={t.seq} className="flex items-start gap-1.5 text-sm text-foreground/70">
+                <li key={t.seq} className="flex items-start gap-1.5 text-sm text-foreground">
                   <span className="shrink-0 text-muted-foreground">#{t.seq}</span>
                   {t.title}
                 </li>
@@ -274,17 +255,17 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
 
         {/* 최근 핵심 결정 */}
         <div className="px-4 py-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">최근 핵심 결정</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">최근 핵심 결정</p>
           {recentKeyDecisions.length > 0 ? (
             <div className="flex flex-col gap-2">
               {recentKeyDecisions.map((t) => (
                 <div key={t.seq}>
-                  <p className="mb-0.5 text-sm font-medium text-foreground/60">
+                  <p className="mb-0.5 text-sm font-medium text-foreground">
                     <span className="mr-1 text-muted-foreground">#{t.seq}</span>{t.title}
                   </p>
                   <ul className="flex flex-col gap-0.5">
                     {t.keyDecisions.slice(0, 2).map((d, i) => (
-                      <li key={i} className="flex items-start gap-1 text-sm text-foreground/50">
+                      <li key={i} className="flex items-start gap-1 text-sm text-foreground">
                         <span className="shrink-0">·</span>{d}
                       </li>
                     ))}
@@ -299,11 +280,11 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
 
         {/* 추천 작업 */}
         <div className="px-4 py-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">추천 작업</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">추천 작업</p>
           {recommendedTasks.length > 0 ? (
             <ul className="flex flex-col gap-1">
               {recommendedTasks.map((t, i) => (
-                <li key={i} className="flex items-start gap-1.5 text-sm text-foreground/70">
+                <li key={i} className="flex items-start gap-1.5 text-sm text-foreground">
                   <span className="shrink-0 text-muted-foreground">{i + 1}.</span>
                   <span>{t.title}</span>
                 </li>
@@ -346,7 +327,7 @@ function KeyDecisionsPanel({ projectId }: { projectId: string }) {
   });
 
   return (
-    <Section label="핵심 결정" description="recall()로 검색 가능한 기억 단위">
+    <Section label="핵심 결정" description="태스크 완료 시 저장된 핵심 결정을 검색하고 확인해요.">
       {decisions === undefined ? (
         <div className="flex flex-col gap-2 p-4">
           {["w-4/5", "w-3/5", "w-11/12"].map((w, i) => (
@@ -373,13 +354,13 @@ function KeyDecisionsPanel({ projectId }: { projectId: string }) {
             <div className="max-h-80 overflow-y-auto divide-y divide-border">
               {filtered.map((task) => (
                 <div key={task.seq} className="px-4 py-2.5">
-                  <p className="mb-1 text-sm font-medium text-foreground/70">
+                  <p className="mb-1 text-sm font-medium text-foreground">
                     <span className="mr-1.5 text-muted-foreground">#{task.seq}</span>
                     {task.title}
                   </p>
                   <ul className="flex flex-col gap-0.5">
                     {task.keyDecisions.map((d, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-sm text-foreground/60">
+                      <li key={i} className="flex items-start gap-1.5 text-sm text-foreground">
                         <span className="mt-0.5 shrink-0 text-muted-foreground">·</span>
                         {d}
                       </li>
@@ -395,174 +376,13 @@ function KeyDecisionsPanel({ projectId }: { projectId: string }) {
   );
 }
 
-// ── 3. Insights section ───────────────────────────────────────────────────────
-
-function InsightsSection({ projectId }: { projectId: string }) {
-  const [reflections, setReflections] = useState<MemoryReflectionRecord[] | undefined>(undefined);
-  const [expanded, setExpanded] = useState(false);
-  const [triggering, setTriggering] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    getMemoryReflectionsAction(projectId, 3)
-      .then((r) => { if (!cancelled) setReflections(r); })
-      .catch(() => { if (!cancelled) setReflections([]); });
-    return () => { cancelled = true; };
-  }, [projectId]);
-
-  async function handleTrigger(e: React.MouseEvent) {
-    e.stopPropagation();
-    setTriggering(true);
-    try {
-      const result = await triggerMemoryReflectionAction(projectId);
-      setReflections((prev) => [result, ...(prev ?? [])]);
-      setExpanded(true);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "분석에 실패했어요. 잠시 후 다시 시도해 주세요.");
-    } finally {
-      setTriggering(false);
-    }
-  }
-
-  if (reflections === undefined) {
-    return (
-      <Section label="인사이트" description="완료된 태스크에서 AI가 발견한 패턴과 위험">
-        <Skeleton className="m-4 h-16 w-auto rounded-lg" />
-      </Section>
-    );
-  }
-
-  if (reflections.length === 0) {
-    return (
-      <Section label="인사이트" description="완료된 태스크에서 AI가 발견한 패턴과 위험">
-        <div className="flex items-center gap-3 px-4 py-4">
-          <Sparkles className="size-4 shrink-0 text-amber-400 opacity-60" />
-          <p className="flex-1 text-sm text-muted-foreground">
-            아직 AI 분석이 없어요.
-          </p>
-          <button
-            onClick={handleTrigger}
-            disabled={triggering}
-            className="shrink-0 flex items-center gap-1 rounded-md bg-amber-100 px-2.5 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-200 disabled:opacity-50 dark:bg-amber-900/30 dark:text-amber-400"
-          >
-            {triggering ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
-            지금 분석
-          </button>
-        </div>
-      </Section>
-    );
-  }
-
-  const latest = reflections[0];
-  const hasInsights = latest.insights.length > 0;
-
-  return (
-    <Section
-      label="인사이트"
-      description="완료된 태스크에서 AI가 발견한 패턴과 위험"
-      meta={`${daysAgoLabel(latest.createdAt)} · ${latest.analyzedTaskCount}개 태스크`}
-    >
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left"
-      >
-        <Sparkles className="size-3.5 shrink-0 text-amber-500" />
-        <span className="flex-1 text-sm text-foreground/80 leading-snug">
-          {latest.contextSummary ?? "분석 완료"}
-        </span>
-        {expanded
-          ? <ChevronUp className="size-3.5 shrink-0 text-muted-foreground" />
-          : <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />}
-      </button>
-
-      {expanded && hasInsights && (
-        <div className="border-t border-border px-4 pb-4 pt-3 flex flex-col gap-3">
-          {hasInsights && (
-            <div className="flex flex-col gap-1.5">
-              {latest.insights.map((ins, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className={cn(
-                    "mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                    INSIGHT_TYPE_STYLE[ins.type] ?? INSIGHT_TYPE_STYLE.insight,
-                  )}>
-                    {INSIGHT_TYPE_LABEL[ins.type] ?? ins.type}
-                  </span>
-                  <span className="text-sm text-foreground/70">{ins.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={handleTrigger}
-            disabled={triggering}
-            className="self-start flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
-          >
-            {triggering ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
-            다시 분석
-          </button>
-        </div>
-      )}
-    </Section>
-  );
-}
-
 // ── BrainTab ──────────────────────────────────────────────────────────────────
 
-export function BrainTab({ selected, isActive }: { selected: Project; isActive: boolean }) {
-  const [totalDecisionCount, setTotalDecisionCount] = useState<number>(0);
-  const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(null);
-  const [aiLoading, setAiLoading] = useState(true);
-  const [aiRefreshing, setAiRefreshing] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    getProjectKeyDecisionsAction(selected.id)
-      .then((r) => { if (!cancelled) setTotalDecisionCount(r.totalDecisionCount); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [selected.id]);
-
-  useEffect(() => {
-    if (!isActive) return;
-    let cancelled = false;
-    setAiLoading(true);
-    getProjectAiSummaryAction(selected.id)
-      .then((s) => { if (!cancelled) setAiSummary(s); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setAiLoading(false); });
-    return () => { cancelled = true; };
-  }, [isActive, selected.id]);
-
-  async function handleAiRefresh() {
-    setAiRefreshing(true);
-    try {
-      const result = await refreshProjectAiSummaryAction(selected.id);
-      setAiSummary(result);
-      toast.success("AI 분석이 업데이트됐어요.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "AI 분석에 실패했어요.");
-    } finally {
-      setAiRefreshing(false);
-    }
-  }
-
+export function BrainTab({ selected }: { selected: Project }) {
   return (
     <div className="flex flex-col gap-6">
       <BriefPreviewSection projectId={selected.id} />
       <KeyDecisionsPanel projectId={selected.id} />
-      <AiSummaryCard
-        summary={aiSummary?.summary}
-        warnings={aiSummary?.warnings}
-        nextTasks={aiSummary?.nextTasks}
-        refreshedAt={aiSummary?.refreshedAt}
-        loading={aiLoading}
-        refreshing={aiRefreshing}
-        onRefresh={selected.isOwner ? handleAiRefresh : undefined}
-      />
-      {totalDecisionCount >= 30 && (
-        <InsightsSection projectId={selected.id} />
-      )}
     </div>
   );
 }

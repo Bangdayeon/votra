@@ -23,7 +23,7 @@ export function CardRefreshHeader({
 }: Props) {
   const busy = Boolean(loading || refreshing);
   return (
-    <div className="flex flex-col lg:flex-row items-center justify-between gap-1">
+    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-1">
       <h3 className="text-xl font-semibold">{title}</h3>
       {loading ? (
         <Skeleton className="self-end h-3 w-28 lg:self-auto" />

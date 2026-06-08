@@ -100,7 +100,7 @@ export function ProjectPageClient({
       )}
       {visitedTabs.has("brain") && (
         <div className={cn(tab !== "brain" && "hidden")}>
-          <BrainTab selected={project} isActive={tab === "brain"} />
+          <BrainTab selected={project} />
         </div>
       )}
       {visitedTabs.has("tools") && (

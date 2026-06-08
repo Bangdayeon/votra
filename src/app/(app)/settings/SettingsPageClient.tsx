@@ -67,9 +67,6 @@ export function SettingsPageClient({ slug: slugProp }: { slug?: string } = {}) {
     return (
       <div className="flex h-full min-h-0 flex-col overflow-y-auto px-8 mb-6">
         <div className="mt-8 mx-auto w-full max-w-2xl flex flex-col gap-4">
-          <p className="text-xs text-muted-foreground">
-            AI 에이전트가 내부적으로 자동 매칭해서 활용하는 도구예요. 리플렉션이 자동 생성하거나 직접 추가할 수 있어요.
-          </p>
           <ToolsTab />
         </div>
       </div>
@@ -80,9 +77,6 @@ export function SettingsPageClient({ slug: slugProp }: { slug?: string } = {}) {
     return (
       <div className="flex h-full min-h-0 flex-col overflow-y-auto px-8 mb-6">
         <div className="mt-8 mx-auto w-full max-w-2xl flex flex-col gap-4">
-          <p className="text-xs text-muted-foreground">
-            대화 중 /명령어 형태로 직접 호출하는 슬래시 커맨드예요. 반복 작업을 정의해두고 언제든 호출할 수 있어요.
-          </p>
           <CommandsTab />
         </div>
       </div>
@@ -674,10 +668,10 @@ function SettingsForm({
           <>
             <section className="flex flex-col gap-3 rounded-md border border-destructive/30 px-4 py-4">
               <div>
-                <h2 className="text-sm font-medium text-destructive">
+                <h2 className="text-base font-medium text-destructive">
                   위험 구역
                 </h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">
+                <p className="mt-0.5 text-sm text-muted-foreground">
                   되돌릴 수 없는 작업이에요. 신중하게 진행해주세요.
                 </p>
               </div>
@@ -726,9 +720,9 @@ function Section({
   return (
     <section className="flex flex-col gap-3">
       <div>
-        <h2 className="text-sm font-medium">{title}</h2>
+        <h2 className="text-base font-semibold">{title}</h2>
         {description && (
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         )}
       </div>
       {children}

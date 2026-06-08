@@ -420,30 +420,32 @@ export function CommandsTab() {
         />
       )}
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-2">
-        <BookOpen className="size-4 shrink-0 text-muted-foreground" />
-        <h2 className="text-base font-semibold">커맨드</h2>
-        <span className="text-xs text-muted-foreground">에이전트와 대화 중 슬래시 명령어로 실행해요.</span>
-        <div className="ml-auto flex items-center gap-1.5">
-          <button
-            onClick={() => {
-              if (isSelectMode) { exitSelectMode(); } else { setIsSelectMode(true); setShowAdd(false); }
-            }}
-            className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            {!isSelectMode && <CheckSquare className="size-3.5" />}
-            {isSelectMode ? "취소" : "선택하기"}
-          </button>
-          {!isSelectMode && (
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <BookOpen className="size-4 shrink-0 text-muted-foreground" />
+          <h2 className="text-base font-semibold">커맨드</h2>
+          <div className="ml-auto flex items-center gap-1.5">
             <button
-              onClick={() => setShowAdd((v) => !v)}
-              className="flex cursor-pointer items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => {
+                if (isSelectMode) { exitSelectMode(); } else { setIsSelectMode(true); setShowAdd(false); }
+              }}
+              className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Plus className="size-3.5" />
-              커맨드 추가
+              {!isSelectMode && <CheckSquare className="size-3.5" />}
+              {isSelectMode ? "취소" : "선택하기"}
             </button>
-          )}
+            {!isSelectMode && (
+              <button
+                onClick={() => setShowAdd((v) => !v)}
+                className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Plus className="size-3.5" />
+                커맨드 추가
+              </button>
+            )}
+          </div>
         </div>
+        <p className="text-sm text-muted-foreground">에이전트와 대화 중 /슬래시 명령어로 직접 실행하는 커맨드예요.</p>
       </div>
 
       {!isSelectMode && showAdd && (

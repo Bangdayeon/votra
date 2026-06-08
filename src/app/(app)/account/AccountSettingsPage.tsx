@@ -112,22 +112,8 @@ export function AccountSettingsPage() {
         <div className="mx-auto w-full max-w-2xl">
           {active === "account" && <AccountPane />}
           {active === "guide" && <GuidePane />}
-          {active === "tools" && (
-            <div className="flex flex-col gap-4">
-              <p className="text-xs text-muted-foreground">
-                AI 에이전트가 내부적으로 자동 매칭해서 활용하는 도구예요. 리플렉션이 자동 생성하거나 직접 추가할 수 있어요.
-              </p>
-              <ToolsTab />
-            </div>
-          )}
-          {active === "commands" && (
-            <div className="flex flex-col gap-4">
-              <p className="text-xs text-muted-foreground">
-                대화 중 /명령어 형태로 직접 호출하는 슬래시 커맨드예요. 반복 작업을 정의해두고 언제든 호출할 수 있어요.
-              </p>
-              <CommandsTab />
-            </div>
-          )}
+          {active === "tools" && <ToolsTab />}
+          {active === "commands" && <CommandsTab />}
         </div>
       </div>
     </div>

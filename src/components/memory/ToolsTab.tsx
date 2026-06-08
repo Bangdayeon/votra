@@ -462,7 +462,7 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-2">
           <h2 className="text-base font-semibold">툴</h2>
-          <span className="text-xs text-muted-foreground">태스크 작업 시 자동으로 적용돼요.</span>
+          <span className="text-xs text-muted-foreground">AI가 태스크 컨텍스트에 맞는 툴을 자동으로 선택해요.</span>
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -471,7 +471,7 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
                 </span>
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-[220px] text-xs">
-                태스크 생성 시 툴이 자동으로 매칭돼요. 동작이 마음에 들지 않으면 내용 수정을 요청하거나, <code className="rounded bg-muted px-1">load_tool</code>로 직접 불러올 수 있어요.
+                태스크 시작 시 slug와 패턴이 맞는 툴을 자동 적용해요. 내용을 수정하거나 <code className="rounded bg-muted px-1">load_tool</code>로 직접 불러올 수도 있어요.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -487,16 +487,14 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
                 {isSelectMode ? "취소" : "선택하기"}
               </button>
               {!isSelectMode && (
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
                   onClick={() => setShowModal(true)}
+                  className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <Plus className="size-3.5" />
                   툴 추가
-                </Button>
+                </button>
               )}
             </div>
           )}
