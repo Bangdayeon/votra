@@ -1,36 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { getProjectAiSummaryAction } from "@/app/actions/getProjectAiSummary";
-import { refreshProjectAiSummaryAction } from "@/app/actions/refreshProjectAiSummary";
+import type { TaskRecord } from "@/app/actions/getProjectTasks";
 import type { CachedProjectAiSummary } from "@/application/getCachedProjectAiSummary";
-import { AiSummaryCard } from "@/components/overview/AiSummaryCard";
+import { PriorityBadge } from "@/components/common/PriorityBadge";
 import type { Project } from "@/components/project/ProjectsContext";
-import { useRefreshWithToast } from "@/hooks/useRefreshWithToast";
-
-function markInitialized(key: string) {
-  localStorage.setItem(key, "1");
-}
-
-function isInitialized(key: string) {
-  return Boolean(localStorage.getItem(key));
-}
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function OverviewTab({
   selected,
   initialOverview,
+  initialTasks,
 }: {
   selected: Project;
   initialOverview?: { aiSummary: CachedProjectAiSummary };
+  initialTasks?: TaskRecord[];
 }) {
   const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(
     initialOverview?.aiSummary ?? null,
   );
   const [aiLoading, setAiLoading] = useState(!initialOverview);
-  const { refreshing: aiRefreshing, run: runAiRefresh } = useRefreshWithToast();
-
   const skipFirst = useRef(!!initialOverview);
 
   useEffect(() => {
@@ -38,54 +30,77 @@ export function OverviewTab({
     let cancelled = false;
     setAiLoading(true);
     getProjectAiSummaryAction(selected.id)
-      .then((s) => {
-        if (!cancelled) setAiSummary(s);
-      })
+      .then((s) => { if (!cancelled) setAiSummary(s); })
       .catch((err: unknown) => {
         if (cancelled) return;
-        toast.error(
-          err instanceof Error ? err.message : "AI 요약을 불러오지 못했어요.",
-        );
+        toast.error(err instanceof Error ? err.message : "AI 요약을 불러오지 못했어요.");
       })
-      .finally(() => {
-        if (!cancelled) setAiLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .finally(() => { if (!cancelled) setAiLoading(false); });
+    return () => { cancelled = true; };
   }, [selected.id]);
 
-  const onRefresh = useCallback(
-    () =>
-      runAiRefresh(() => refreshProjectAiSummaryAction(selected.id), {
-        onSuccess: setAiSummary,
-        successMessage: "AI 분석이 업데이트됐어요.",
-        defaultErrorMessage: "AI 분석에 실패했어요.",
-      }),
-    [selected.id, runAiRefresh],
-  );
+  const tasks = initialTasks ?? [];
+  const inProgress = tasks.filter((t) => t.status === "IN_PROGRESS");
+  const pending = tasks.filter((t) => t.status === "PENDING");
+  const previewTasks = [...inProgress, ...pending].slice(0, 3);
 
-  // 캐시가 없는 경우(= 프로젝트 첫 추가)에만 자동 분석
-  useEffect(() => {
-    const key = `haema-ai-init-${selected.id}`;
-    if (aiLoading || aiRefreshing) return;
-    if (aiSummary !== null || isInitialized(key)) return;
-
-    markInitialized(key);
-    void onRefresh();
-  }, [aiLoading, aiRefreshing, aiSummary, selected.id, onRefresh]);
+  const nextTasks = aiSummary?.nextTasks ?? [];
 
   return (
-    <div className="flex pb-6 flex-col gap-6">
-      <AiSummaryCard
-        summary={aiSummary?.summary}
-        warnings={aiSummary?.warnings}
-        nextTasks={aiSummary?.nextTasks}
-        refreshedAt={aiSummary?.refreshedAt}
-        loading={aiLoading}
-        refreshing={aiRefreshing}
-        onRefresh={selected.isOwner ? onRefresh : undefined}
-      />
+    <div className="flex pb-6 flex-col gap-4">
+      <div className="rounded-xl border border-border bg-card p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">현재 태스크</p>
+        {previewTasks.length === 0 ? (
+          <p className="text-sm text-muted-foreground">진행 중이거나 대기 중인 태스크가 없어요.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {previewTasks.map((t) => (
+              <li key={t.id} className="flex items-center gap-2 min-w-0">
+                <StatusBadge status={t.status} />
+                <span className="text-xs text-muted-foreground shrink-0">#{t.seq}</span>
+                <span className="text-sm text-foreground truncate">{t.title}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">AI 제안</p>
+        {aiLoading ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        ) : nextTasks.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Brain 탭에서 AI 분석을 실행해 주세요.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {nextTasks.map((task, i) => (
+              <li key={i} className="flex items-center gap-2 min-w-0">
+                <PriorityBadge priority={task.priority} />
+                <span className="text-sm text-foreground truncate">{task.title}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "IN_PROGRESS") {
+    return (
+      <span className="shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+        진행중
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+      대기
+    </span>
   );
 }

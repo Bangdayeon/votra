@@ -82,7 +82,7 @@ export function ProjectPageClient({
     <div className="px-8 py-6">
       {visitedTabs.has("main") && (
         <div className={cn(tab !== "main" && "hidden")}>
-          <OverviewTab selected={project} initialOverview={initialData?.overview} />
+          <OverviewTab selected={project} initialOverview={initialData?.overview} initialTasks={initialData?.tasks} />
         </div>
       )}
       {visitedTabs.has("manage") && (

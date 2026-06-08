@@ -8,12 +8,16 @@ import type { BriefPreviewData } from "@/app/actions/getBriefPreviewAction";
 import { getBriefPreviewAction } from "@/app/actions/getBriefPreviewAction";
 import { getMemoryContextAction } from "@/app/actions/getMemoryContextAction";
 import { getMemoryReflectionsAction } from "@/app/actions/getMemoryReflectionsAction";
+import { getProjectAiSummaryAction } from "@/app/actions/getProjectAiSummary";
 import { getProjectKeyDecisionsAction, type KeyDecisionRecord } from "@/app/actions/getProjectKeyDecisionsAction";
+import { refreshProjectAiSummaryAction } from "@/app/actions/refreshProjectAiSummary";
 import { triggerMemoryReflectionAction } from "@/app/actions/triggerMemoryReflectionAction";
 import {
   type UpdateMemoryContextInput,
   updateMemoryContextAction,
 } from "@/app/actions/updateMemoryContextAction";
+import type { CachedProjectAiSummary } from "@/application/getCachedProjectAiSummary";
+import { AiSummaryCard } from "@/components/overview/AiSummaryCard";
 import type { Project } from "@/components/project/ProjectsContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -507,6 +511,9 @@ function InsightsSection({ projectId }: { projectId: string }) {
 
 export function BrainTab({ selected }: { selected: Project }) {
   const [totalDecisionCount, setTotalDecisionCount] = useState<number>(0);
+  const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(null);
+  const [aiLoading, setAiLoading] = useState(true);
+  const [aiRefreshing, setAiRefreshing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -516,10 +523,42 @@ export function BrainTab({ selected }: { selected: Project }) {
     return () => { cancelled = true; };
   }, [selected.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setAiLoading(true);
+    getProjectAiSummaryAction(selected.id)
+      .then((s) => { if (!cancelled) setAiSummary(s); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setAiLoading(false); });
+    return () => { cancelled = true; };
+  }, [selected.id]);
+
+  async function handleAiRefresh() {
+    setAiRefreshing(true);
+    try {
+      const result = await refreshProjectAiSummaryAction(selected.id);
+      setAiSummary(result);
+      toast.success("AI 분석이 업데이트됐어요.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "AI 분석에 실패했어요.");
+    } finally {
+      setAiRefreshing(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <BriefPreviewSection projectId={selected.id} />
       <KeyDecisionsPanel projectId={selected.id} />
+      <AiSummaryCard
+        summary={aiSummary?.summary}
+        warnings={aiSummary?.warnings}
+        nextTasks={aiSummary?.nextTasks}
+        refreshedAt={aiSummary?.refreshedAt}
+        loading={aiLoading}
+        refreshing={aiRefreshing}
+        onRefresh={selected.isOwner ? handleAiRefresh : undefined}
+      />
       {totalDecisionCount >= 30 && (
         <InsightsSection projectId={selected.id} />
       )}
