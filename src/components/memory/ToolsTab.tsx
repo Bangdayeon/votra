@@ -8,7 +8,6 @@ import { toast } from "sonner";
 
 import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getToolsAction";
 import { toggleToolAction } from "@/app/actions/toggleCustomCommandAction";
-import type { Project } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
 import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 
@@ -49,25 +48,23 @@ function Toggle({
 
 function ToolRow({
   tool,
-  projectId,
   badgeColor,
   onToggled,
 }: {
   tool: ProjectToolRecord;
-  projectId: string;
   badgeColor: string;
-  onToggled: (slug: string, isEnabled: boolean) => void;
+  onToggled: (id: string, isEnabled: boolean) => void;
 }) {
   const [pending, setPending] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   async function handleToggle(isEnabled: boolean) {
     setPending(true);
-    onToggled(tool.slug, isEnabled); // optimistic
+    onToggled(tool.id, isEnabled); // optimistic
     try {
-      await toggleToolAction(projectId, tool.slug, isEnabled);
+      await toggleToolAction(tool.id, isEnabled);
     } catch (err) {
-      onToggled(tool.slug, !isEnabled); // rollback
+      onToggled(tool.id, !isEnabled); // rollback
       toast.error(err instanceof Error ? err.message : "툴 설정 변경에 실패했어요.");
     } finally {
       setPending(false);
@@ -132,15 +129,13 @@ function ToolRow({
 function FolderSection({
   folder,
   tools,
-  projectId,
   colorMap,
   onToggled,
 }: {
   folder: string;
   tools: ProjectToolRecord[];
-  projectId: string;
   colorMap: Map<string, string>;
-  onToggled: (slug: string, isEnabled: boolean) => void;
+  onToggled: (id: string, isEnabled: boolean) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const enabledCount = tools.filter((t) => t.isEnabled).length;
@@ -167,7 +162,6 @@ function FolderSection({
             <ToolRow
               key={tool.slug}
               tool={tool}
-              projectId={projectId}
               badgeColor={colorMap.get(tool.slug) ?? BADGE_COLORS[0]}
               onToggled={onToggled}
             />
@@ -180,14 +174,14 @@ function FolderSection({
 
 // ── ToolsTab ──────────────────────────────────────────────────────────────────
 
-export function ToolsTab({ selected }: { selected: Project }) {
+export function ToolsTab({ projectId }: { projectId?: string } = {}) {
   const [tools, setTools] = useState<ProjectToolRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getToolsAction(selected.id)
+    getToolsAction(projectId)
       .then((data) => {
         if (!cancelled) setTools(data);
       })
@@ -196,10 +190,10 @@ export function ToolsTab({ selected }: { selected: Project }) {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [selected.id]);
+  }, [projectId]);
 
-  function handleToggled(slug: string, isEnabled: boolean) {
-    setTools((prev) => prev.map((t) => t.slug === slug ? { ...t, isEnabled } : t));
+  function handleToggled(id: string, isEnabled: boolean) {
+    setTools((prev) => prev.map((t) => t.id === id ? { ...t, isEnabled } : t));
   }
 
   const grouped = useMemo(() => {
@@ -262,7 +256,6 @@ export function ToolsTab({ selected }: { selected: Project }) {
               key={folder}
               folder={folder}
               tools={grouped.get(folder) ?? []}
-              projectId={selected.id}
               colorMap={colorMap}
               onToggled={handleToggled}
             />

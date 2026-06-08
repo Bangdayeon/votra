@@ -10,13 +10,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "인증이 필요해요." }, { status: 401 });
   }
 
-  const { searchParams } = new URL(req.url);
-  const projectId = searchParams.get("projectId");
-  if (!projectId) {
-    return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
-  }
-
-  const result = await listCommands(projectId, { commands: prismaCommandRepository });
+  const result = await listCommands(user.id, { commands: prismaCommandRepository });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   return NextResponse.json({ ok: true, commands: result.value });
 }

@@ -27,7 +27,8 @@ function toRecord(row: {
   hookScript: string | null;
   isEnabled: boolean;
   isBuiltIn: boolean;
-  projectId: string;
+  userId: string;
+  projectId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): ProjectToolRecord {
@@ -37,33 +38,40 @@ function toRecord(row: {
 export const prismaToolRepository: ToolRepository = {
   async upsertByName(input: UpsertToolInput) {
     const slug = input.slug ?? toKebabSlug(input.name);
-    const row = await prisma.projectTool.upsert({
-      where: { projectId_slug: { projectId: input.projectId, slug } },
-      create: {
-        projectId: input.projectId,
-        slug,
-        name: input.name,
-        description: input.description,
-        folder: input.folder,
-        content: input.content,
-        isBuiltIn: input.isBuiltIn ?? false,
-        patternSummary: input.patternSummary ?? null,
-        contextHint: input.contextHint ?? null,
-        hookEvent: input.hookEvent ?? null,
-        hookMatcher: input.hookMatcher ?? null,
-        hookScript: input.hookScript ?? null,
-      },
-      update: {
-        description: input.description,
-        folder: input.folder,
-        content: input.content,
-        isBuiltIn: input.isBuiltIn ?? false,
-        patternSummary: input.patternSummary ?? null,
-        contextHint: input.contextHint ?? null,
-        hookEvent: input.hookEvent ?? null,
-        hookMatcher: input.hookMatcher ?? null,
-        hookScript: input.hookScript ?? null,
-      },
+    const commonFields = {
+      description: input.description,
+      folder: input.folder,
+      content: input.content,
+      isBuiltIn: input.isBuiltIn ?? false,
+      patternSummary: input.patternSummary ?? null,
+      contextHint: input.contextHint ?? null,
+      hookEvent: input.hookEvent ?? null,
+      hookMatcher: input.hookMatcher ?? null,
+      hookScript: input.hookScript ?? null,
+    };
+
+    if (input.projectId) {
+      const row = await prisma.projectTool.upsert({
+        where: { projectId_slug: { projectId: input.projectId, slug } },
+        create: { userId: input.userId, projectId: input.projectId, slug, name: input.name, ...commonFields },
+        update: commonFields,
+      });
+      return toRecord(row);
+    }
+
+    // 글로벌 툴: partial unique index (projectId IS NULL) 기반 upsert
+    const existing = await prisma.projectTool.findFirst({
+      where: { userId: input.userId, slug, projectId: null },
+    });
+    if (existing) {
+      const row = await prisma.projectTool.update({
+        where: { id: existing.id },
+        data: commonFields,
+      });
+      return toRecord(row);
+    }
+    const row = await prisma.projectTool.create({
+      data: { userId: input.userId, projectId: null, slug, name: input.name, ...commonFields },
     });
     return toRecord(row);
   },
@@ -71,7 +79,9 @@ export const prismaToolRepository: ToolRepository = {
   async create(input: CreateToolInput) {
     const baseSlug = toKebabSlug(input.name);
     const existing = await prisma.projectTool.findMany({
-      where: { projectId: input.projectId, slug: { startsWith: baseSlug } },
+      where: input.projectId
+        ? { projectId: input.projectId, slug: { startsWith: baseSlug } }
+        : { userId: input.userId, projectId: null, slug: { startsWith: baseSlug } },
       select: { slug: true },
     });
     const slugSet = new Set(existing.map((r) => r.slug));
@@ -82,7 +92,8 @@ export const prismaToolRepository: ToolRepository = {
     }
     const row = await prisma.projectTool.create({
       data: {
-        projectId: input.projectId,
+        userId: input.userId,
+        projectId: input.projectId ?? null,
         slug,
         name: input.name,
         description: input.description,
@@ -107,6 +118,14 @@ export const prismaToolRepository: ToolRepository = {
     return rows.map(toRecord);
   },
 
+  async listGlobal(userId: string) {
+    const rows = await prisma.projectTool.findMany({
+      where: { userId, projectId: null },
+      orderBy: [{ folder: "asc" }, { createdAt: "asc" }],
+    });
+    return rows.map(toRecord);
+  },
+
   async findBySlug(projectId: string, slug: string) {
     const row = await prisma.projectTool.findUnique({
       where: { projectId_slug: { projectId, slug } },
@@ -114,9 +133,9 @@ export const prismaToolRepository: ToolRepository = {
     return row ? toRecord(row) : null;
   },
 
-  async setEnabled(projectId: string, slug: string, isEnabled: boolean) {
+  async setEnabled(id: string, isEnabled: boolean) {
     await prisma.projectTool.update({
-      where: { projectId_slug: { projectId, slug } },
+      where: { id },
       data: { isEnabled },
     });
   },

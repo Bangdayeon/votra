@@ -2,12 +2,12 @@ import { DEFAULT_TOOLS } from "@/domain/memory/defaultTools";
 import type { ToolRepository } from "@/application/ports/toolRepository";
 
 export async function seedDefaultTools(
-  projectId: string,
+  userId: string,
   deps: { tools: ToolRepository },
 ): Promise<void> {
   for (const tool of DEFAULT_TOOLS) {
     await deps.tools.upsertByName({
-      projectId,
+      userId,
       slug: tool.slug,
       name: tool.name,
       description: tool.description,

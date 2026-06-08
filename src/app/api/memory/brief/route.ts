@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const [project, aiNextTask, aiSummary, foldersResult, longTermTasks, reflections, memoryContext, rawTools, latestReflectionRaw] = await Promise.all([
+  const [project, aiNextTask, aiSummary, foldersResult, longTermTasks, reflections, memoryContext, rawProjectTools, rawGlobalTools, latestReflectionRaw] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       select: { title: true, cwd: true, settings: true },
@@ -42,6 +42,7 @@ export async function GET(req: Request) {
     listMemoryReflections(projectId, 1, { reflections: prismaMemoryReflectionRepository }),
     prismaMemoryContextRepository.findByProject(projectId),
     prismaToolRepository.listByProject(projectId),
+    prismaToolRepository.listGlobal(user.id),
     prisma.projectMemoryReflection.findFirst({
       where: { projectId },
       orderBy: { createdAt: "desc" },
@@ -53,12 +54,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "프로젝트를 찾을 수 없어요." }, { status: 404 });
   }
 
-  // 새 프로젝트: 커스텀 커맨드 0개이면 기본 커맨드 lazy seeding
-  let toolsResult = rawTools;
-  if (toolsResult.length === 0) {
-    await seedDefaultTools(projectId, { tools: prismaToolRepository });
-    toolsResult = await prismaToolRepository.listByProject(projectId);
+  // 글로벌 툴이 없으면 기본 툴 lazy seeding
+  let globalTools = rawGlobalTools;
+  if (globalTools.length === 0) {
+    await seedDefaultTools(user.id, { tools: prismaToolRepository });
+    globalTools = await prismaToolRepository.listGlobal(user.id);
   }
+
+  // 글로벌 + 프로젝트 툴 합산 (글로벌 우선, 중복 slug 제거)
+  const globalSlugs = new Set(globalTools.map((t) => t.slug));
+  const toolsResult = [...globalTools, ...rawProjectTools.filter((t) => !globalSlugs.has(t.slug))];
 
   const result = await getProjectBrief(
     {

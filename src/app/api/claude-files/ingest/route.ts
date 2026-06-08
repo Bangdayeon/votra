@@ -80,6 +80,7 @@ export async function POST(req: Request) {
     await prisma.projectTool.upsert({
       where: { projectId_slug: { projectId: project.id, slug } },
       create: {
+        userId: user.id,
         projectId: project.id,
         slug,
         name: file.displayPath,

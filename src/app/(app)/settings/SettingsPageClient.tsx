@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { updateProjectAction } from "@/app/actions/updateProject";
 import { toast } from "sonner";
+import { CommandsTab } from "@/components/memory/CommandsTab";
+import { ToolsTab } from "@/components/memory/ToolsTab";
 import { DeleteProjectConfirmDialog } from "@/components/project/DeleteProjectConfirmDialog";
 import { useProjects } from "@/components/project/ProjectsContext";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,7 @@ import {
 } from "@/domain/project/settings/types";
 import { cn } from "@/lib/utils";
 
+type GlobalTab = "project" | "tools" | "commands";
 type SettingsTab = "all" | "overview" | "integrations";
 
 type SaveState = { kind: "idle" } | { kind: "saving" };
@@ -45,45 +48,104 @@ const INTEGRATION_SERVICES = [
   },
 ] as const;
 
+const GLOBAL_TABS: { label: string; key: GlobalTab }[] = [
+  { label: "프로젝트", key: "project" },
+  { label: "툴", key: "tools" },
+  { label: "커맨드", key: "commands" },
+];
+
+function parseGlobalTab(value: string | null): GlobalTab {
+  if (value === "tools") return "tools";
+  if (value === "commands") return "commands";
+  return "project";
+}
+
 export function SettingsPageClient({ slug: slugProp }: { slug?: string } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const globalTab = parseGlobalTab(searchParams.get("section"));
   const slug = slugProp ?? decodeSlug(searchParams.get("project"));
   const { projects } = useProjects();
 
-  const project = projects.find((p) => p.name === slug) ?? null;
-
-  if (!slug) {
-    return <ProjectPicker />;
-  }
-
-  if (!project) {
-    return (
-      <div className="flex h-full flex-col px-8 py-6">
-        <h1 className="text-xl font-medium">설정</h1>
-        <p className="mt-6 text-sm text-muted-foreground">
-          프로젝트를 찾을 수 없어요.
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          className="mt-4 w-fit"
-          onClick={() => router.push("/")}
-        >
-          홈으로
-        </Button>
-      </div>
-    );
+  function setGlobalTab(tab: GlobalTab) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("section", tab);
+    if (tab !== "project") params.delete("project");
+    router.replace(`/settings?${params.toString()}`);
   }
 
   return (
-    <SettingsForm
-      projectId={project.id}
-      projectName={project.name}
-      projectDescription={project.description ?? ""}
-      projectImage={project.image}
-      isOwner={project.isOwner ?? true}
-    />
+    <div className="flex h-full flex-col">
+      <div className="flex shrink-0 gap-1 border-b border-border px-8 pt-8">
+        {GLOBAL_TABS.map(({ label, key }) => (
+          <button
+            key={key}
+            onClick={() => setGlobalTab(key)}
+            className={cn(
+              "px-3 py-2 text-sm font-medium transition-colors",
+              globalTab === key
+                ? "border-b-2 border-foreground text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {globalTab === "tools" && (
+        <div className="overflow-y-auto px-8 py-6">
+          <div className="mx-auto w-full max-w-2xl flex flex-col gap-4">
+            <p className="text-xs text-muted-foreground">
+              AI 에이전트가 내부적으로 자동 매칭해서 활용하는 도구예요. 리플렉션이 자동 생성하거나 직접 추가할 수 있어요.
+            </p>
+            <ToolsTab />
+          </div>
+        </div>
+      )}
+
+      {globalTab === "commands" && (
+        <div className="overflow-y-auto px-8 py-6">
+          <div className="mx-auto w-full max-w-2xl flex flex-col gap-4">
+            <p className="text-xs text-muted-foreground">
+              대화 중 /명령어 형태로 직접 호출하는 슬래시 커맨드예요. 반복 작업을 정의해두고 언제든 호출할 수 있어요.
+            </p>
+            <CommandsTab />
+          </div>
+        </div>
+      )}
+
+      {globalTab === "project" && (() => {
+        const project = projects.find((p) => p.name === slug) ?? null;
+        if (!slug) return <ProjectPicker />;
+        if (!project) {
+          return (
+            <div className="flex h-full flex-col px-8 py-6">
+              <p className="mt-6 text-sm text-muted-foreground">
+                프로젝트를 찾을 수 없어요.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 w-fit"
+                onClick={() => router.push("/")}
+              >
+                홈으로
+              </Button>
+            </div>
+          );
+        }
+        return (
+          <SettingsForm
+            projectId={project.id}
+            projectName={project.name}
+            projectDescription={project.description ?? ""}
+            projectImage={project.image}
+            isOwner={project.isOwner ?? true}
+          />
+        );
+      })()}
+    </div>
   );
 }
 

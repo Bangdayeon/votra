@@ -3,6 +3,7 @@ import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 
 export async function applyToolSuggestions(
   projectId: string,
+  userId: string,
   suggestions: ToolSuggestion[],
   deps: { tools: ToolRepository },
 ): Promise<void> {
@@ -11,6 +12,7 @@ export async function applyToolSuggestions(
   await Promise.all(
     suggestions.map((s) =>
       deps.tools.upsertByName({
+        userId,
         projectId,
         name: s.name,
         description: s.description,

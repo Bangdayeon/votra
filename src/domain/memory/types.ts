@@ -65,7 +65,7 @@ export type ProjectCommandRecord = {
   folder: string;
   content: string;
   isBuiltIn: boolean;
-  projectId: string;
+  userId: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -84,7 +84,8 @@ export type ProjectToolRecord = {
   hookScript: string | null;
   isEnabled: boolean;
   isBuiltIn: boolean;
-  projectId: string;
+  userId: string;
+  projectId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

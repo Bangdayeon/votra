@@ -1,14 +1,13 @@
 "use server";
 
-import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
+import { getCurrentUser } from "@/infrastructure/auth/currentUser";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 
 export async function toggleToolAction(
-  projectId: string,
-  slug: string,
+  id: string,
   isEnabled: boolean,
 ): Promise<void> {
-  const guard = await assertProjectMember(projectId);
-  if (!guard.ok) throw new Error(guard.error);
-  await prismaToolRepository.setEnabled(projectId, slug, isEnabled);
+  const user = await getCurrentUser();
+  if (!user) throw new Error("로그인이 필요해요.");
+  await prismaToolRepository.setEnabled(id, isEnabled);
 }

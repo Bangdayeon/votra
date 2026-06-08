@@ -21,7 +21,7 @@ function toRecord(row: {
   folder: string;
   content: string;
   isBuiltIn: boolean;
-  projectId: string;
+  userId: string;
   createdAt: Date;
   updatedAt: Date;
 }): ProjectCommandRecord {
@@ -32,9 +32,9 @@ export const prismaCommandRepository: CommandRepository = {
   async upsertByName(input: UpsertCommandInput) {
     const slug = input.slug ?? toKebabSlug(input.name);
     const row = await prisma.projectCommand.upsert({
-      where: { projectId_slug: { projectId: input.projectId, slug } },
+      where: { userId_slug: { userId: input.userId, slug } },
       create: {
-        projectId: input.projectId,
+        userId: input.userId,
         slug,
         name: input.name,
         description: input.description,
@@ -55,7 +55,7 @@ export const prismaCommandRepository: CommandRepository = {
   async create(input: CreateCommandInput) {
     const baseSlug = toKebabSlug(input.name);
     const existing = await prisma.projectCommand.findMany({
-      where: { projectId: input.projectId, slug: { startsWith: baseSlug } },
+      where: { userId: input.userId, slug: { startsWith: baseSlug } },
       select: { slug: true },
     });
     const slugSet = new Set(existing.map((r) => r.slug));
@@ -66,7 +66,7 @@ export const prismaCommandRepository: CommandRepository = {
     }
     const row = await prisma.projectCommand.create({
       data: {
-        projectId: input.projectId,
+        userId: input.userId,
         slug,
         name: input.name,
         description: input.description,
@@ -78,17 +78,17 @@ export const prismaCommandRepository: CommandRepository = {
     return toRecord(row);
   },
 
-  async listByProject(projectId: string) {
+  async listByUser(userId: string) {
     const rows = await prisma.projectCommand.findMany({
-      where: { projectId },
+      where: { userId },
       orderBy: [{ folder: "asc" }, { createdAt: "asc" }],
     });
     return rows.map(toRecord);
   },
 
-  async findBySlug(projectId: string, slug: string) {
+  async findBySlug(userId: string, slug: string) {
     const row = await prisma.projectCommand.findUnique({
-      where: { projectId_slug: { projectId, slug } },
+      where: { userId_slug: { userId, slug } },
     });
     return row ? toRecord(row) : null;
   },

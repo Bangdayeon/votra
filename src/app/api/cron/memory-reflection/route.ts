@@ -41,19 +41,19 @@ export async function GET(req: Request) {
         engine: reflectionEngine,
       });
 
-      if (reflection.toolSuggestions.length > 0) {
-        await applyToolSuggestions(p.id, reflection.toolSuggestions, {
-          tools: prismaToolRepository,
-        });
-      }
-
-      if (reflection.toolEnrichments.length > 0) {
-        await applyToolEnrichments(p.id, reflection.toolEnrichments, {
-          tools: prismaToolRepository,
-        });
-      }
-
       const ownerId = p.members[0]?.userId;
+
+      if (ownerId && reflection.toolSuggestions.length > 0) {
+        await applyToolSuggestions(p.id, ownerId, reflection.toolSuggestions, {
+          tools: prismaToolRepository,
+        });
+      }
+
+      if (ownerId && reflection.toolEnrichments.length > 0) {
+        await applyToolEnrichments(p.id, ownerId, reflection.toolEnrichments, {
+          tools: prismaToolRepository,
+        });
+      }
       if (ownerId && reflection.suggestedTasks.length > 0) {
         await createProposalTasks(p.id, ownerId, reflection.suggestedTasks, {
           tasks: prismaTaskRepository,

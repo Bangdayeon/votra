@@ -1,7 +1,8 @@
 import type { ProjectToolRecord } from "@/domain/memory/types";
 
 export type CreateToolInput = {
-  projectId: string;
+  userId: string;
+  projectId?: string;
   name: string;
   description: string;
   folder: string;
@@ -15,7 +16,8 @@ export type CreateToolInput = {
 };
 
 export type UpsertToolInput = {
-  projectId: string;
+  userId: string;
+  projectId?: string;
   slug?: string;
   name: string;
   description: string;
@@ -33,6 +35,7 @@ export type ToolRepository = {
   create: (input: CreateToolInput) => Promise<ProjectToolRecord>;
   upsertByName: (input: UpsertToolInput) => Promise<ProjectToolRecord>;
   listByProject: (projectId: string) => Promise<ProjectToolRecord[]>;
+  listGlobal: (userId: string) => Promise<ProjectToolRecord[]>;
   findBySlug: (projectId: string, slug: string) => Promise<ProjectToolRecord | null>;
-  setEnabled: (projectId: string, slug: string, isEnabled: boolean) => Promise<void>;
+  setEnabled: (id: string, isEnabled: boolean) => Promise<void>;
 };

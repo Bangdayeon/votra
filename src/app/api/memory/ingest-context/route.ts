@@ -112,13 +112,13 @@ async function checkAndTriggerReflection(projectId: string, userId: string): Pro
   });
 
   if (reflection.toolSuggestions.length > 0) {
-    await applyToolSuggestions(projectId, reflection.toolSuggestions, {
+    await applyToolSuggestions(projectId, userId, reflection.toolSuggestions, {
       tools: prismaToolRepository,
     }).catch(() => {});
   }
 
   if (reflection.toolEnrichments.length > 0) {
-    await applyToolEnrichments(projectId, reflection.toolEnrichments, {
+    await applyToolEnrichments(projectId, userId, reflection.toolEnrichments, {
       tools: prismaToolRepository,
     }).catch(() => {});
   }

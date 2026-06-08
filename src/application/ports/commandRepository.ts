@@ -1,7 +1,7 @@
 import type { ProjectCommandRecord } from "@/domain/memory/types";
 
 export type CreateCommandInput = {
-  projectId: string;
+  userId: string;
   name: string;
   description: string;
   folder: string;
@@ -10,7 +10,7 @@ export type CreateCommandInput = {
 };
 
 export type UpsertCommandInput = {
-  projectId: string;
+  userId: string;
   slug?: string;
   name: string;
   description: string;
@@ -22,6 +22,6 @@ export type UpsertCommandInput = {
 export type CommandRepository = {
   create: (input: CreateCommandInput) => Promise<ProjectCommandRecord>;
   upsertByName: (input: UpsertCommandInput) => Promise<ProjectCommandRecord>;
-  listByProject: (projectId: string) => Promise<ProjectCommandRecord[]>;
-  findBySlug: (projectId: string, slug: string) => Promise<ProjectCommandRecord | null>;
+  listByUser: (userId: string) => Promise<ProjectCommandRecord[]>;
+  findBySlug: (userId: string, slug: string) => Promise<ProjectCommandRecord | null>;
 };

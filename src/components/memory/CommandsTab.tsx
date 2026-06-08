@@ -7,7 +7,6 @@ import { toast } from "sonner";
 
 import { getCommandsAction, type ProjectCommandRecord } from "@/app/actions/getCustomCommandsAction";
 import { createCommandAction } from "@/app/actions/createCommandAction";
-import type { Project } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
 import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 
@@ -106,12 +105,10 @@ function FolderSection({
 // ── AddCommandForm ─────────────────────────────────────────────────────────────
 
 function AddCommandForm({
-  projectId,
   existingFolders,
   onAdded,
   onCancel,
 }: {
-  projectId: string;
   existingFolders: string[];
   onAdded: (command: ProjectCommandRecord) => void;
   onCancel: () => void;
@@ -132,7 +129,7 @@ function AddCommandForm({
     if (!name.trim() || !content.trim()) return;
     setPending(true);
     try {
-      const result = await createCommandAction(projectId, {
+      const result = await createCommandAction({
         name: name.trim(),
         description: description.trim(),
         folder: folder.trim() || "기타",
@@ -232,7 +229,7 @@ function AddCommandForm({
 
 // ── CommandsTab ───────────────────────────────────────────────────────────────
 
-export function CommandsTab({ selected }: { selected: Project }) {
+export function CommandsTab() {
   const [commands, setCommands] = useState<ProjectCommandRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -240,7 +237,7 @@ export function CommandsTab({ selected }: { selected: Project }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getCommandsAction(selected.id)
+    getCommandsAction()
       .then((data) => {
         if (!cancelled) setCommands(data);
       })
@@ -249,7 +246,7 @@ export function CommandsTab({ selected }: { selected: Project }) {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [selected.id]);
+  }, []);
 
   function handleAdded(command: ProjectCommandRecord) {
     setCommands((prev) => [...prev, command]);
@@ -287,7 +284,6 @@ export function CommandsTab({ selected }: { selected: Project }) {
 
       {showAdd && (
         <AddCommandForm
-          projectId={selected.id}
           existingFolders={orderedFolders}
           onAdded={handleAdded}
           onCancel={() => setShowAdd(false)}

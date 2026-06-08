@@ -29,13 +29,13 @@ export async function triggerMemoryReflectionAction(
   });
 
   if (reflection.toolSuggestions.length > 0) {
-    await applyToolSuggestions(projectId, reflection.toolSuggestions, {
+    await applyToolSuggestions(projectId, guard.userId, reflection.toolSuggestions, {
       tools: prismaToolRepository,
     }).catch(() => {});
   }
 
   if (reflection.toolEnrichments.length > 0) {
-    await applyToolEnrichments(projectId, reflection.toolEnrichments, {
+    await applyToolEnrichments(projectId, guard.userId, reflection.toolEnrichments, {
       tools: prismaToolRepository,
     }).catch(() => {});
   }

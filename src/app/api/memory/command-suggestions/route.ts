@@ -11,15 +11,16 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId");
-  if (!projectId) return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
 
   const [latestReflection, existingCommands] = await Promise.all([
-    prisma.projectMemoryReflection.findFirst({
-      where: { projectId },
-      orderBy: { createdAt: "desc" },
-      select: { toolSuggestions: true },
-    }),
-    prismaCommandRepository.listByProject(projectId),
+    projectId
+      ? prisma.projectMemoryReflection.findFirst({
+          where: { projectId },
+          orderBy: { createdAt: "desc" },
+          select: { toolSuggestions: true },
+        })
+      : Promise.resolve(null),
+    prismaCommandRepository.listByUser(user.id),
   ]);
 
   if (!latestReflection) {

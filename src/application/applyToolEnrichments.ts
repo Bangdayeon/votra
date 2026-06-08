@@ -3,6 +3,7 @@ import type { ToolEnrichment } from "@/domain/memory/memoryTierTypes";
 
 export async function applyToolEnrichments(
   projectId: string,
+  userId: string,
   enrichments: ToolEnrichment[],
   deps: { tools: ToolRepository },
 ): Promise<void> {
@@ -19,6 +20,7 @@ export async function applyToolEnrichments(
 
       const separator = tool.content.endsWith("\n") ? "\n" : "\n\n";
       await deps.tools.upsertByName({
+        userId,
         projectId,
         slug: tool.slug,
         name: tool.name,

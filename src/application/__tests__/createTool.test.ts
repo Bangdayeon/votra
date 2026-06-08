@@ -19,6 +19,7 @@ function makeTool(overrides?: Partial<ProjectToolRecord>): ProjectToolRecord {
     hookScript: null,
     isEnabled: true,
     isBuiltIn: false,
+    userId: "user-1",
     projectId: "proj-1",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -26,7 +27,7 @@ function makeTool(overrides?: Partial<ProjectToolRecord>): ProjectToolRecord {
   };
 }
 
-const BASE_INPUT = { projectId: "proj-1", name: "커스텀 툴", description: "설명", folder: "기타", content: "## 내용" };
+const BASE_INPUT = { userId: "user-1", projectId: "proj-1", name: "커스텀 툴", description: "설명", folder: "기타", content: "## 내용" };
 
 describe("createTool", () => {
   it("빈 이름이면 err를 반환한다", async () => {

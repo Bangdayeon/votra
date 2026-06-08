@@ -2,7 +2,7 @@ import type { CommandRepository } from "@/application/ports/commandRepository";
 import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 
 export async function applyCommandSuggestions(
-  projectId: string,
+  userId: string,
   suggestions: ToolSuggestion[],
   deps: { commands: CommandRepository },
 ): Promise<void> {
@@ -11,7 +11,7 @@ export async function applyCommandSuggestions(
   await Promise.all(
     suggestions.map((s) =>
       deps.commands.upsertByName({
-        projectId,
+        userId,
         name: s.name,
         description: s.description,
         folder: s.folder,

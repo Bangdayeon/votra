@@ -1,5 +1,5 @@
 /**
- * 모든 프로젝트에 기본 스킬을 upsert.
+ * 모든 유저에게 기본 스킬(글로벌 툴)을 upsert.
  * vercel.json buildCommand에서 실행돼요: npm run db:deploy && npx tsx scripts/seed-skills.ts && npm run build
  *
  * 실행: npx tsx scripts/seed-skills.ts
@@ -11,36 +11,45 @@ import { DEFAULT_SKILLS } from "../src/domain/memory/defaultSkills";
 const prisma = new PrismaClient();
 
 async function main() {
-  const projects = await prisma.project.findMany({ select: { id: true } });
-  console.log(`프로젝트 ${projects.length}개 발견`);
+  const users = await prisma.user.findMany({ select: { id: true } });
+  console.log(`유저 ${users.length}명 발견`);
 
   let total = 0;
-  for (const project of projects) {
+  for (const user of users) {
     for (const skill of DEFAULT_SKILLS) {
-      await prisma.projectTool.upsert({
-        where: { projectId_slug: { projectId: project.id, slug: skill.slug } },
-        create: {
-          projectId: project.id,
-          slug: skill.slug,
-          name: skill.name,
-          description: skill.description,
-          folder: skill.folder,
-          content: skill.content,
-          contextHint: skill.contextHint ?? null,
-        },
-        update: {
-          name: skill.name,
-          description: skill.description,
-          folder: skill.folder,
-          content: skill.content,
-          contextHint: skill.contextHint ?? null,
-        },
+      const existing = await prisma.projectTool.findFirst({
+        where: { userId: user.id, slug: skill.slug, projectId: null },
       });
+      if (existing) {
+        await prisma.projectTool.update({
+          where: { id: existing.id },
+          data: {
+            name: skill.name,
+            description: skill.description,
+            folder: skill.folder,
+            content: skill.content,
+            contextHint: skill.contextHint ?? null,
+          },
+        });
+      } else {
+        await prisma.projectTool.create({
+          data: {
+            userId: user.id,
+            projectId: null,
+            slug: skill.slug,
+            name: skill.name,
+            description: skill.description,
+            folder: skill.folder,
+            content: skill.content,
+            contextHint: skill.contextHint ?? null,
+          },
+        });
+      }
       total++;
     }
   }
 
-  console.log(`완료: ${DEFAULT_SKILLS.length}개 스킬 × ${projects.length}개 프로젝트 = ${total}건 upsert`);
+  console.log(`완료: ${DEFAULT_SKILLS.length}개 스킬 × ${users.length}명 유저 = ${total}건 upsert`);
 }
 
 main()

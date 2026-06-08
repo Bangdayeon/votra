@@ -11,11 +11,20 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId");
-  if (!projectId) return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
 
-  const result = await listTools(projectId, { tools: prismaToolRepository });
+  if (projectId) {
+    const [projectTools, globalTools] = await Promise.all([
+      prismaToolRepository.listByProject(projectId),
+      prismaToolRepository.listGlobal(user.id),
+    ]);
+    const globalSlugs = new Set(globalTools.map((t) => t.slug));
+    const merged = [...globalTools, ...projectTools.filter((t) => !globalSlugs.has(t.slug))];
+    merged.sort((a, b) => a.folder.localeCompare(b.folder) || a.createdAt.getTime() - b.createdAt.getTime());
+    return NextResponse.json({ ok: true, tools: merged });
+  }
+
+  const result = await listTools(user.id, { tools: prismaToolRepository });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
-
   return NextResponse.json({ ok: true, tools: result.value });
 }
 
@@ -24,13 +33,14 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ ok: false, error: "인증이 필요해요." }, { status: 401 });
 
   const body = await req.json().catch(() => null);
-  if (!body?.projectId || !body?.name || !body?.description || !body?.folder || !body?.content) {
-    return NextResponse.json({ ok: false, error: "projectId, name, description, folder, content가 필요해요." }, { status: 400 });
+  if (!body?.name || !body?.description || !body?.folder || !body?.content) {
+    return NextResponse.json({ ok: false, error: "name, description, folder, content가 필요해요." }, { status: 400 });
   }
 
   const result = await createTool(
     {
-      projectId: body.projectId as string,
+      userId: user.id,
+      projectId: typeof body.projectId === "string" ? body.projectId : undefined,
       name: body.name as string,
       description: body.description as string,
       folder: body.folder as string,
@@ -50,15 +60,14 @@ export async function PATCH(req: Request) {
   if (!user) return NextResponse.json({ ok: false, error: "인증이 필요해요." }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const projectId = searchParams.get("projectId");
-  const slug = searchParams.get("slug");
-  if (!projectId || !slug) return NextResponse.json({ ok: false, error: "projectId와 slug가 필요해요." }, { status: 400 });
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ ok: false, error: "id가 필요해요." }, { status: 400 });
 
   const body = await req.json().catch(() => null);
   if (typeof body?.isEnabled !== "boolean") {
     return NextResponse.json({ ok: false, error: "isEnabled 값이 필요해요." }, { status: 400 });
   }
 
-  await prismaToolRepository.setEnabled(projectId, slug, body.isEnabled as boolean);
-  return NextResponse.json({ ok: true, slug, isEnabled: body.isEnabled });
+  await prismaToolRepository.setEnabled(id, body.isEnabled as boolean);
+  return NextResponse.json({ ok: true, id, isEnabled: body.isEnabled });
 }
