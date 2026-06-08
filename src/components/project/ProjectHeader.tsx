@@ -21,7 +21,7 @@ type Tab = "overview" | "manage" | "tasks" | "brain" | "team";
 const SETTINGS_TABS = [
   { label: "전체", key: "all", icon: Layers },
   { label: "지침", key: "overview", icon: LayoutGrid },
-  { label: "통합", key: "integrations", icon: Plug2 },
+  { label: "외부 도구 연결", key: "integrations", icon: Plug2 },
 ] as const;
 
 type SettingsTab = "all" | "overview" | "integrations" | "ai-management";
