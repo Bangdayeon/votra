@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CheckSquare, ChevronDown, ChevronRight, ChevronUp, Copy, Loader2, Plus, Trash2, X } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronRight, ChevronUp, Copy, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -200,7 +200,7 @@ function AddCommandModal({
         <div className="max-h-[80vh] overflow-y-auto">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-5 py-5">
             <div className="rounded-md bg-muted/60 px-3 py-2.5 flex flex-col gap-1.5">
-              <p className="text-xs text-muted-foreground">아래를 복사해서 뒤에 아이디어를 적고 AI 에이전트 대화창에 붙여넣으면 커맨드를 만들어줘요.</p>
+              <p className="text-xs text-muted-foreground">AI 에이전트 대화창에 붙여넣어 새 커맨드를 더 간편하게 만들 수 있어요.</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 rounded bg-background px-2 py-1 font-mono text-xs text-foreground">{AI_PROMPT}</code>
                 <button
@@ -429,7 +429,6 @@ export function CommandsTab() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <BookOpen className="size-4 shrink-0 text-muted-foreground" />
           <h2 className="text-base font-semibold">커맨드</h2>
           <div className="ml-auto flex items-center gap-1.5">
             <button
