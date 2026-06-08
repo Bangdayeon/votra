@@ -61,7 +61,7 @@ function Section({
           <p className="text-sm font-semibold text-foreground">{label}</p>
           <p className="text-xs text-muted-foreground/60">{description}</p>
         </div>
-        {meta && <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span>}
+        {meta && <span className="shrink-0 text-xs text-muted-foreground">{meta}</span>}
       </div>
       <div className="rounded-xl border border-border bg-card">{children}</div>
     </div>
@@ -101,49 +101,49 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
       <div className="divide-y divide-border">
         {/* 맥락 */}
         <div className="px-4 py-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">맥락</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">맥락</p>
           {hasContext ? (
-            <div className="flex flex-col gap-1 text-xs text-foreground/70">
+            <div className="flex flex-col gap-1 text-sm text-foreground/70">
               {context.serviceDescription && <span><span className="text-muted-foreground">서비스: </span>{context.serviceDescription}</span>}
               {context.techStack && <span><span className="text-muted-foreground">기술: </span>{context.techStack}</span>}
               {context.targetUsers && <span><span className="text-muted-foreground">대상: </span>{context.targetUsers}</span>}
               {context.currentGoal && <span><span className="text-muted-foreground">목표: </span>{context.currentGoal}</span>}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground/50">맥락이 아직 없어요. 아래 폼에서 입력해 주세요.</p>
+            <p className="text-sm text-muted-foreground/50">맥락이 아직 없어요. 아래 폼에서 입력해 주세요.</p>
           )}
         </div>
 
         {/* 진행중 태스크 */}
         <div className="px-4 py-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">진행중 태스크</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">진행중 태스크</p>
           {inProgressTasks.length > 0 ? (
             <ul className="flex flex-col gap-1">
               {inProgressTasks.map((t) => (
-                <li key={t.seq} className="flex items-start gap-1.5 text-xs text-foreground/70">
+                <li key={t.seq} className="flex items-start gap-1.5 text-sm text-foreground/70">
                   <span className="shrink-0 text-muted-foreground">#{t.seq}</span>
                   {t.title}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-muted-foreground/50">진행중인 태스크가 없어요.</p>
+            <p className="text-sm text-muted-foreground/50">진행중인 태스크가 없어요.</p>
           )}
         </div>
 
         {/* 최근 핵심 결정 */}
         <div className="px-4 py-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">최근 핵심 결정</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">최근 핵심 결정</p>
           {recentKeyDecisions.length > 0 ? (
             <div className="flex flex-col gap-2">
               {recentKeyDecisions.map((t) => (
                 <div key={t.seq}>
-                  <p className="mb-0.5 text-[11px] font-medium text-foreground/60">
+                  <p className="mb-0.5 text-sm font-medium text-foreground/60">
                     <span className="mr-1 text-muted-foreground">#{t.seq}</span>{t.title}
                   </p>
                   <ul className="flex flex-col gap-0.5">
                     {t.keyDecisions.slice(0, 2).map((d, i) => (
-                      <li key={i} className="flex items-start gap-1 text-xs text-foreground/50">
+                      <li key={i} className="flex items-start gap-1 text-sm text-foreground/50">
                         <span className="shrink-0">·</span>{d}
                       </li>
                     ))}
@@ -152,24 +152,24 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground/50">아직 기록된 결정이 없어요.</p>
+            <p className="text-sm text-muted-foreground/50">아직 기록된 결정이 없어요.</p>
           )}
         </div>
 
         {/* 추천 작업 */}
         <div className="px-4 py-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">추천 작업</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">추천 작업</p>
           {recommendedTasks.length > 0 ? (
             <ul className="flex flex-col gap-1">
               {recommendedTasks.map((t, i) => (
-                <li key={i} className="flex items-start gap-1.5 text-xs text-foreground/70">
+                <li key={i} className="flex items-start gap-1.5 text-sm text-foreground/70">
                   <span className="shrink-0 text-muted-foreground">{i + 1}.</span>
                   <span>{t.title}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-muted-foreground/50">추천 작업을 계산 중이에요.</p>
+            <p className="text-sm text-muted-foreground/50">추천 작업을 계산 중이에요.</p>
           )}
         </div>
       </div>
@@ -247,7 +247,7 @@ function ContextEditForm({ projectId }: { projectId: string }) {
         <div className="flex flex-col gap-0 divide-y divide-border">
           {CONTEXT_FIELDS.map(({ key, label, placeholder }) => (
             <div key={key} className="px-4 py-3">
-              <label className="mb-1.5 block text-[11px] font-semibold text-muted-foreground">
+              <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
                 {label}
               </label>
               <textarea
@@ -255,7 +255,7 @@ function ContextEditForm({ projectId }: { projectId: string }) {
                 onChange={(e) => setFields((prev) => ({ ...prev, [key]: e.target.value }))}
                 placeholder={placeholder}
                 rows={2}
-                className="w-full resize-none rounded-lg bg-muted/50 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full resize-none rounded-lg bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
           ))}
@@ -263,7 +263,7 @@ function ContextEditForm({ projectId }: { projectId: string }) {
             <button
               onClick={handleSave}
               disabled={!isDirty || saving}
-              className="flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-opacity disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-opacity disabled:opacity-40"
             >
               {saving && <Loader2 className="size-3 animate-spin" />}
               저장
@@ -312,24 +312,24 @@ function KeyDecisionsPanel({ projectId }: { projectId: string }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="결정 검색..."
-              className="w-full bg-transparent py-2.5 pl-8 pr-4 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+              className="w-full bg-transparent py-2.5 pl-8 pr-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
             />
           </div>
           {filtered.length === 0 ? (
-            <p className="px-4 py-8 text-center text-xs text-muted-foreground">
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
               {query ? "검색 결과가 없어요." : "아직 기록된 결정이 없어요."}
             </p>
           ) : (
             <div className="max-h-80 overflow-y-auto divide-y divide-border">
               {filtered.map((task) => (
                 <div key={task.seq} className="px-4 py-2.5">
-                  <p className="mb-1 text-xs font-medium text-foreground/70">
+                  <p className="mb-1 text-sm font-medium text-foreground/70">
                     <span className="mr-1.5 text-muted-foreground">#{task.seq}</span>
                     {task.title}
                   </p>
                   <ul className="flex flex-col gap-0.5">
                     {task.keyDecisions.map((d, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-xs text-foreground/60">
+                      <li key={i} className="flex items-start gap-1.5 text-sm text-foreground/60">
                         <span className="mt-0.5 shrink-0 text-muted-foreground">·</span>
                         {d}
                       </li>
@@ -387,7 +387,7 @@ function InsightsSection({ projectId }: { projectId: string }) {
       <Section label="인사이트" description="완료된 태스크에서 AI가 발견한 패턴과 위험">
         <div className="flex items-center gap-3 px-4 py-4">
           <Sparkles className="size-4 shrink-0 text-amber-400 opacity-60" />
-          <p className="flex-1 text-xs text-muted-foreground">
+          <p className="flex-1 text-sm text-muted-foreground">
             아직 AI 분석이 없어요.
           </p>
           <button
@@ -438,7 +438,7 @@ function InsightsSection({ projectId }: { projectId: string }) {
                   )}>
                     {INSIGHT_TYPE_LABEL[ins.type] ?? ins.type}
                   </span>
-                  <span className="text-xs text-foreground/70">{ins.text}</span>
+                  <span className="text-sm text-foreground/70">{ins.text}</span>
                 </div>
               ))}
             </div>
@@ -446,9 +446,9 @@ function InsightsSection({ projectId }: { projectId: string }) {
 
           {hasSuggestedTasks && (
             <div className="flex flex-col gap-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">추천 작업</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">추천 작업</p>
               {latest.suggestedTasks.map((t, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-xs">
+                <div key={i} className="flex items-start gap-1.5 text-sm">
                   <span className="mt-0.5 shrink-0 text-muted-foreground">·</span>
                   <div className="min-w-0 flex-1">
                     <span className="text-foreground/70">{t.title}</span>
@@ -462,7 +462,7 @@ function InsightsSection({ projectId }: { projectId: string }) {
           <button
             onClick={handleTrigger}
             disabled={triggering}
-            className="self-start flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            className="self-start flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
           >
             {triggering ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
             다시 분석
