@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CheckSquare, ChevronDown, ChevronRight, ChevronUp, Loader2, Plus, Trash2, X } from "lucide-react";
+import { BookOpen, CheckSquare, ChevronDown, ChevronRight, ChevronUp, Copy, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -182,10 +182,26 @@ function AddCommandForm({
     }
   }
 
+  const AI_PROMPT = "새 커맨드 만들어줘. 어떤 게 필요한지 아이디어부터 물어봐줘.";
+
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card px-4 py-4 flex flex-col gap-3">
+      <div className="rounded-md bg-muted/60 px-3 py-2.5 flex flex-col gap-1.5">
+        <p className="text-xs text-muted-foreground">AI 에이전트에게 커맨드를 대신 만들게 할 수 있어요. 아래 문장을 복사해서 Claude Code에 붙여넣으세요.</p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 rounded bg-background px-2 py-1 font-mono text-xs text-foreground">{AI_PROMPT}</code>
+          <button
+            type="button"
+            onClick={() => { navigator.clipboard.writeText(AI_PROMPT); toast.success("복사됐어요."); }}
+            className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
+          >
+            <Copy className="size-3.5" />
+          </button>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">새 커맨드 추가</span>
+        <span className="text-sm font-medium">직접 추가</span>
         <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
           <X className="size-4" />
         </button>
