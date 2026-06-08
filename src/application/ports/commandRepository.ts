@@ -24,5 +24,6 @@ export type CommandRepository = {
   upsertByName: (input: UpsertCommandInput) => Promise<ProjectCommandRecord>;
   listByUser: (userId: string) => Promise<ProjectCommandRecord[]>;
   findBySlug: (userId: string, slug: string) => Promise<ProjectCommandRecord | null>;
+  updateContent: (userId: string, slug: string, content: string) => Promise<ProjectCommandRecord>;
   deleteById: (id: string) => Promise<void>;
 };

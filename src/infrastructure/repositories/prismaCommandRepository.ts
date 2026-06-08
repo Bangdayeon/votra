@@ -93,6 +93,14 @@ export const prismaCommandRepository: CommandRepository = {
     return row ? toRecord(row) : null;
   },
 
+  async updateContent(userId: string, slug: string, content: string) {
+    const row = await prisma.projectCommand.update({
+      where: { userId_slug: { userId, slug } },
+      data: { content },
+    });
+    return toRecord(row);
+  },
+
   async deleteById(id: string) {
     await prisma.projectCommand.delete({ where: { id } });
   },
