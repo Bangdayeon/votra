@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Loader2, Search, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, Loader2, Pencil, Search, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type { BriefPreviewData } from "@/app/actions/getBriefPreviewAction";
@@ -15,6 +15,7 @@ import {
   updateMemoryContextAction,
 } from "@/app/actions/updateMemoryContextAction";
 import type { Project } from "@/components/project/ProjectsContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { MemoryReflectionRecord } from "@/domain/memory/memoryTierTypes";
 import { cn } from "@/lib/utils";
@@ -68,10 +69,132 @@ function Section({
   );
 }
 
+// ── Context edit modal ────────────────────────────────────────────────────────
+
+type ContextFields = Omit<UpdateMemoryContextInput, "projectId">;
+
+const CONTEXT_FIELDS: Array<{ key: keyof ContextFields; label: string; placeholder: string }> = [
+  { key: "serviceDescription", label: "서비스 설명", placeholder: "이 프로젝트는 무엇을 하는 서비스인가요?" },
+  { key: "techStack", label: "기술 스택", placeholder: "Next.js, Prisma, Neon DB, Gemini..." },
+  { key: "targetUsers", label: "대상 유저", placeholder: "누구를 위한 서비스인가요?" },
+  { key: "currentGoal", label: "현재 목표", placeholder: "지금 단계에서 달성하려는 것은?" },
+];
+
+function ContextEditModal({
+  projectId,
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  projectId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+}) {
+  const [fields, setFields] = useState<ContextFields>({
+    serviceDescription: "",
+    techStack: "",
+    targetUsers: "",
+    currentGoal: "",
+  });
+  const [saved, setSaved] = useState<ContextFields>(fields);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const isDirty = CONTEXT_FIELDS.some((f) => fields[f.key] !== saved[f.key]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setLoading(true);
+    getMemoryContextAction(projectId)
+      .then((ctx) => {
+        if (!cancelled && ctx) {
+          const initial = {
+            serviceDescription: ctx.serviceDescription ?? "",
+            techStack: ctx.techStack ?? "",
+            targetUsers: ctx.targetUsers ?? "",
+            currentGoal: ctx.currentGoal ?? "",
+          };
+          setFields(initial);
+          setSaved(initial);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [projectId, open]);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const result = await updateMemoryContextAction({ projectId, ...fields });
+      if (result.ok) {
+        setSaved(fields);
+        toast.success("맥락이 저장됐어요.");
+        onSaved();
+        onOpenChange(false);
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error("저장에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>프로젝트 맥락 편집</DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex flex-col gap-3">
+            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16 rounded" />)}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {CONTEXT_FIELDS.map(({ key, label, placeholder }) => (
+              <div key={key} className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">{label}</label>
+                <textarea
+                  value={fields[key]}
+                  onChange={(e) => setFields((prev) => ({ ...prev, [key]: e.target.value }))}
+                  placeholder={placeholder}
+                  rows={2}
+                  className="w-full resize-none rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+            ))}
+            <div className="flex justify-end">
+              <button
+                onClick={handleSave}
+                disabled={!isDirty || saving}
+                className="flex items-center gap-1.5 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity disabled:opacity-40"
+              >
+                {saving && <Loader2 className="size-3.5 animate-spin" />}
+                저장
+              </button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── 1. Brief preview ──────────────────────────────────────────────────────────
 
 function BriefPreviewSection({ projectId }: { projectId: string }) {
   const [preview, setPreview] = useState<BriefPreviewData | undefined>(undefined);
+  const [contextEditOpen, setContextEditOpen] = useState(false);
+
+  const loadPreview = useCallback(() => {
+    getBriefPreviewAction(projectId)
+      .then((d) => setPreview(d))
+      .catch(() => setPreview({ context: null, inProgressTasks: [], recentKeyDecisions: [], recommendedTasks: [] }));
+  }, [projectId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +206,7 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
 
   if (preview === undefined) {
     return (
-      <Section label="브레인 요약" description="에이전트가 세션 시작 시 받는 프로젝트 스냅샷">
+      <Section label="프로젝트 브리핑" description="에이전트가 세션 시작 시 받는 프로젝트 스냅샷">
         <div className="flex flex-col gap-2 p-4">
           {["w-4/5", "w-3/5", "w-11/12"].map((w, i) => (
             <Skeleton key={i} className={`h-4 rounded ${w}`} />
@@ -97,11 +220,20 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
   const hasContext = context && (context.serviceDescription || context.techStack || context.targetUsers || context.currentGoal);
 
   return (
-    <Section label="브레인 요약" description="에이전트가 세션 시작 시 받는 프로젝트 스냅샷">
+    <Section label="프로젝트 브리핑" description="에이전트가 매 세션마다 받는 프로젝트 스냅샷이에요.">
       <div className="divide-y divide-border">
         {/* 맥락 */}
         <div className="px-4 py-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">맥락</p>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">맥락</p>
+            <button
+              onClick={() => setContextEditOpen(true)}
+              className="rounded p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+              aria-label="맥락 편집"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+          </div>
           {hasContext ? (
             <div className="flex flex-col gap-1 text-sm text-foreground/70">
               {context.serviceDescription && <span><span className="text-muted-foreground">서비스: </span>{context.serviceDescription}</span>}
@@ -110,7 +242,12 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
               {context.currentGoal && <span><span className="text-muted-foreground">목표: </span>{context.currentGoal}</span>}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground/50">맥락이 아직 없어요. 아래 폼에서 입력해 주세요.</p>
+            <button
+              onClick={() => setContextEditOpen(true)}
+              className="text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+            >
+              맥락을 입력해 주세요 →
+            </button>
           )}
         </div>
 
@@ -173,109 +310,18 @@ function BriefPreviewSection({ projectId }: { projectId: string }) {
           )}
         </div>
       </div>
+
+      <ContextEditModal
+        projectId={projectId}
+        open={contextEditOpen}
+        onOpenChange={setContextEditOpen}
+        onSaved={loadPreview}
+      />
     </Section>
   );
 }
 
-// ── 2. Context edit form ──────────────────────────────────────────────────────
-
-type ContextFields = Omit<UpdateMemoryContextInput, "projectId">;
-
-const CONTEXT_FIELDS: Array<{ key: keyof ContextFields; label: string; placeholder: string }> = [
-  { key: "serviceDescription", label: "서비스 설명", placeholder: "이 프로젝트는 무엇을 하는 서비스인가요?" },
-  { key: "techStack", label: "기술 스택", placeholder: "Next.js, Prisma, Neon DB, Gemini..." },
-  { key: "targetUsers", label: "대상 유저", placeholder: "누구를 위한 서비스인가요?" },
-  { key: "currentGoal", label: "현재 목표", placeholder: "지금 단계에서 달성하려는 것은?" },
-];
-
-function ContextEditForm({ projectId }: { projectId: string }) {
-  const [fields, setFields] = useState<ContextFields>({
-    serviceDescription: "",
-    techStack: "",
-    targetUsers: "",
-    currentGoal: "",
-  });
-  const [saved, setSaved] = useState<ContextFields>(fields);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const isDirty = CONTEXT_FIELDS.some((f) => fields[f.key] !== saved[f.key]);
-
-  useEffect(() => {
-    let cancelled = false;
-    getMemoryContextAction(projectId)
-      .then((ctx) => {
-        if (!cancelled && ctx) {
-          const initial = {
-            serviceDescription: ctx.serviceDescription ?? "",
-            techStack: ctx.techStack ?? "",
-            targetUsers: ctx.targetUsers ?? "",
-            currentGoal: ctx.currentGoal ?? "",
-          };
-          setFields(initial);
-          setSaved(initial);
-        }
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [projectId]);
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      const result = await updateMemoryContextAction({ projectId, ...fields });
-      if (result.ok) {
-        setSaved(fields);
-        toast.success("맥락이 저장됐어요.");
-      } else {
-        toast.error(result.error);
-      }
-    } catch {
-      toast.error("저장에 실패했어요. 잠시 후 다시 시도해 주세요.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Section label="맥락" description="에이전트가 항상 알고 있는 프로젝트 헌법">
-      {loading ? (
-        <div className="flex flex-col gap-2 p-4">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 rounded" />)}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-0 divide-y divide-border">
-          {CONTEXT_FIELDS.map(({ key, label, placeholder }) => (
-            <div key={key} className="px-4 py-3">
-              <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
-                {label}
-              </label>
-              <textarea
-                value={fields[key]}
-                onChange={(e) => setFields((prev) => ({ ...prev, [key]: e.target.value }))}
-                placeholder={placeholder}
-                rows={2}
-                className="w-full resize-none rounded-lg bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-            </div>
-          ))}
-          <div className="flex justify-end px-4 py-3">
-            <button
-              onClick={handleSave}
-              disabled={!isDirty || saving}
-              className="flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-opacity disabled:opacity-40"
-            >
-              {saving && <Loader2 className="size-3 animate-spin" />}
-              저장
-            </button>
-          </div>
-        </div>
-      )}
-    </Section>
-  );
-}
-
-// ── 3. Key decisions panel ────────────────────────────────────────────────────
+// ── 2. Key decisions panel ────────────────────────────────────────────────────
 
 function KeyDecisionsPanel({ projectId }: { projectId: string }) {
   const [decisions, setDecisions] = useState<KeyDecisionRecord[] | undefined>(undefined);
@@ -345,7 +391,7 @@ function KeyDecisionsPanel({ projectId }: { projectId: string }) {
   );
 }
 
-// ── 4. Insights section ───────────────────────────────────────────────────────
+// ── 3. Insights section ───────────────────────────────────────────────────────
 
 function InsightsSection({ projectId }: { projectId: string }) {
   const [reflections, setReflections] = useState<MemoryReflectionRecord[] | undefined>(undefined);
@@ -489,12 +535,7 @@ export function BrainTab({ selected }: { selected: Project }) {
   return (
     <div className="flex flex-col gap-6">
       <BriefPreviewSection projectId={selected.id} />
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ContextEditForm projectId={selected.id} />
-        <KeyDecisionsPanel projectId={selected.id} />
-      </div>
-
+      <KeyDecisionsPanel projectId={selected.id} />
       {totalDecisionCount >= 30 && (
         <InsightsSection projectId={selected.id} />
       )}
