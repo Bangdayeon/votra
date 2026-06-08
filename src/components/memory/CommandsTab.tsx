@@ -48,7 +48,7 @@ function CommandRow({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-sm font-semibold">
+            <span className="font-mono text-base font-semibold">
               /{command.slug}
             </span>
             <span className="text-xs text-muted-foreground">{command.name}</span>

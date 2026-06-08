@@ -13,7 +13,6 @@ import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getToolsAc
 import { toggleToolAction } from "@/app/actions/toggleCustomCommandAction";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
 
@@ -51,14 +50,12 @@ function Toggle({
 
 function ToolRow({
   tool,
-  badgeColor,
   onToggled,
   isSelectMode,
   isSelected,
   onSelect,
 }: {
   tool: ProjectToolRecord;
-  badgeColor: string;
   onToggled: (id: string, isEnabled: boolean) => void;
   isSelectMode: boolean;
   isSelected: boolean;
@@ -101,11 +98,9 @@ function ToolRow({
           />
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium">{tool.name}</p>
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", badgeColor)}>
-              {tool.slug}
-            </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-base font-medium">{tool.name}</p>
+            <span className="text-xs text-muted-foreground">{tool.slug}</span>
             {tool.patternSummary && (
               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 AI 추천
@@ -154,7 +149,6 @@ function ToolRow({
 function FolderSection({
   folder,
   tools,
-  colorMap,
   onToggled,
   isSelectMode,
   selectedIds,
@@ -162,7 +156,6 @@ function FolderSection({
 }: {
   folder: string;
   tools: ProjectToolRecord[];
-  colorMap: Map<string, string>;
   onToggled: (id: string, isEnabled: boolean) => void;
   isSelectMode: boolean;
   selectedIds: Set<string>;
@@ -193,7 +186,6 @@ function FolderSection({
             <ToolRow
               key={tool.slug}
               tool={tool}
-              badgeColor={colorMap.get(tool.slug) ?? BADGE_COLORS[0]}
               onToggled={onToggled}
               isSelectMode={isSelectMode}
               isSelected={selectedIds.has(tool.id)}
@@ -440,7 +432,6 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
   }, [tools]);
 
   const orderedFolders = useMemo(() => [...grouped.keys()].sort(), [grouped]);
-  const colorMap = useMemo(() => buildToolColorMap(tools.map((t) => t.slug)), [tools]);
 
   return (
     <>
@@ -527,7 +518,6 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
                 key={folder}
                 folder={folder}
                 tools={grouped.get(folder) ?? []}
-                colorMap={colorMap}
                 onToggled={handleToggled}
                 isSelectMode={isSelectMode}
                 selectedIds={selectedIds}
