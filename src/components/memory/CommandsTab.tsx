@@ -520,37 +520,37 @@ export function CommandsTab() {
         <p className="text-sm text-muted-foreground">에이전트와 대화 중 /슬래시 명령어로 직접 실행하는 커맨드예요.</p>
       </div>
 
-      {/* 검색 */}
-      <div className="relative w-full">
-        <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <input
-          type="text"
-          placeholder="슬러그, 이름, 설명 검색"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-        />
-      </div>
-
-      {/* 필터 */}
-      <div className="flex flex-wrap items-center gap-2">
-        <FilterDropdown
-          value={filterFolder}
-          options={[
-            { label: "전체 폴더", value: "ALL" },
-            ...allFolders.map((f) => ({ label: f, value: f })),
-          ]}
-          onChange={setFilterFolder}
-        />
-        <FilterDropdown
-          value={filterBuiltIn}
-          options={[
-            { label: "전체 종류", value: "ALL" },
-            { label: "기본", value: "builtin", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-blue-500" /> },
-            { label: "커스텀", value: "custom", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-muted-foreground/60" /> },
-          ]}
-          onChange={setFilterBuiltIn}
-        />
+      {/* 검색 + 필터 */}
+      <div className="flex flex-col gap-2">
+        <div className="relative w-full">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="슬러그, 이름, 설명 검색"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterDropdown
+            value={filterFolder}
+            options={[
+              { label: "전체 폴더", value: "ALL" },
+              ...allFolders.map((f) => ({ label: f, value: f })),
+            ]}
+            onChange={setFilterFolder}
+          />
+          <FilterDropdown
+            value={filterBuiltIn}
+            options={[
+              { label: "전체 종류", value: "ALL" },
+              { label: "기본", value: "builtin", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-blue-500" /> },
+              { label: "커스텀", value: "custom", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-muted-foreground/60" /> },
+            ]}
+            onChange={setFilterBuiltIn}
+          />
+        </div>
       </div>
 
       {loading ? (
