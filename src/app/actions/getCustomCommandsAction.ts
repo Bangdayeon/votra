@@ -1,16 +1,16 @@
 "use server";
 
-import { listTools } from "@/application/listTools";
-import type { ProjectToolRecord } from "@/domain/memory/types";
+import { listCommands } from "@/application/listCommands";
+import type { ProjectCommandRecord } from "@/domain/memory/types";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
-import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
+import { prismaCommandRepository } from "@/infrastructure/repositories/prismaCommandRepository";
 
-export type { ProjectToolRecord };
+export type { ProjectCommandRecord };
 
-export async function getToolsAction(projectId: string): Promise<ProjectToolRecord[]> {
+export async function getCommandsAction(projectId: string): Promise<ProjectCommandRecord[]> {
   const guard = await assertProjectMember(projectId);
   if (!guard.ok) throw new Error(guard.error);
-  const result = await listTools(projectId, { tools: prismaToolRepository });
+  const result = await listCommands(projectId, { commands: prismaCommandRepository });
   if (!result.ok) throw new Error(result.error);
   return result.value;
 }

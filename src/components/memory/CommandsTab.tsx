@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getCustomCommandsAction";
+import { getCommandsAction, type ProjectCommandRecord } from "@/app/actions/getCustomCommandsAction";
 import { createCommandAction } from "@/app/actions/createCommandAction";
 import type { Project } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ function CommandRow({
   command,
   badgeColor,
 }: {
-  command: ProjectToolRecord;
+  command: ProjectCommandRecord;
   badgeColor: string;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -41,11 +41,6 @@ function CommandRow({
             )}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{command.description}</p>
-          {command.contextHint && (
-            <p className="mt-1.5 text-xs text-muted-foreground/70 italic leading-relaxed">
-              {command.contextHint}
-            </p>
-          )}
         </div>
         <div className="flex shrink-0 items-center gap-1 pt-0.5">
           {expanded
@@ -74,7 +69,7 @@ function FolderSection({
   colorMap,
 }: {
   folder: string;
-  commands: ProjectToolRecord[];
+  commands: ProjectCommandRecord[];
   colorMap: Map<string, string>;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -118,7 +113,7 @@ function AddCommandForm({
 }: {
   projectId: string;
   existingFolders: string[];
-  onAdded: (command: ProjectToolRecord) => void;
+  onAdded: (command: ProjectCommandRecord) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState("");
@@ -238,14 +233,14 @@ function AddCommandForm({
 // ── CommandsTab ───────────────────────────────────────────────────────────────
 
 export function CommandsTab({ selected }: { selected: Project }) {
-  const [commands, setCommands] = useState<ProjectToolRecord[]>([]);
+  const [commands, setCommands] = useState<ProjectCommandRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getToolsAction(selected.id)
+    getCommandsAction(selected.id)
       .then((data) => {
         if (!cancelled) setCommands(data);
       })
@@ -256,13 +251,13 @@ export function CommandsTab({ selected }: { selected: Project }) {
     return () => { cancelled = true; };
   }, [selected.id]);
 
-  function handleAdded(command: ProjectToolRecord) {
+  function handleAdded(command: ProjectCommandRecord) {
     setCommands((prev) => [...prev, command]);
     setShowAdd(false);
   }
 
   const grouped = useMemo(() => {
-    const map = new Map<string, ProjectToolRecord[]>();
+    const map = new Map<string, ProjectCommandRecord[]>();
     for (const command of commands) {
       const bucket = map.get(command.folder) ?? [];
       bucket.push(command);

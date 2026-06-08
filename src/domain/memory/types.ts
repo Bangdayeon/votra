@@ -57,6 +57,19 @@ export type FolderRecord = {
   updatedAt: Date;
 };
 
+export type ProjectCommandRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  folder: string;
+  content: string;
+  isBuiltIn: boolean;
+  projectId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type ProjectToolRecord = {
   id: string;
   slug: string;

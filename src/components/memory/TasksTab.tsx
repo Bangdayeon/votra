@@ -60,7 +60,7 @@ import { pinTaskAction } from "@/app/actions/pinTaskAction";
 import { deleteFolderAction } from "@/app/actions/deleteFolderAction";
 import { deleteTaskAction } from "@/app/actions/deleteTask";
 import { getProjectFoldersAction } from "@/app/actions/getProjectFolders";
-import { getToolsAction } from "@/app/actions/getCustomCommandsAction";
+import { getToolsAction } from "@/app/actions/getToolsAction";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
 import { moveTaskToFolderAction } from "@/app/actions/moveTaskToFolderAction";
 import { reorderFoldersAction } from "@/app/actions/reorderFoldersAction";

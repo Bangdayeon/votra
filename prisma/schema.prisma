@@ -125,6 +125,7 @@ model Project {
   memoryReflections    ProjectMemoryReflection[]
   memoryContext        ProjectMemoryContext?
   tools                ProjectTool[]
+  commands             ProjectCommand[]
   sessionLogs          SessionLog[]
 
   @@unique([ownerId, cwd])
@@ -425,6 +426,29 @@ model ProjectTool {
   isBuiltIn      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+}
+
+// ────────────────────────────────────────────
+// PROJECT COMMAND (프로젝트별 유저 정의 슬래시 커맨드)
+// ────────────────────────────────────────────
+
+model ProjectCommand {
+  id          String   @id @default(cuid())
+  slug        String
+  name        String
+  description String
+  /// 커맨드 그룹 폴더명 (UI에서 그룹핑)
+  folder      String   @default("기타")
+  content     String   @db.Text
+  isBuiltIn   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)

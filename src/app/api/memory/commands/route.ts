@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { listTools } from "@/application/listTools";
+import { listCommands } from "@/application/listCommands";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
-import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
+import { prismaCommandRepository } from "@/infrastructure/repositories/prismaCommandRepository";
 
 export async function GET(req: Request) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const result = await listTools(projectId, { tools: prismaToolRepository });
+  const result = await listCommands(projectId, { commands: prismaCommandRepository });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   return NextResponse.json({ ok: true, commands: result.value });
 }
