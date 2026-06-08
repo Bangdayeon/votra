@@ -35,7 +35,7 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
   memory: {
     activeToArchivedDays: 30,
     archivedToTrashDays: 30,
-    reflectionThreshold: 5,
+    reflectionThreshold: 10,
     longTermMinAccessCount: 3,
     longTermMinPriority: 7,
   },

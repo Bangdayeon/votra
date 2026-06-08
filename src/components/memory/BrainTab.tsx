@@ -451,7 +451,6 @@ function InsightsSection({ projectId }: { projectId: string }) {
 
   const latest = reflections[0];
   const hasInsights = latest.insights.length > 0;
-  const hasSuggestedTasks = latest.suggestedTasks.length > 0;
 
   return (
     <Section
@@ -472,7 +471,7 @@ function InsightsSection({ projectId }: { projectId: string }) {
           : <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />}
       </button>
 
-      {expanded && (hasInsights || hasSuggestedTasks) && (
+      {expanded && hasInsights && (
         <div className="border-t border-border px-4 pb-4 pt-3 flex flex-col gap-3">
           {hasInsights && (
             <div className="flex flex-col gap-1.5">
@@ -485,21 +484,6 @@ function InsightsSection({ projectId }: { projectId: string }) {
                     {INSIGHT_TYPE_LABEL[ins.type] ?? ins.type}
                   </span>
                   <span className="text-sm text-foreground/70">{ins.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {hasSuggestedTasks && (
-            <div className="flex flex-col gap-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">추천 작업</p>
-              {latest.suggestedTasks.map((t, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-sm">
-                  <span className="mt-0.5 shrink-0 text-muted-foreground">·</span>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-foreground/70">{t.title}</span>
-                    {t.reason && <span className="text-muted-foreground"> — {t.reason}</span>}
-                  </div>
                 </div>
               ))}
             </div>

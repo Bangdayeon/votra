@@ -23,11 +23,15 @@ Analyze the task data below and generate a structured report.
    - keyDecisions that indicate risk (auth, deploy, db schema changes, breaking changes)
    - Do NOT invent warnings. If data does not support it, return an empty array.
 
-3. suggestions: 0–3 items based on actual data signals:
+3. nextTasks: 2–3 high-impact next actions based on actual data signals:
    - recentlyDone[].outcome mentions incomplete work → suggest follow-up task
    - Many pending tasks relate to recently completed work → suggest which to prioritize
    - keyDecisions indicate technical debt → suggest cleanup
    - Actionable and specific only. No vague advice.
+   - Base suggestions ONLY on the provided task data. Never mention file names, features, or domains not present in the data.
+   - Every suggestion must explain WHY now. Do NOT simply list pending task titles without analysis.
+   - If no clear follow-up work exists, suggest improvements to quality (tests, error handling), observability, or the next natural feature.
+   - Always return at least one suggestion if any tasks or commits are provided.
 
 4. agentCommand: 2 lines max, self-contained natural-language command, must reference actual task titles or outcome content.
 
@@ -41,8 +45,13 @@ Respond in Korean. Return ONLY the following JSON — no other text:
   "warnings": [
     { "message": "string", "agentCommand": "string" }
   ],
-  "suggestions": [
-    { "message": "string", "agentCommand": "string" }
+  "nextTasks": [
+    {
+      "title": "작업 제목 (max 80 chars)",
+      "reason": "완료 작업 분석 근거와 지금 해야 하는 이유 (max 300 chars)",
+      "priority": "critical" | "high" | "medium" | "low",
+      "agentCommand": "AI 에이전트 실행 지시 (max 500 chars)"
+    }
   ]
 }
 `;

@@ -6,7 +6,6 @@ export type ProjectAiInsightRow = {
 export type ProjectAiSummaryRecord = {
   summary: string;
   warnings: ProjectAiInsightRow[];
-  suggestions: ProjectAiInsightRow[];
   refreshedAt: Date;
 };
 
@@ -14,7 +13,6 @@ export type ProjectAiSummaryUpsertInput = {
   projectId: string;
   summary: string;
   warnings: ProjectAiInsightRow[];
-  suggestions: ProjectAiInsightRow[];
 };
 
 export type ProjectAiSummaryRepository = {

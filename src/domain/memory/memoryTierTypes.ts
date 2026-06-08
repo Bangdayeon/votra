@@ -51,7 +51,7 @@ export type MemoryDecaySettings = {
 export const DEFAULT_MEMORY_SETTINGS: MemoryDecaySettings = {
   activeToArchivedDays: 30,
   archivedToTrashDays: 30,
-  reflectionThreshold: 5,
+  reflectionThreshold: 10,
   longTermMinAccessCount: 3,
   longTermMinPriority: 7,
 };

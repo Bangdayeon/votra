@@ -1,3 +1,4 @@
+import type { NextTask, ProjectAiNextTaskRepository } from "@/application/ports/projectAiNextTaskRepository";
 import type {
   ProjectAiInsightRow,
   ProjectAiSummaryRepository,
@@ -6,20 +7,26 @@ import type {
 export type CachedProjectAiSummary = {
   summary: string;
   warnings: ProjectAiInsightRow[];
-  suggestions: ProjectAiInsightRow[];
+  nextTasks: NextTask[];
   refreshedAt: string;
 } | null;
 
 export async function getCachedProjectAiSummary(
   projectId: string,
-  deps: { aiSummaries: ProjectAiSummaryRepository },
+  deps: {
+    aiSummaries: ProjectAiSummaryRepository;
+    nextTasks: ProjectAiNextTaskRepository;
+  },
 ): Promise<CachedProjectAiSummary> {
-  const row = await deps.aiSummaries.findByProject(projectId);
-  if (!row) return null;
+  const [summaryRow, nextTaskRow] = await Promise.all([
+    deps.aiSummaries.findByProject(projectId),
+    deps.nextTasks.findByProject(projectId),
+  ]);
+  if (!summaryRow) return null;
   return {
-    summary: row.summary,
-    warnings: row.warnings,
-    suggestions: row.suggestions,
-    refreshedAt: row.refreshedAt.toISOString(),
+    summary: summaryRow.summary,
+    warnings: summaryRow.warnings,
+    nextTasks: nextTaskRow?.tasks ?? [],
+    refreshedAt: summaryRow.refreshedAt.toISOString(),
   };
 }

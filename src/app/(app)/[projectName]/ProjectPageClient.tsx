@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
 import type { CachedProjectAiSummary } from "@/application/getCachedProjectAiSummary";
-import type { CachedProjectNextTasks } from "@/application/getCachedProjectNextTasks";
 import type { ProjectMemberRow } from "@/app/actions/getProjectMembers";
 import type { TaskRecord } from "@/app/actions/getProjectTasks";
 import { BrainTab } from "@/components/memory/BrainTab";
@@ -19,7 +18,6 @@ import { cn } from "@/lib/utils";
 export type ProjectPageInitialData = {
   overview: {
     aiSummary: CachedProjectAiSummary;
-    nextTasks: CachedProjectNextTasks;
   };
   manage: {
     rules: PolicyRule[];

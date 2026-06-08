@@ -2,7 +2,6 @@
 
 import { applyToolEnrichments } from "@/application/applyToolEnrichments";
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
-import { createProposalTasks } from "@/application/createProposalTasks";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
 import type { MemoryReflectionRecord } from "@/domain/memory/memoryTierTypes";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
@@ -37,12 +36,6 @@ export async function triggerMemoryReflectionAction(
   if (reflection.toolEnrichments.length > 0) {
     await applyToolEnrichments(projectId, guard.userId, reflection.toolEnrichments, {
       tools: prismaToolRepository,
-    }).catch(() => {});
-  }
-
-  if (reflection.suggestedTasks.length > 0) {
-    await createProposalTasks(projectId, guard.userId, reflection.suggestedTasks, {
-      tasks: prismaTaskRepository,
     }).catch(() => {});
   }
 

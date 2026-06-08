@@ -1,18 +1,16 @@
 import { getProjectAiSummary } from "@/application/getProjectAiSummary";
 import type { GitClient } from "@/application/ports/gitClient";
 import type { LlmClient } from "@/application/ports/llmClient";
-import type {
-  ProjectAiInsightRow,
-  ProjectAiSummaryRepository,
-} from "@/application/ports/projectAiSummaryRepository";
+import type { NextTask, ProjectAiNextTaskRepository } from "@/application/ports/projectAiNextTaskRepository";
+import type { ProjectAiSummaryRepository } from "@/application/ports/projectAiSummaryRepository";
 import type { ProjectRepository } from "@/application/ports/projectRepository";
 import type { TaskRepository } from "@/application/ports/taskRepository";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 
 export type RefreshedProjectAiSummary = {
   summary: string;
-  warnings: ProjectAiInsightRow[];
-  suggestions: ProjectAiInsightRow[];
+  warnings: { message: string; agentCommand: string }[];
+  nextTasks: NextTask[];
   refreshedAt: string;
 };
 
@@ -21,6 +19,7 @@ export async function refreshProjectAiSummary(
   deps: {
     projects: ProjectRepository;
     aiSummaries: ProjectAiSummaryRepository;
+    nextTasks: ProjectAiNextTaskRepository;
     tasks: TaskRepository;
     llm: LlmClient;
     git?: GitClient;
@@ -50,17 +49,22 @@ export async function refreshProjectAiSummary(
 
   const generated = await getProjectAiSummary(settings, { llm: deps.llm }, mergedTasks, commits, deps.memoryContext);
 
-  const saved = await deps.aiSummaries.upsert({
-    projectId,
-    summary: generated.summary,
-    warnings: generated.warnings,
-    suggestions: generated.suggestions,
-  });
+  const [saved, savedNextTasks] = await Promise.all([
+    deps.aiSummaries.upsert({
+      projectId,
+      summary: generated.summary,
+      warnings: generated.warnings,
+    }),
+    deps.nextTasks.upsert({
+      projectId,
+      tasks: generated.nextTasks,
+    }),
+  ]);
 
   return {
     summary: saved.summary,
     warnings: saved.warnings,
-    suggestions: saved.suggestions,
+    nextTasks: savedNextTasks.tasks,
     refreshedAt: saved.refreshedAt.toISOString(),
   };
 }

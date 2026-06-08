@@ -1,5 +1,6 @@
 import type { GitCommit } from "@/application/ports/gitClient";
 import type { LlmClient } from "@/application/ports/llmClient";
+import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
 import { DEFAULT_ANALYSIS_INSTRUCTION } from "@/domain/project/settings/defaultAnalysisInstruction";
 import type { TaskRecord } from "@/domain/memory/types";
 import type { ProjectSettings } from "@/domain/project/settings/types";
@@ -12,7 +13,7 @@ export type ProjectAiInsight = {
 export type ProjectAiSummary = {
   summary: string;
   warnings: ProjectAiInsight[];
-  suggestions: ProjectAiInsight[];
+  nextTasks: NextTask[];
 };
 
 // Keep for external callers that still reference this type
@@ -89,11 +90,31 @@ function parseAiSummary(text: string): ProjectAiSummary {
     return {
       summary: parsed.summary,
       warnings: parseInsightList(parsed.warnings),
-      suggestions: parseInsightList(parsed.suggestions),
+      nextTasks: parseNextTaskList(parsed.nextTasks),
     };
   } catch (e) {
     throw e instanceof Error ? e : new Error("AI 응답 파싱에 실패했어요.");
   }
+}
+
+const VALID_PRIORITIES = new Set(["critical", "high", "medium", "low"]);
+const MAX_TITLE_LEN = 80;
+
+function parseNextTaskList(raw: unknown): NextTask[] {
+  if (!Array.isArray(raw)) return [];
+  const out: NextTask[] = [];
+  for (const item of raw) {
+    if (!isRecord(item)) continue;
+    const title = typeof item.title === "string" && item.title.length > 0 && item.title.length <= MAX_TITLE_LEN ? item.title : "";
+    const reason = typeof item.reason === "string" && item.reason.length > 0 ? item.reason : "";
+    const priority = typeof item.priority === "string" && VALID_PRIORITIES.has(item.priority)
+      ? (item.priority as NextTask["priority"])
+      : "medium";
+    const agentCommand = typeof item.agentCommand === "string" ? item.agentCommand : "";
+    if (!title || !reason) continue;
+    out.push({ title, reason, priority, agentCommand });
+  }
+  return out.slice(0, 3);
 }
 
 function parseInsightList(raw: unknown): ProjectAiInsight[] {

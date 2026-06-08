@@ -17,35 +17,32 @@ export const prismaProjectAiSummaryRepository: ProjectAiSummaryRepository = {
     return {
       summary: row.summary,
       warnings: parseInsights(row.warnings),
-      suggestions: parseInsights(row.suggestions),
       refreshedAt: row.refreshedAt,
     };
   },
 
-  upsert: async ({ projectId, summary, warnings, suggestions }) => {
+  upsert: async ({ projectId, summary, warnings }) => {
     const refreshedAt = new Date();
     const warningsJson = warnings as unknown as Prisma.InputJsonValue;
-    const suggestionsJson = suggestions as unknown as Prisma.InputJsonValue;
     const row = await prisma.projectAiSummary.upsert({
       where: { projectId },
       create: {
         projectId,
         summary,
         warnings: warningsJson,
-        suggestions: suggestionsJson,
+        suggestions: [],
         refreshedAt,
       },
       update: {
         summary,
         warnings: warningsJson,
-        suggestions: suggestionsJson,
+        suggestions: [],
         refreshedAt,
       },
     });
     return {
       summary: row.summary,
       warnings: parseInsights(row.warnings),
-      suggestions: parseInsights(row.suggestions),
       refreshedAt: row.refreshedAt,
     };
   },

@@ -2,12 +2,13 @@
 
 import { unstable_cache } from "next/cache";
 
-import { projectAiSummaryTag } from "@/app/actions/projectMetricsTag";
+import { projectAiNextTaskTag, projectAiSummaryTag } from "@/app/actions/projectMetricsTag";
 import {
   getCachedProjectAiSummary,
   type CachedProjectAiSummary,
 } from "@/application/getCachedProjectAiSummary";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
+import { prismaProjectAiNextTaskRepository } from "@/infrastructure/repositories/prismaProjectAiNextTaskRepository";
 import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
 
 function makeCachedFetch(projectId: string) {
@@ -15,9 +16,10 @@ function makeCachedFetch(projectId: string) {
     () =>
       getCachedProjectAiSummary(projectId, {
         aiSummaries: prismaProjectAiSummaryRepository,
+        nextTasks: prismaProjectAiNextTaskRepository,
       }),
-    ["project-ai-summary", projectId],
-    { tags: [projectAiSummaryTag(projectId)] },
+    ["project-ai-summary-v2", projectId],
+    { tags: [projectAiSummaryTag(projectId), projectAiNextTaskTag(projectId)] },
   );
 }
 

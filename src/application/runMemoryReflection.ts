@@ -1,7 +1,7 @@
 import type { MemoryReflectionRepository } from "@/application/ports/memoryReflectionRepository";
 import type { TaskRepository } from "@/application/ports/taskRepository";
 import type { ToolRepository } from "@/application/ports/toolRepository";
-import type { MemoryReflectionRecord, ReflectionInsight, ReflectionSuggestedTask, ToolEnrichment, ToolSuggestion } from "@/domain/memory/memoryTierTypes";
+import type { MemoryReflectionRecord, ReflectionInsight, ToolEnrichment, ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 
 export type ReflectionInput = {
   tasks: Array<{ seq: number; title: string; priority: number; keyDecisions: string[]; outcome: string | null }>;
@@ -12,7 +12,6 @@ export type ReflectionInput = {
 
 export type ReflectionOutput = {
   insights: ReflectionInsight[];
-  suggestedTasks: ReflectionSuggestedTask[];
   toolSuggestions: ToolSuggestion[];
   toolEnrichments: ToolEnrichment[];
   contextSummary: string | null;
@@ -59,7 +58,7 @@ export async function runMemoryReflection(
   return deps.reflections.create({
     projectId,
     insights: output.insights,
-    suggestedTasks: output.suggestedTasks,
+    suggestedTasks: [],
     toolSuggestions: output.toolSuggestions,
     toolEnrichments: output.toolEnrichments,
     contextSummary: output.contextSummary,

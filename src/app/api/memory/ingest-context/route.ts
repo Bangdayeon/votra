@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { applyToolEnrichments } from "@/application/applyToolEnrichments";
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
-import { createProposalTasks } from "@/application/createProposalTasks";
 import { ingestExternalContext } from "@/application/ingestExternalContext";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
@@ -123,9 +122,4 @@ async function checkAndTriggerReflection(projectId: string, userId: string): Pro
     }).catch(() => {});
   }
 
-  if (reflection.suggestedTasks.length > 0) {
-    await createProposalTasks(projectId, userId, reflection.suggestedTasks, {
-      tasks: prismaTaskRepository,
-    }).catch(() => {});
-  }
 }

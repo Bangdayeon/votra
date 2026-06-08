@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { applyToolEnrichments } from "@/application/applyToolEnrichments";
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
-import { createProposalTasks } from "@/application/createProposalTasks";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
 import { refreshProjectAiSummary } from "@/application/refreshProjectAiSummary";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
@@ -13,6 +12,7 @@ import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflect
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
+import { prismaProjectAiNextTaskRepository } from "@/infrastructure/repositories/prismaProjectAiNextTaskRepository";
 import { prismaProjectAiSummaryRepository } from "@/infrastructure/repositories/prismaProjectAiSummaryRepository";
 import { prismaProjectRepository } from "@/infrastructure/repositories/prismaProjectRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
@@ -54,12 +54,6 @@ export async function GET(req: Request) {
           tools: prismaToolRepository,
         });
       }
-      if (ownerId && reflection.suggestedTasks.length > 0) {
-        await createProposalTasks(p.id, ownerId, reflection.suggestedTasks, {
-          tasks: prismaTaskRepository,
-        }).catch(() => {});
-      }
-
       await learnAndUpdateContext(p.id, {
         tasks: prismaTaskRepository,
         context: prismaMemoryContextRepository,
@@ -71,6 +65,7 @@ export async function GET(req: Request) {
         await refreshProjectAiSummary(p.id, {
           projects: prismaProjectRepository,
           aiSummaries: prismaProjectAiSummaryRepository,
+          nextTasks: prismaProjectAiNextTaskRepository,
           tasks: prismaTaskRepository,
           llm: geminiLlmClient,
           memoryContext: memoryContext.content,

@@ -38,7 +38,7 @@ export function parseProjectSettings(raw: unknown): ProjectSettings {
 
   const activeToArchivedDays = toPositiveInt(mem.activeToArchivedDays, 30);
   const archivedToTrashDays = toPositiveInt(mem.archivedToTrashDays, 30);
-  const reflectionThreshold = toPositiveInt(mem.reflectionThreshold, 5);
+  const reflectionThreshold = toPositiveInt(mem.reflectionThreshold, 10);
   const longTermMinAccessCount = toPositiveInt(mem.longTermMinAccessCount, 3);
   const longTermMinPriority = toPositiveInt(mem.longTermMinPriority, 7);
 

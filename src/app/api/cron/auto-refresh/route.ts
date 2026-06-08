@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { refreshProjectAiSummary } from "@/application/refreshProjectAiSummary";
-import { refreshProjectNextTasks } from "@/application/refreshProjectNextTasks";
 import { prisma } from "@/infrastructure/db/prisma";
 import { processGitClient } from "@/infrastructure/git/processGitClient";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
@@ -34,21 +33,12 @@ export async function GET(req: Request) {
     tasks: prismaTaskRepository,
     llm: geminiLlmClient,
     git: processGitClient,
+    aiSummaries: prismaProjectAiSummaryRepository,
+    nextTasks: prismaProjectAiNextTaskRepository,
   };
 
   const results = await Promise.allSettled(
-    projects.map((p) =>
-      Promise.all([
-        refreshProjectAiSummary(p.id, {
-          ...deps,
-          aiSummaries: prismaProjectAiSummaryRepository,
-        }),
-        refreshProjectNextTasks(p.id, {
-          ...deps,
-          nextTasks: prismaProjectAiNextTaskRepository,
-        }),
-      ]),
-    ),
+    projects.map((p) => refreshProjectAiSummary(p.id, deps)),
   );
 
   const succeeded = results.filter((r) => r.status === "fulfilled").length;
