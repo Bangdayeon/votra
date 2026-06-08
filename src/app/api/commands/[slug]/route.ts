@@ -5,7 +5,6 @@ import { prisma } from "@/infrastructure/db/prisma";
 
 type Params = { params: Promise<{ slug: string }> };
 
-// GET /api/skills/:slug?projectId= — backward compat, use /api/tools/:slug instead
 export async function GET(req: Request, { params }: Params) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
   if (!user) {
@@ -24,7 +23,7 @@ export async function GET(req: Request, { params }: Params) {
   });
 
   if (!tool || !tool.isEnabled) {
-    return NextResponse.json({ ok: false, error: "툴을 찾을 수 없어요." }, { status: 404 });
+    return NextResponse.json({ ok: false, error: "커맨드를 찾을 수 없어요." }, { status: 404 });
   }
 
   return NextResponse.json({
@@ -36,7 +35,6 @@ export async function GET(req: Request, { params }: Params) {
   });
 }
 
-// PATCH /api/skills/:slug?projectId= — { enabled: boolean } 토글
 export async function PATCH(req: Request, { params }: Params) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
   if (!user) {
@@ -60,7 +58,7 @@ export async function PATCH(req: Request, { params }: Params) {
     select: { slug: true },
   });
   if (!existing) {
-    return NextResponse.json({ ok: false, error: "툴을 찾을 수 없어요." }, { status: 404 });
+    return NextResponse.json({ ok: false, error: "커맨드를 찾을 수 없어요." }, { status: 404 });
   }
 
   await prisma.projectTool.update({

@@ -4,7 +4,6 @@ import { listTools } from "@/application/listTools";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 
-// GET /api/skills?projectId= — backward compat, use /api/memory/tools instead
 export async function GET(req: Request) {
   const user = await resolveUserFromApiKey(req.headers.get("authorization"));
   if (!user) {
@@ -20,5 +19,5 @@ export async function GET(req: Request) {
   const result = await listTools(projectId, { tools: prismaToolRepository });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
 
-  return NextResponse.json({ ok: true, skills: result.value });
+  return NextResponse.json({ ok: true, commands: result.value });
 }
