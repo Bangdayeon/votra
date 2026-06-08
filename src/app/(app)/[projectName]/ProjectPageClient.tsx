@@ -8,6 +8,7 @@ import type { CachedProjectNextTasks } from "@/application/getCachedProjectNextT
 import type { ProjectMemberRow } from "@/app/actions/getProjectMembers";
 import type { TaskRecord } from "@/app/actions/getProjectTasks";
 import { BrainTab } from "@/components/memory/BrainTab";
+import { CommandsTab } from "@/components/memory/CommandsTab";
 import { ToolsTab } from "@/components/memory/ToolsTab";
 import { TasksTab } from "@/components/memory/TasksTab";
 import { OverviewTab } from "@/components/overview/OverviewTab";
@@ -32,12 +33,13 @@ export type ProjectPageInitialData = {
   };
 };
 
-type Tab = "main" | "manage" | "tasks" | "tools" | "brain" | "team";
+type Tab = "main" | "manage" | "tasks" | "tools" | "commands" | "brain" | "team";
 
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "tasks") return "tasks";
   if (value === "tools") return "tools";
+  if (value === "commands") return "commands";
   if (value === "brain") return "brain";
   if (value === "team") return "team";
   return "main";
@@ -103,6 +105,11 @@ export function ProjectPageClient({
       {visitedTabs.has("tools") && (
         <div className={cn(tab !== "tools" && "hidden")}>
           <ToolsTab selected={project} />
+        </div>
+      )}
+      {visitedTabs.has("commands") && (
+        <div className={cn(tab !== "commands" && "hidden")}>
+          <CommandsTab selected={project} />
         </div>
       )}
       {visitedTabs.has("brain") && (
