@@ -4,11 +4,13 @@ import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
 import { getProjectBrief } from "@/application/getProjectBrief";
 import { listFolders } from "@/application/listFolders";
 import { listMemoryReflections } from "@/application/listMemoryReflections";
+import { seedDefaultCommands } from "@/application/seedDefaultCommands";
 import { seedDefaultTools } from "@/application/seedDefaultTools";
 import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
+import { prismaCommandRepository } from "@/infrastructure/repositories/prismaCommandRepository";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
@@ -27,7 +29,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
 
-  const [project, aiNextTask, aiSummary, foldersResult, longTermTasks, reflections, memoryContext, rawProjectTools, rawGlobalTools, latestReflectionRaw] = await Promise.all([
+  const [project, aiNextTask, aiSummary, foldersResult, longTermTasks, reflections, memoryContext, rawProjectTools, rawGlobalTools, latestReflectionRaw, rawCommands] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       select: { title: true, cwd: true, settings: true },
@@ -48,6 +50,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
       select: { toolSuggestions: true },
     }),
+    prismaCommandRepository.listByUser(user.id),
   ]);
 
   if (!project) {
@@ -59,6 +62,13 @@ export async function GET(req: Request) {
   if (globalTools.length === 0) {
     await seedDefaultTools(user.id, { tools: prismaToolRepository });
     globalTools = await prismaToolRepository.listGlobal(user.id);
+  }
+
+  // 커맨드가 없으면 기본 커맨드 lazy seeding
+  let commands = rawCommands;
+  if (commands.length === 0) {
+    await seedDefaultCommands(user.id, { commands: prismaCommandRepository });
+    commands = await prismaCommandRepository.listByUser(user.id);
   }
 
   // 글로벌 + 프로젝트 툴 합산 (글로벌 우선, 중복 slug 제거)
@@ -120,6 +130,7 @@ export async function GET(req: Request) {
         currentGoal: memoryContext.currentGoal,
       } : null,
       enabledIntegrations: projectSettings.integrations.sources,
+      commands: commands.map((c) => ({ slug: c.slug, name: c.name, description: c.description })),
     },
   });
 }

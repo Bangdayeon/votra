@@ -10,7 +10,7 @@ export const DEFAULT_COMMANDS: DefaultCommand[] = [
   {
     slug: "review",
     name: "코드 리뷰",
-    description: "변경 사항을 보안·성능·가독성 체크리스트로 구조화해 리뷰",
+    description: "변경 사항을 체크리스트(보안, 성능, 가독성)로 구조화하여 리뷰",
     folder: "코드 품질",
     content: `## 코드 리뷰
 
@@ -46,7 +46,7 @@ export const DEFAULT_COMMANDS: DefaultCommand[] = [
   {
     slug: "refactor",
     name: "리팩토링",
-    description: "동작은 유지하면서 구조·중복·가독성을 개선하는 방법 제안",
+    description: "동작은 유지하면서 구조, 중복, 가독성을 개선하는 개선안 제안",
     folder: "코드 품질",
     content: `## 리팩토링
 
@@ -76,7 +76,7 @@ export const DEFAULT_COMMANDS: DefaultCommand[] = [
   {
     slug: "debug",
     name: "버그 디버깅",
-    description: "증상 → 재현 → 원인 → 수정 순서로 체계적으로 분석",
+    description: "증상 → 재현 → 원인 → 수정 순서로 버그를 분석하고 해결",
     folder: "진단",
     content: `## 버그 디버깅
 
@@ -111,7 +111,7 @@ export const DEFAULT_COMMANDS: DefaultCommand[] = [
   {
     slug: "security",
     name: "보안 점검",
-    description: "OWASP 기반 취약점 점검 및 개선 방법 제안",
+    description: "인증 누락, 인젝션, 민감 데이터 노출 등 보안 취약점을 점검하고 개선 방법 제안",
     folder: "진단",
     content: `## 보안 점검
 
@@ -144,7 +144,7 @@ export const DEFAULT_COMMANDS: DefaultCommand[] = [
   {
     slug: "test",
     name: "테스트 작성",
-    description: "엣지 케이스·권한·통합까지 빠짐없이 커버하는 테스트 작성",
+    description: "엣지 케이스, 권한, 모듈 간 연동까지 커버하는 테스트 작성",
     folder: "진단",
     content: `## 테스트 작성
 
@@ -182,7 +182,7 @@ export const DEFAULT_COMMANDS: DefaultCommand[] = [
   {
     slug: "explain",
     name: "코드 설명",
-    description: "대상 독자 수준에 맞춰 코드 동작 원리와 의도를 설명",
+    description: "코드가 어떻게 동작하는지 설명해줘요. 누구에게 설명할지 알려주면 맞춰서 설명해요.",
     folder: "진단",
     content: `## 코드 설명
 
