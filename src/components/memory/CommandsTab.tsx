@@ -132,16 +132,16 @@ function FolderSection({
   );
 }
 
-// ── AddCommandForm ─────────────────────────────────────────────────────────────
+// ── AddCommandModal ───────────────────────────────────────────────────────────
 
-function AddCommandForm({
+function AddCommandModal({
   existingFolders,
   onAdded,
-  onCancel,
+  onClose,
 }: {
   existingFolders: string[];
   onAdded: (command: ProjectCommandRecord) => void;
-  onCancel: () => void;
+  onClose: () => void;
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -185,107 +185,107 @@ function AddCommandForm({
   const AI_PROMPT = "새 커맨드 만들어줘. 아이디어: ";
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card px-4 py-4 flex flex-col gap-3">
-      <div className="rounded-md bg-muted/60 px-3 py-2.5 flex flex-col gap-1.5">
-        <p className="text-xs text-muted-foreground">아래를 복사해서 뒤에 아이디어를 적고 AI 에이전트 대화창에 붙여넣으면 커맨드를 만들어줘요.</p>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 rounded bg-background px-2 py-1 font-mono text-xs text-foreground">{AI_PROMPT}</code>
-          <button
-            type="button"
-            onClick={() => { navigator.clipboard.writeText(AI_PROMPT); toast.success("복사됐어요."); }}
-            className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
-          >
-            <Copy className="size-3.5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="relative w-full max-w-lg rounded-xl border border-border bg-background shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold">커맨드 추가</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:text-foreground">
+            <X className="size-4" />
           </button>
         </div>
-      </div>
 
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">직접 추가</span>
-        <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
-          <X className="size-4" />
-        </button>
-      </div>
+        <div className="max-h-[80vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-5 py-5">
+            <div className="rounded-md bg-muted/60 px-3 py-2.5 flex flex-col gap-1.5">
+              <p className="text-xs text-muted-foreground">아래를 복사해서 뒤에 아이디어를 적고 AI 에이전트 대화창에 붙여넣으면 커맨드를 만들어줘요.</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded bg-background px-2 py-1 font-mono text-xs text-foreground">{AI_PROMPT}</code>
+                <button
+                  type="button"
+                  onClick={() => { navigator.clipboard.writeText(AI_PROMPT); toast.success("복사됐어요."); }}
+                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <Copy className="size-3.5" />
+                </button>
+              </div>
+            </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <label className="text-xs text-muted-foreground">이름 * <span className="text-[10px]">(영어·숫자만)</span></label>
-            <span className={cn("text-[10px]", name.length > NAME_MAX ? "text-red-500" : "text-muted-foreground")}>
-              {name.length} / {NAME_MAX}
-            </span>
-          </div>
-          <input
-            ref={nameRef}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Backend Engineer"
-            maxLength={NAME_MAX + 10}
-            className={cn(
-              "rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring",
-              nameError ? "border-red-400 focus:ring-red-400" : "border-border",
-            )}
-          />
-          {nameError
-            ? <span className="text-[10px] text-red-500">{nameError}</span>
-            : nameSlug && <span className="font-mono text-[10px] text-muted-foreground">/{nameSlug}</span>
-          }
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-muted-foreground">이름 * <span className="text-[10px]">(영어·숫자만)</span></label>
+                  <span className={cn("text-[10px]", name.length > NAME_MAX ? "text-red-500" : "text-muted-foreground")}>
+                    {name.length} / {NAME_MAX}
+                  </span>
+                </div>
+                <input
+                  ref={nameRef}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Backend Engineer"
+                  maxLength={NAME_MAX + 10}
+                  className={cn(
+                    "rounded-md border bg-muted px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring",
+                    nameError ? "border-red-400 focus:ring-red-400" : "border-input",
+                  )}
+                />
+                {nameError
+                  ? <span className="text-[10px] text-red-500">{nameError}</span>
+                  : nameSlug && <span className="font-mono text-[10px] text-muted-foreground">/{nameSlug}</span>
+                }
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">폴더</label>
+                <input
+                  list="command-folders"
+                  value={folder}
+                  onChange={(e) => setFolder(e.target.value)}
+                  placeholder="기타"
+                  className="rounded-md border border-input bg-muted px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+                />
+                <datalist id="command-folders">
+                  {existingFolders.map((f) => <option key={f} value={f} />)}
+                </datalist>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">설명</label>
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="이 커맨드가 하는 일을 간단히 설명해요"
+                className="rounded-md border border-input bg-muted px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">내용 *</label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="에이전트에게 전달할 지침을 마크다운으로 작성하세요"
+                required
+                rows={6}
+                className="resize-none rounded-md border border-input bg-muted px-3 py-2.5 font-mono text-xs leading-relaxed outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={pending}>
+                취소
+              </Button>
+              <Button type="submit" size="sm" disabled={pending || !isNameValid || !content.trim()}>
+                {pending ? <Loader2 className="size-3.5 animate-spin" /> : "추가"}
+              </Button>
+            </div>
+          </form>
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground">폴더</label>
-          <input
-            list="command-folders"
-            value={folder}
-            onChange={(e) => setFolder(e.target.value)}
-            placeholder="개발"
-            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring"
-          />
-          <datalist id="command-folders">
-            {existingFolders.map((f) => <option key={f} value={f} />)}
-          </datalist>
-        </div>
       </div>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">설명</label>
-        <input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="이 커맨드가 하는 일을 간단히 설명해요"
-          className="rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">내용 *</label>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="에이전트에게 전달할 지침을 마크다운으로 작성하세요"
-          required
-          rows={6}
-          className="rounded-md border border-border bg-background px-3 py-1.5 font-mono text-xs leading-relaxed outline-none focus:ring-1 focus:ring-ring resize-y"
-        />
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          취소
-        </button>
-        <button
-          type="submit"
-          disabled={pending || !isNameValid || !content.trim()}
-          className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
-        >
-          {pending && <Loader2 className="size-3.5 animate-spin" />}
-          커맨드 추가
-        </button>
-      </div>
-    </form>
+    </div>
   );
 }
 
@@ -419,6 +419,13 @@ export function CommandsTab() {
           loading={deleteLoading}
         />
       )}
+      {showAdd && (
+        <AddCommandModal
+          existingFolders={orderedFolders}
+          onAdded={handleAdded}
+          onClose={() => setShowAdd(false)}
+        />
+      )}
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
@@ -447,14 +454,6 @@ export function CommandsTab() {
         </div>
         <p className="text-sm text-muted-foreground">에이전트와 대화 중 /슬래시 명령어로 직접 실행하는 커맨드예요.</p>
       </div>
-
-      {!isSelectMode && showAdd && (
-        <AddCommandForm
-          existingFolders={orderedFolders}
-          onAdded={handleAdded}
-          onCancel={() => setShowAdd(false)}
-        />
-      )}
 
       {loading ? (
         <div className="flex flex-col gap-6">
