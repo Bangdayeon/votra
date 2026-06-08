@@ -1,16 +1,23 @@
 "use server";
 
-import { listCommands } from "@/application/listCommands";
+import { seedDefaultCommands } from "@/application/seedDefaultCommands";
 import type { ProjectCommandRecord } from "@/domain/memory/types";
 import { getCurrentUser } from "@/infrastructure/auth/currentUser";
 import { prismaCommandRepository } from "@/infrastructure/repositories/prismaCommandRepository";
 
 export type { ProjectCommandRecord };
 
+async function resolveCommands(userId: string): Promise<ProjectCommandRecord[]> {
+  let commands = await prismaCommandRepository.listByUser(userId);
+  if (commands.length === 0) {
+    await seedDefaultCommands(userId, { commands: prismaCommandRepository });
+    commands = await prismaCommandRepository.listByUser(userId);
+  }
+  return commands;
+}
+
 export async function getCommandsAction(): Promise<ProjectCommandRecord[]> {
   const user = await getCurrentUser();
   if (!user) throw new Error("로그인이 필요해요.");
-  const result = await listCommands(user.id, { commands: prismaCommandRepository });
-  if (!result.ok) throw new Error(result.error);
-  return result.value;
+  return resolveCommands(user.id);
 }

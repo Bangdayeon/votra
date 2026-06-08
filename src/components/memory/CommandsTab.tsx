@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, ChevronDown, ChevronRight, ChevronUp, Loader2, Plus, Trash2, X } from "lucide-react";
+import { BookOpen, CheckSquare, ChevronDown, ChevronRight, ChevronUp, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { getCommandsAction, type ProjectCommandRecord } from "@/app/actions/getCustomCommandsAction";
 import { createCommandAction } from "@/app/actions/createCommandAction";
 import { deleteCommandAction } from "@/app/actions/deleteCommandAction";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 
@@ -16,32 +17,37 @@ import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 function CommandRow({
   command,
   badgeColor,
-  onDeleted,
+  isSelectMode,
+  isSelected,
+  onSelect,
 }: {
   command: ProjectCommandRecord;
   badgeColor: string;
-  onDeleted: (id: string) => void;
+  isSelectMode: boolean;
+  isSelected: boolean;
+  onSelect: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [pending, setPending] = useState(false);
-
-  async function handleDelete(e: React.MouseEvent) {
-    e.stopPropagation();
-    setPending(true);
-    onDeleted(command.id); // optimistic
-    const result = await deleteCommandAction(command.id);
-    if (!result.ok) {
-      toast.error(result.error ?? "커맨드 삭제에 실패했어요.");
-    }
-    setPending(false);
-  }
+  const selectable = !command.isBuiltIn;
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className={cn(
+      "rounded-lg border border-border bg-card transition-colors",
+      isSelectMode && isSelected && "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20",
+    )}>
       <div
         className="flex cursor-pointer items-start gap-4 px-4 py-3.5"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={isSelectMode && selectable ? onSelect : () => setExpanded((v) => !v)}
       >
+        {isSelectMode && selectable && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            readOnly
+            onClick={(e) => { e.stopPropagation(); onSelect(); }}
+            className="mt-0.5 size-4 shrink-0 cursor-pointer accent-foreground"
+          />
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-medium">{command.name}</p>
@@ -56,26 +62,17 @@ function CommandRow({
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{command.description}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-          {pending && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
-          {!command.isBuiltIn && (
-            <button
-              onClick={handleDelete}
-              disabled={pending}
-              className="rounded p-0.5 text-muted-foreground/40 transition-colors hover:text-destructive disabled:pointer-events-none"
-              aria-label="커맨드 삭제"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
-          )}
-          {expanded
-            ? <ChevronUp className="size-3.5 text-muted-foreground" />
-            : <ChevronDown className="size-3.5 text-muted-foreground" />
-          }
-        </div>
+        {!isSelectMode && (
+          <div className="flex shrink-0 items-center gap-1 pt-0.5">
+            {expanded
+              ? <ChevronUp className="size-3.5 text-muted-foreground" />
+              : <ChevronDown className="size-3.5 text-muted-foreground" />
+            }
+          </div>
+        )}
       </div>
 
-      {expanded && (
+      {!isSelectMode && expanded && (
         <div className="border-t border-border px-4 py-3">
           <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-muted-foreground">
             {command.content}
@@ -92,12 +89,16 @@ function FolderSection({
   folder,
   commands,
   colorMap,
-  onDeleted,
+  isSelectMode,
+  selectedIds,
+  onSelect,
 }: {
   folder: string;
   commands: ProjectCommandRecord[];
   colorMap: Map<string, string>;
-  onDeleted: (id: string) => void;
+  isSelectMode: boolean;
+  selectedIds: Set<string>;
+  onSelect: (id: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -122,7 +123,9 @@ function FolderSection({
               key={command.slug}
               command={command}
               badgeColor={colorMap.get(command.slug) ?? BADGE_COLORS[0]}
-              onDeleted={onDeleted}
+              isSelectMode={isSelectMode}
+              isSelected={selectedIds.has(command.id)}
+              onSelect={() => onSelect(command.id)}
             />
           ))}
         </div>
@@ -149,9 +152,7 @@ function AddCommandForm({
   const [pending, setPending] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    nameRef.current?.focus();
-  }, []);
+  useEffect(() => { nameRef.current?.focus(); }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -164,10 +165,7 @@ function AddCommandForm({
         folder: folder.trim() || "기타",
         content: content.trim(),
       });
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
+      if (!result.ok) { toast.error(result.error); return; }
       onAdded(result.value);
       toast.success("커맨드가 추가됐어요.");
     } catch (e) {
@@ -262,14 +260,15 @@ export function CommandsTab() {
   const [commands, setCommands] = useState<ProjectCommandRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     getCommandsAction()
-      .then((data) => {
-        if (!cancelled) setCommands(data);
-      })
+      .then((data) => { if (!cancelled) setCommands(data); })
       .catch((e: unknown) => {
         if (!cancelled) toast.error(e instanceof Error ? e.message : "커맨드 목록을 불러오지 못했어요.");
       })
@@ -282,8 +281,30 @@ export function CommandsTab() {
     setShowAdd(false);
   }
 
-  function handleDeleted(id: string) {
-    setCommands((prev) => prev.filter((c) => c.id !== id));
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    setDeleteLoading(true);
+    const ids = Array.from(selectedIds);
+    setCommands((prev) => prev.filter((c) => !ids.includes(c.id)));
+    setSelectedIds(new Set());
+    setIsSelectMode(false);
+    const results = await Promise.all(ids.map((id) => deleteCommandAction(id)));
+    const failed = results.filter((r) => !r.ok).length;
+    if (failed > 0) toast.error(`${failed}개 삭제에 실패했어요.`);
+    setDeleteLoading(false);
   }
 
   const grouped = useMemo(() => {
@@ -297,7 +318,6 @@ export function CommandsTab() {
   }, [commands]);
 
   const orderedFolders = useMemo(() => [...grouped.keys()].sort(), [grouped]);
-
   const colorMap = useMemo(() => buildToolColorMap(commands.map((c) => c.slug)), [commands]);
 
   return (
@@ -306,16 +326,29 @@ export function CommandsTab() {
         <BookOpen className="size-4 shrink-0 text-muted-foreground" />
         <h2 className="text-base font-semibold">커맨드</h2>
         <span className="text-xs text-muted-foreground">에이전트와 대화 중 슬래시 명령어로 실행해요.</span>
-        <button
-          onClick={() => setShowAdd((v) => !v)}
-          className="ml-auto flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Plus className="size-3.5" />
-          커맨드 추가
-        </button>
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              if (isSelectMode) { exitSelectMode(); } else { setIsSelectMode(true); setShowAdd(false); }
+            }}
+            className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {!isSelectMode && <CheckSquare className="size-3.5" />}
+            {isSelectMode ? "취소" : "선택하기"}
+          </button>
+          {!isSelectMode && (
+            <button
+              onClick={() => setShowAdd((v) => !v)}
+              className="flex cursor-pointer items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Plus className="size-3.5" />
+              커맨드 추가
+            </button>
+          )}
+        </div>
       </div>
 
-      {showAdd && (
+      {!isSelectMode && showAdd && (
         <AddCommandForm
           existingFolders={orderedFolders}
           onAdded={handleAdded}
@@ -351,9 +384,35 @@ export function CommandsTab() {
               folder={folder}
               commands={grouped.get(folder) ?? []}
               colorMap={colorMap}
-              onDeleted={handleDeleted}
+              isSelectMode={isSelectMode}
+              selectedIds={selectedIds}
+              onSelect={toggleSelect}
             />
           ))}
+        </div>
+      )}
+
+      {isSelectMode && selectedIds.size > 0 && (
+        <div className="sticky bottom-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
+          <span className="text-sm font-medium text-muted-foreground">{selectedIds.size}개 선택됨</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={exitSelectMode} disabled={deleteLoading}>
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={deleteLoading}
+              className="gap-1.5"
+            >
+              {deleteLoading
+                ? <Loader2 className="size-3.5 animate-spin" />
+                : <Trash2 className="size-3.5" />
+              }
+              삭제
+            </Button>
+          </div>
         </div>
       )}
     </div>
