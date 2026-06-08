@@ -150,11 +150,20 @@ function AddCommandForm({
   const [pending, setPending] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
+  const NAME_MAX = 50;
+  const nameError = name.length > 0 && !/^[a-zA-Z0-9 ]+$/.test(name)
+    ? "영어와 숫자만 사용할 수 있어요"
+    : name.length > NAME_MAX
+    ? `${NAME_MAX}자 이하로 입력해주세요`
+    : null;
+  const nameSlug = name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") || null;
+  const isNameValid = name.trim().length > 0 && nameError === null && name.length <= NAME_MAX;
+
   useEffect(() => { nameRef.current?.focus(); }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !content.trim()) return;
+    if (!isNameValid || !content.trim()) return;
     setPending(true);
     try {
       const result = await createCommandAction({
@@ -184,15 +193,27 @@ function AddCommandForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground">이름 *</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-muted-foreground">이름 * <span className="text-[10px]">(영어·숫자만)</span></label>
+            <span className={cn("text-[10px]", name.length > NAME_MAX ? "text-red-500" : "text-muted-foreground")}>
+              {name.length} / {NAME_MAX}
+            </span>
+          </div>
           <input
             ref={nameRef}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Backend Engineer"
-            required
-            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+            maxLength={NAME_MAX + 10}
+            className={cn(
+              "rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-ring",
+              nameError ? "border-red-400 focus:ring-red-400" : "border-border",
+            )}
           />
+          {nameError
+            ? <span className="text-[10px] text-red-500">{nameError}</span>
+            : nameSlug && <span className="font-mono text-[10px] text-muted-foreground">/{nameSlug}</span>
+          }
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">폴더</label>
@@ -241,7 +262,7 @@ function AddCommandForm({
         </button>
         <button
           type="submit"
-          disabled={pending || !name.trim() || !content.trim()}
+          disabled={pending || !isNameValid || !content.trim()}
           className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
         >
           {pending && <Loader2 className="size-3.5 animate-spin" />}
