@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { getProjectAiSummaryAction } from "@/app/actions/getProjectAiSummary";
 import type { TaskRecord } from "@/app/actions/getProjectTasks";
+import { refreshProjectNextTasksAction } from "@/app/actions/refreshProjectNextTasks";
 import type { CachedProjectAiSummary } from "@/application/getCachedProjectAiSummary";
 import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
 import { AgentCommandBox } from "@/components/common/AgentCommandBox";
@@ -27,6 +28,7 @@ export function OverviewTab({
     initialOverview?.aiSummary ?? null,
   );
   const [aiLoading, setAiLoading] = useState(!initialOverview);
+  const [nextTasksRefreshing, setNextTasksRefreshing] = useState(false);
   const skipFirst = useRef(!!initialOverview);
 
   useEffect(() => {
@@ -42,6 +44,21 @@ export function OverviewTab({
       .finally(() => { if (!cancelled) setAiLoading(false); });
     return () => { cancelled = true; };
   }, [selected.id]);
+
+  async function handleRefreshNextTasks() {
+    setNextTasksRefreshing(true);
+    try {
+      const result = await refreshProjectNextTasksAction(selected.id);
+      setAiSummary((prev) =>
+        prev ? { ...prev, nextTasks: result.tasks, refreshedAt: result.refreshedAt } : prev,
+      );
+      toast.success("제안 작업이 업데이트됐어요.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "제안 작업 업데이트에 실패했어요.");
+    } finally {
+      setNextTasksRefreshing(false);
+    }
+  }
 
   const tasks = initialTasks ?? [];
   const previewTasks = [
@@ -77,6 +94,8 @@ export function OverviewTab({
           title="💬 제안 작업"
           refreshedAt={aiSummary?.refreshedAt ?? null}
           loading={aiLoading}
+          refreshing={nextTasksRefreshing}
+          onRefresh={selected.isOwner ? handleRefreshNextTasks : undefined}
         />
         <section className="mt-4">
           {aiLoading ? (

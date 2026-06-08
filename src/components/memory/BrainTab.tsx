@@ -509,7 +509,7 @@ function InsightsSection({ projectId }: { projectId: string }) {
 
 // ── BrainTab ──────────────────────────────────────────────────────────────────
 
-export function BrainTab({ selected }: { selected: Project }) {
+export function BrainTab({ selected, isActive }: { selected: Project; isActive: boolean }) {
   const [totalDecisionCount, setTotalDecisionCount] = useState<number>(0);
   const [aiSummary, setAiSummary] = useState<CachedProjectAiSummary>(null);
   const [aiLoading, setAiLoading] = useState(true);
@@ -524,6 +524,7 @@ export function BrainTab({ selected }: { selected: Project }) {
   }, [selected.id]);
 
   useEffect(() => {
+    if (!isActive) return;
     let cancelled = false;
     setAiLoading(true);
     getProjectAiSummaryAction(selected.id)
@@ -531,7 +532,7 @@ export function BrainTab({ selected }: { selected: Project }) {
       .catch(() => {})
       .finally(() => { if (!cancelled) setAiLoading(false); });
     return () => { cancelled = true; };
-  }, [selected.id]);
+  }, [isActive, selected.id]);
 
   async function handleAiRefresh() {
     setAiRefreshing(true);
