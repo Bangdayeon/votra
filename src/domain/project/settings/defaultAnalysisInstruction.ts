@@ -33,7 +33,7 @@ Analyze the task data below and generate a structured report.
    - If no clear follow-up work exists, suggest improvements to quality (tests, error handling), observability, or the next natural feature.
    - Always return at least one suggestion if any tasks or commits are provided.
 
-4. agentCommand: 2 lines max, self-contained natural-language command, must reference actual task titles or outcome content.
+4. agentCommand: 2 lines max, self-contained natural-language command. Must reference task seq numbers (e.g. #12) and actual task titles. The agent should be able to act immediately without additional context lookup.
 
 5. No speculation. Base everything strictly on the provided data. If data is insufficient, return fewer items or empty arrays.
 
