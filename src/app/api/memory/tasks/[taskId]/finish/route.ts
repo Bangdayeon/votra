@@ -4,17 +4,17 @@ import { applyToolEnrichments } from "@/application/applyToolEnrichments";
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
 import { createProposalTasks } from "@/application/createProposalTasks";
 import { finishTask } from "@/application/finishTask";
-import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
+import type { EmbeddingClient } from "@/application/ports/embeddingClient";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
+import type { TaskRecord } from "@/domain/memory/types";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
+import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClient";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
-import { createGeminiContextEngine } from "@/infrastructure/llm/geminiContextEngine";
 import { createGeminiKeyDecisionsEngine } from "@/infrastructure/llm/geminiKeyDecisionsEngine";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
-import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
@@ -67,17 +67,23 @@ export async function POST(
   emitProjectUpdate(body.projectId);
 
   void checkAndTriggerReflection(body.projectId, user.id).catch(() => {});
-  void learnAndUpdateContext(body.projectId, {
-    tasks: prismaTaskRepository,
-    context: prismaMemoryContextRepository,
-    engine: createGeminiContextEngine(geminiLlmClient),
-  }).catch(() => {});
+  void generateTaskEmbedding(result.value.task, geminiEmbeddingClient).catch(() => {});
 
   return NextResponse.json({ ok: true, task: result.value.task });
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+async function generateTaskEmbedding(task: TaskRecord, embedder: EmbeddingClient): Promise<void> {
+  const parts = [
+    `유저 요구: ${task.title}`,
+    task.keyDecisions.length > 0 ? `핵심 결정: ${task.keyDecisions.join(". ")}` : "",
+    task.outcome ? `결론: ${task.outcome}` : "",
+  ].filter(Boolean);
+  const embedding = await embedder.embed(parts.join("\n"), "RETRIEVAL_DOCUMENT");
+  await prismaTaskRepository.updateEmbedding({ taskId: task.id, embedding });
 }
 
 async function checkAndTriggerReflection(projectId: string, userId: string): Promise<void> {

@@ -209,6 +209,48 @@ export const prismaTaskRepository: TaskRepository = {
     });
   },
 
+  async updateEmbedding({ taskId, embedding }) {
+    await prisma.$executeRaw`
+      UPDATE "Task" SET "embedding" = ${embedding}::vector WHERE id = ${taskId}
+    `;
+  },
+
+  async searchByVector({ embedding, projectId, userId, limit, threshold = 0.7 }) {
+    type RawRow = {
+      id: string; seq: number; projectId: string; title: string; description: string | null;
+      status: string; tool: string | null; priority: number; sortOrder: number; keyDecisions: string[];
+      outcome: string | null; folderId: string | null; createdAt: Date; updatedAt: Date; doneAt: Date | null;
+      deletedAt: Date | null; memoryTier: string; accessCount: number; lastAccessedAt: Date | null; isPinned: boolean;
+      userId: string; userName: string | null; userProfileImage: string | null; userProfileColor: string | null;
+    };
+    const rows = await prisma.$queryRaw<RawRow[]>`
+      SELECT t.id, t.seq, t."projectId", t.title, t.description, t.status, t.tool, t.priority, t."sortOrder",
+             t."keyDecisions", t.outcome, t."folderId", t."createdAt", t."updatedAt", t."doneAt", t."deletedAt",
+             t."memoryTier", t."accessCount", t."lastAccessedAt", t."isPinned",
+             t."userId", u.name AS "userName", u."profileImage" AS "userProfileImage", u."profileColor" AS "userProfileColor"
+      FROM "Task" t
+      LEFT JOIN "User" u ON u.id = t."userId"
+      WHERE t."projectId" = ${projectId}
+        AND t."userId" = ${userId}
+        AND t."deletedAt" IS NULL
+        AND t."embedding" IS NOT NULL
+        AND 1 - (t.embedding <=> ${embedding}::vector) >= ${threshold}
+      ORDER BY t.embedding <=> ${embedding}::vector
+      LIMIT ${limit}
+    `;
+    return rows.map((r) => toRecord({
+      ...r,
+      sortOrder: Number(r.sortOrder),
+      folderId: r.folderId ?? null,
+      deletedAt: r.deletedAt ?? null,
+      memoryTier: r.memoryTier,
+      accessCount: Number(r.accessCount),
+      lastAccessedAt: r.lastAccessedAt ?? null,
+      isPinned: Boolean(r.isPinned),
+      user: { id: r.userId, name: r.userName, profileImage: r.userProfileImage, profileColor: r.userProfileColor },
+    }));
+  },
+
   async search({ query, projectId, userId, limit }) {
     type RawRow = {
       id: string; seq: number; projectId: string; title: string; description: string | null;

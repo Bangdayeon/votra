@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { recallThoughts } from "@/application/recallThoughts";
 import { trackTaskAccess } from "@/application/trackTaskAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
+import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClient";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 
 export async function POST(req: Request) {
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
 
   const result = await recallThoughts(
     { query: body.query, projectId: body.projectId, userId: user.id, limit },
-    { tasks: prismaTaskRepository },
+    { tasks: prismaTaskRepository, embedding: geminiEmbeddingClient },
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });

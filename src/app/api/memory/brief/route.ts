@@ -108,7 +108,12 @@ export async function GET(req: Request) {
           }
         : undefined,
       toolSuggestions: toolSuggestions.length > 0 ? toolSuggestions : undefined,
-      memoryContext: memoryContext?.content ?? null,
+      memoryContext: memoryContext ? {
+        serviceDescription: memoryContext.serviceDescription,
+        techStack: memoryContext.techStack,
+        targetUsers: memoryContext.targetUsers,
+        currentGoal: memoryContext.currentGoal,
+      } : null,
       enabledIntegrations: projectSettings.integrations.sources,
     },
   });

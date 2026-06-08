@@ -330,6 +330,8 @@ model Task {
   lastAccessedAt DateTime?
   /// 사용자가 장기 기억으로 명시 고정. LONG_TERM 강제 유지.
   isPinned       Boolean    @default(false)
+  /// 벡터 임베딩 (text-embedding-004, 768차원). 태스크 완료 시 비동기 생성.
+  embedding      Unsupported("vector(3072)")?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -359,10 +361,16 @@ model ProjectMemoryContext {
   id        String @id @default(cuid())
   projectId String @unique
 
-  /// AI가 태스크 학습을 통해 축적한 프로젝트 맥락 (plain text, 한국어)
+  /// AI가 태스크 학습을 통해 축적한 프로젝트 맥락 (하위 호환 유지, 추후 제거 예정)
   content   String @db.Text
-  /// 몇 번째 학습인지. 갱신마다 +1.
+  /// 몇 번째 갱신인지. 유저가 저장할 때마다 +1.
   version   Int    @default(1)
+
+  /// 유저가 직접 관리하는 프로젝트 헌법 (4개 필드)
+  serviceDescription String? @db.Text
+  techStack          String? @db.Text
+  targetUsers        String? @db.Text
+  currentGoal        String? @db.Text
 
   updatedAt DateTime @updatedAt
 

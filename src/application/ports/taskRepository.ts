@@ -71,4 +71,12 @@ export type TaskRepository = {
   listForDecay: (projectId: string) => Promise<DecayCandidate[]>;
   listByMemoryTier: (args: { projectId: string; tier: MemoryTierValue; limit?: number }) => Promise<TaskRecord[]>;
   countActivitySince: (args: { projectId: string; sinceDate: Date }) => Promise<number>;
+  updateEmbedding: (args: { taskId: string; embedding: number[] }) => Promise<void>;
+  searchByVector: (args: {
+    embedding: number[];
+    projectId: string;
+    userId: string;
+    limit: number;
+    threshold?: number;
+  }) => Promise<TaskRecord[]>;
 };
