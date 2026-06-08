@@ -4,6 +4,16 @@ Shared rules for humans and AI agents. Precedence: user instruction > this doc >
 
 ---
 
+## 0. 서비스 정체성 (절대 규칙)
+
+**haema는 모든 AI 에이전트를 대상으로 하는 서비스다. Claude Code 전용이 아니다.**
+
+- UI 문구, 안내 텍스트, 문서에서 "Claude Code"를 특정하지 마라.
+- 에이전트를 지칭할 때: "AI 에이전트", "에이전트 대화창" 등 중립적 표현을 써라.
+- MCP 도구 설명, brief 출력, 힌트 문구 모두 동일하게 적용된다.
+
+---
+
 ## 1. Principles
 
 - Prefer three plain lines over one clever one.

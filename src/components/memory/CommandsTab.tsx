@@ -187,7 +187,7 @@ function AddCommandForm({
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card px-4 py-4 flex flex-col gap-3">
       <div className="rounded-md bg-muted/60 px-3 py-2.5 flex flex-col gap-1.5">
-        <p className="text-xs text-muted-foreground">아래를 복사해서 뒤에 아이디어를 적고 Claude Code에 붙여넣으면 AI가 커맨드를 만들어줘요.</p>
+        <p className="text-xs text-muted-foreground">아래를 복사해서 뒤에 아이디어를 적고 AI 에이전트 대화창에 붙여넣으면 커맨드를 만들어줘요.</p>
         <div className="flex items-center gap-2">
           <code className="flex-1 rounded bg-background px-2 py-1 font-mono text-xs text-foreground">{AI_PROMPT}</code>
           <button
