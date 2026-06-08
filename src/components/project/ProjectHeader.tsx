@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Brain, CheckSquare, ChevronRight, LayoutGrid, Layers, Plug2, Settings, Sparkles, Trash2, Users } from "lucide-react";
+import { Brain, CheckSquare, ChevronRight, LayoutGrid, Layers, Plug2, Settings, Trash2, Users } from "lucide-react";
 
 import { useProjects } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
@@ -13,27 +13,23 @@ const TABS = [
   { label: "홈", key: "overview", icon: LayoutGrid },
   { label: "태스크", key: "tasks", icon: CheckSquare },
   { label: "브레인", key: "brain", icon: Brain },
-  { label: "툴", key: "tools", icon: Sparkles },
   { label: "팀작업", key: "team", icon: Users },
 ] as const;
 
-type Tab = "overview" | "manage" | "tasks" | "brain" | "tools" | "team";
+type Tab = "overview" | "manage" | "tasks" | "brain" | "team";
 
 const SETTINGS_TABS = [
   { label: "전체", key: "all", icon: Layers },
-  { label: "홈", key: "overview", icon: LayoutGrid },
+  { label: "지침", key: "overview", icon: LayoutGrid },
   { label: "통합", key: "integrations", icon: Plug2 },
-  { label: "툴", key: "tools", icon: Sparkles },
-  { label: "커맨드", key: "commands", icon: BookOpen },
 ] as const;
 
-type SettingsTab = "all" | "overview" | "integrations" | "ai-management" | "tools" | "commands";
+type SettingsTab = "all" | "overview" | "integrations" | "ai-management";
 
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "tasks") return "tasks";
   if (value === "brain") return "brain";
-  if (value === "tools") return "tools";
   if (value === "team") return "team";
   return "overview";
 }
@@ -42,8 +38,6 @@ function parseSettingsTab(value: string | null): SettingsTab {
   if (value === "overview") return "overview";
   if (value === "integrations") return "integrations";
   if (value === "ai-management") return "ai-management";
-  if (value === "tools") return "tools";
-  if (value === "commands") return "commands";
   return "all";
 }
 
@@ -139,7 +133,7 @@ export function ProjectHeader() {
         ready: true,
       });
     }
-  }, [currentActiveKey]);
+  }, [currentActiveKey, isSettings]);
 
   return (
     <header className={cn(

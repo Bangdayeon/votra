@@ -336,15 +336,17 @@ function KeyDecisionsPanel({ projectId }: { projectId: string }) {
         </div>
       ) : (
         <div className="flex flex-col">
-          <div className="relative border-b border-border">
-            <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="결정 검색..."
-              className="w-full bg-transparent py-2.5 pl-8 pr-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
-            />
+          <div className="px-3 pt-3 pb-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="결정 검색..."
+                className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
           </div>
           {filtered.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">

@@ -1591,6 +1591,30 @@ export function TasksTab({
     [creators],
   );
 
+  const allCreatorOptions = useMemo<{ label: string; value: string; icon?: React.ReactNode }[]>(
+    () => [
+      { label: "전체 팀원", value: "ALL" },
+      ...Array.from(
+        new Map(tasks.map((t) => [t.userId, { name: t.userName, image: t.userProfileImage, color: t.userProfileColor }])).entries()
+      ).map(([id, info]) => ({
+        label: info.name ?? id,
+        value: id,
+        icon: (
+          <span
+            className="size-4 shrink-0 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-bold text-white"
+            style={{ backgroundColor: info.image ? undefined : info.color ? `#${info.color}` : "#6b7280" }}
+          >
+            {info.image
+              ? <img src={info.image} alt="" className="size-full object-cover" />
+              : (info.name ?? id)[0].toUpperCase()
+            }
+          </span>
+        ),
+      })),
+    ],
+    [tasks],
+  );
+
   const statusOptions: { label: string; value: StatusFilter; icon?: React.ReactNode }[] = [
     { label: "전체 상태", value: "ALL" },
     { label: "진행 중", value: "IN_PROGRESS", icon: <StatusIcon status="IN_PROGRESS" className="size-3" /> },
@@ -1672,6 +1696,129 @@ export function TasksTab({
               새 태스크
             </button>
           </div>
+        </div>
+
+        {/* 검색 */}
+        <div className="relative w-full">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="제목, 내용, 생성자 검색"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              if (e.target.value) setFolderView({ kind: "all" });
+            }}
+            className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+
+        {/* 필터 */}
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterDropdown
+            value={filterUser}
+            options={allCreatorOptions}
+            onChange={(v) => { setFilterUser(v); if (v !== "ALL") setFolderView({ kind: "all" }); }}
+          />
+          <FilterDropdown
+            value={filterStatus}
+            options={statusOptions}
+            onChange={(v) => { setFilterStatus(v); if (v !== "ALL") setFolderView({ kind: "all" }); }}
+          />
+          <FilterDropdown
+            value={filterPriority}
+            options={priorityOptions}
+            onChange={(v) => { setFilterPriority(v); if (v !== "ALL") setFolderView({ kind: "all" }); }}
+          />
+          <Popover open={datePopoverOpen} onOpenChange={(open) => { if (open) openDatePopover(); else setDatePopoverOpen(false); }}>
+            <PopoverTrigger asChild>
+              <button className={cn(
+                "flex cursor-pointer items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap",
+                hasDateFilter ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-muted text-muted-foreground hover:text-foreground",
+              )}>
+                <CalendarDays className="size-3" />
+                {hasDateFilter
+                  ? [dateFrom ? fmtDate(dateFrom) : "시작", dateTo ? fmtDate(dateTo) : "종료"].join(" – ")
+                  : "기간 지정"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-auto p-4 cursor-default">
+              <div className="flex flex-col gap-3 w-[240px]">
+                <div className="flex rounded-md border border-border overflow-hidden text-xs font-medium">
+                  {(["createdAt", "updatedAt"] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setTempDateField(f)}
+                      className={cn(
+                        "flex-1 py-1.5 transition-colors cursor-pointer",
+                        tempDateField === f ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {f === "createdAt" ? "등록일" : "수정일"}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">시작일</span>
+                  <button
+                    onClick={() => setActiveCalendar((p) => p === "from" ? null : "from")}
+                    className={cn(
+                      "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
+                      activeCalendar === "from" ? "border-ring" : "border-border hover:border-ring/50",
+                      tempDateFrom ? "text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    {tempDateFrom ? fmtDateLong(tempDateFrom) : "날짜 선택"}
+                  </button>
+                  {activeCalendar === "from" && (
+                    <Calendar mode="single" selected={tempDateFrom}
+                      onSelect={(d) => { setTempDateFrom(d); setActiveCalendar(null); }}
+                      disabled={tempDateTo ? { after: tempDateTo } : undefined}
+                    />
+                  )}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">종료일</span>
+                  <button
+                    onClick={() => setActiveCalendar((p) => p === "to" ? null : "to")}
+                    className={cn(
+                      "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
+                      activeCalendar === "to" ? "border-ring" : "border-border hover:border-ring/50",
+                      tempDateTo ? "text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    {tempDateTo ? fmtDateLong(tempDateTo) : "날짜 선택"}
+                  </button>
+                  {activeCalendar === "to" && (
+                    <Calendar mode="single" selected={tempDateTo}
+                      onSelect={(d) => { setTempDateTo(d); setActiveCalendar(null); }}
+                      disabled={tempDateFrom ? { before: tempDateFrom } : undefined}
+                    />
+                  )}
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  {hasDateFilter || tempDateFrom || tempDateTo ? (
+                    <button
+                      onClick={() => { setTempDateFrom(undefined); setTempDateTo(undefined); }}
+                      className="text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                    >
+                      초기화
+                    </button>
+                  ) : <span />}
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="xs" onClick={() => setDatePopoverOpen(false)}>취소</Button>
+                    <Button size="xs" onClick={() => {
+                      setDateField(tempDateField);
+                      setDateFrom(tempDateFrom);
+                      setDateTo(tempDateTo);
+                      if (tempDateFrom || tempDateTo) setFolderView({ kind: "all" });
+                      setDatePopoverOpen(false);
+                    }}>완료</Button>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {loading ? (
