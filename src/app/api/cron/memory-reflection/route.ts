@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { applyToolEnrichments } from "@/application/applyToolEnrichments";
-import { applyCommandSuggestions } from "@/application/applyCommandSuggestions";
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
 import { createProposalTasks } from "@/application/createProposalTasks";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
@@ -11,7 +10,6 @@ import { prisma } from "@/infrastructure/db/prisma";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiContextEngine } from "@/infrastructure/llm/geminiContextEngine";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
-import { prismaCommandRepository } from "@/infrastructure/repositories/prismaCommandRepository";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
@@ -46,9 +44,6 @@ export async function GET(req: Request) {
       if (reflection.toolSuggestions.length > 0) {
         await applyToolSuggestions(p.id, reflection.toolSuggestions, {
           tools: prismaToolRepository,
-        });
-        await applyCommandSuggestions(p.id, reflection.toolSuggestions, {
-          commands: prismaCommandRepository,
         });
       }
 

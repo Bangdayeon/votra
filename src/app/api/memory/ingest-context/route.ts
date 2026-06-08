@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { applyToolEnrichments } from "@/application/applyToolEnrichments";
-import { applyCommandSuggestions } from "@/application/applyCommandSuggestions";
 import { applyToolSuggestions } from "@/application/applyToolSuggestions";
 import { createProposalTasks } from "@/application/createProposalTasks";
 import { ingestExternalContext } from "@/application/ingestExternalContext";
@@ -18,7 +17,6 @@ import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflect
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
-import { prismaCommandRepository } from "@/infrastructure/repositories/prismaCommandRepository";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 
 const VALID_TYPES = ["decision", "insight", "reference"] as const;
@@ -116,9 +114,6 @@ async function checkAndTriggerReflection(projectId: string, userId: string): Pro
   if (reflection.toolSuggestions.length > 0) {
     await applyToolSuggestions(projectId, reflection.toolSuggestions, {
       tools: prismaToolRepository,
-    }).catch(() => {});
-    await applyCommandSuggestions(projectId, reflection.toolSuggestions, {
-      commands: prismaCommandRepository,
     }).catch(() => {});
   }
 
