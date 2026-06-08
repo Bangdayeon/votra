@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getCustomSkillsAction";
+import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getCustomCommandsAction";
 import { createCommandAction } from "@/app/actions/createCommandAction";
 import type { Project } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";

@@ -15,7 +15,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { getToolsAction } from "@/app/actions/getCustomSkillsAction";
+import { getToolsAction } from "@/app/actions/getCustomCommandsAction";
 import { listTrashedTasksPageAction } from "@/app/actions/listTrashedTasks";
 import { purgeTaskAction } from "@/app/actions/purgeTask";
 import { restoreTaskAction } from "@/app/actions/restoreTask";

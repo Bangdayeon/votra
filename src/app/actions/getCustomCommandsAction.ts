@@ -14,8 +14,3 @@ export async function getToolsAction(projectId: string): Promise<ProjectToolReco
   if (!result.ok) throw new Error(result.error);
   return result.value;
 }
-
-// backward-compat alias
-export const getCustomSkillsAction = getToolsAction;
-// backward-compat type alias
-export type ProjectCustomSkillRecord = ProjectToolRecord;

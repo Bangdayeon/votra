@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getCustomSkillsAction";
+import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getCustomCommandsAction";
 import { toggleToolAction } from "@/app/actions/toggleCustomSkillAction";
 import type { Project } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
