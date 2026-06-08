@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ChevronUp, Info, Loader2, Plus, Trash2, X } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronRight, ChevronUp, Info, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -52,12 +52,16 @@ function ToolRow({
   tool,
   badgeColor,
   onToggled,
-  onDeleted,
+  isSelectMode,
+  isSelected,
+  onSelect,
 }: {
   tool: ProjectToolRecord;
   badgeColor: string;
   onToggled: (id: string, isEnabled: boolean) => void;
-  onDeleted: (id: string) => void;
+  isSelectMode: boolean;
+  isSelected: boolean;
+  onSelect: () => void;
 }) {
   const [pending, setPending] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -75,24 +79,26 @@ function ToolRow({
     }
   }
 
-  async function handleDelete(e: React.MouseEvent) {
-    e.stopPropagation();
-    setPending(true);
-    onDeleted(tool.id); // optimistic
-    const result = await deleteToolAction(tool.id);
-    if (!result.ok) {
-      toast.error(result.error ?? "툴 삭제에 실패했어요.");
-      // rollback: re-fetch is simpler — parent will not restore, so show error only
-    }
-    setPending(false);
-  }
+  const selectable = !tool.isBuiltIn;
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className={cn(
+      "rounded-lg border border-border bg-card transition-colors",
+      isSelectMode && isSelected && "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20",
+    )}>
       <div
         className="flex cursor-pointer items-start gap-4 px-4 py-3.5"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={isSelectMode && selectable ? onSelect : () => setExpanded((v) => !v)}
       >
+        {isSelectMode && selectable && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            readOnly
+            onClick={(e) => { e.stopPropagation(); onSelect(); }}
+            className="mt-0.5 size-4 shrink-0 cursor-pointer accent-foreground"
+          />
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">{tool.name}</p>
@@ -117,29 +123,21 @@ function ToolRow({
             </p>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2 pt-0.5">
-          {pending && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
-          {!tool.isBuiltIn && (
-            <button
-              onClick={handleDelete}
-              disabled={pending}
-              className="rounded p-0.5 text-muted-foreground/40 transition-colors hover:text-destructive disabled:pointer-events-none"
-              aria-label="툴 삭제"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
-          )}
-          <div onClick={(e) => e.stopPropagation()}>
-            <Toggle checked={tool.isEnabled} onChange={handleToggle} disabled={pending} />
+        {!isSelectMode && (
+          <div className="flex shrink-0 items-center gap-2 pt-0.5">
+            {pending && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+            <div onClick={(e) => e.stopPropagation()}>
+              <Toggle checked={tool.isEnabled} onChange={handleToggle} disabled={pending} />
+            </div>
+            {expanded
+              ? <ChevronUp className="size-3.5 text-muted-foreground" />
+              : <ChevronDown className="size-3.5 text-muted-foreground" />
+            }
           </div>
-          {expanded
-            ? <ChevronUp className="size-3.5 text-muted-foreground" />
-            : <ChevronDown className="size-3.5 text-muted-foreground" />
-          }
-        </div>
+        )}
       </div>
 
-      {expanded && (
+      {!isSelectMode && expanded && (
         <div className="border-t border-border px-4 py-3">
           <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-muted-foreground">
             {tool.content}
@@ -157,13 +155,17 @@ function FolderSection({
   tools,
   colorMap,
   onToggled,
-  onDeleted,
+  isSelectMode,
+  selectedIds,
+  onSelect,
 }: {
   folder: string;
   tools: ProjectToolRecord[];
   colorMap: Map<string, string>;
   onToggled: (id: string, isEnabled: boolean) => void;
-  onDeleted: (id: string) => void;
+  isSelectMode: boolean;
+  selectedIds: Set<string>;
+  onSelect: (id: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const enabledCount = tools.filter((t) => t.isEnabled).length;
@@ -192,7 +194,9 @@ function FolderSection({
               tool={tool}
               badgeColor={colorMap.get(tool.slug) ?? BADGE_COLORS[0]}
               onToggled={onToggled}
-              onDeleted={onDeleted}
+              isSelectMode={isSelectMode}
+              isSelected={selectedIds.has(tool.id)}
+              onSelect={() => onSelect(tool.id)}
             />
           ))}
         </div>
@@ -230,10 +234,7 @@ function AddToolModal({
         folder: folder.trim() || "기타",
         content: content.trim(),
       });
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
+      if (!result.ok) { toast.error(result.error); return; }
       toast.success("툴이 추가됐어요.");
       onCreated(result.value);
       onClose();
@@ -322,6 +323,9 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
   const [tools, setTools] = useState<ProjectToolRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -339,12 +343,34 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
     setTools((prev) => prev.map((t) => t.id === id ? { ...t, isEnabled } : t));
   }
 
-  function handleDeleted(id: string) {
-    setTools((prev) => prev.filter((t) => t.id !== id));
-  }
-
   function handleCreated(tool: ProjectToolRecord) {
     setTools((prev) => [...prev, tool]);
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    setDeleteLoading(true);
+    const ids = Array.from(selectedIds);
+    setTools((prev) => prev.filter((t) => !ids.includes(t.id)));
+    setSelectedIds(new Set());
+    setIsSelectMode(false);
+    const results = await Promise.all(ids.map((id) => deleteToolAction(id)));
+    const failed = results.filter((r) => !r.ok).length;
+    if (failed > 0) toast.error(`${failed}개 삭제에 실패했어요.`);
+    setDeleteLoading(false);
   }
 
   const grouped = useMemo(() => {
@@ -386,16 +412,29 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
             </Tooltip>
           </TooltipProvider>
           {projectId && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="ml-auto gap-1.5"
-              onClick={() => setShowModal(true)}
-            >
-              <Plus className="size-3.5" />
-              툴 추가
-            </Button>
+            <div className="ml-auto flex items-center gap-1.5">
+              <button
+                onClick={() => {
+                  if (isSelectMode) { exitSelectMode(); } else { setIsSelectMode(true); }
+                }}
+                className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {!isSelectMode && <CheckSquare className="size-3.5" />}
+                {isSelectMode ? "취소" : "선택하기"}
+              </button>
+              {!isSelectMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setShowModal(true)}
+                >
+                  <Plus className="size-3.5" />
+                  툴 추가
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
@@ -428,9 +467,35 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
                 tools={grouped.get(folder) ?? []}
                 colorMap={colorMap}
                 onToggled={handleToggled}
-                onDeleted={handleDeleted}
+                isSelectMode={isSelectMode}
+                selectedIds={selectedIds}
+                onSelect={toggleSelect}
               />
             ))}
+          </div>
+        )}
+
+        {isSelectMode && selectedIds.size > 0 && (
+          <div className="sticky bottom-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
+            <span className="text-sm font-medium text-muted-foreground">{selectedIds.size}개 선택됨</span>
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={exitSelectMode} disabled={deleteLoading}>
+                취소
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={deleteLoading}
+                className="gap-1.5"
+              >
+                {deleteLoading
+                  ? <Loader2 className="size-3.5 animate-spin" />
+                  : <Trash2 className="size-3.5" />
+                }
+                삭제
+              </Button>
+            </div>
           </div>
         )}
       </div>
