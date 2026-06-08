@@ -1698,7 +1698,8 @@ export function TasksTab({
           </div>
         </div>
 
-        {/* 검색 */}
+        {/* 검색 + 필터 */}
+        <div className="flex flex-col gap-2">
         <div className="relative w-full">
           <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
@@ -1712,8 +1713,6 @@ export function TasksTab({
             className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
-
-        {/* 필터 */}
         <div className="flex flex-wrap items-center gap-2">
           <FilterDropdown
             value={filterUser}
@@ -1819,6 +1818,7 @@ export function TasksTab({
               </div>
             </PopoverContent>
           </Popover>
+        </div>
         </div>
 
         {loading ? (
@@ -1992,7 +1992,8 @@ export function TasksTab({
         </div>
       </div>
 
-      {/* 검색 */}
+      {/* 검색 + 필터 */}
+      <div className="flex flex-col gap-2">
       <div className="relative w-full">
         <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <input
@@ -2003,8 +2004,6 @@ export function TasksTab({
           className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         />
       </div>
-
-      {/* 필터 */}
       <div className="flex flex-wrap items-center gap-2">
         <FilterDropdown value={filterUser} options={creatorOptions} onChange={setFilterUser} />
         <FilterDropdown value={filterStatus} options={statusOptions} onChange={setFilterStatus} />
@@ -2113,6 +2112,7 @@ export function TasksTab({
           />
           완료 숨기기
         </label>
+      </div>
       </div>
 
       {/* 전체 선택 바 */}
