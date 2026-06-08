@@ -139,4 +139,8 @@ export const prismaToolRepository: ToolRepository = {
       data: { isEnabled },
     });
   },
+
+  async deleteById(id: string) {
+    await prisma.projectTool.delete({ where: { id } });
+  },
 };

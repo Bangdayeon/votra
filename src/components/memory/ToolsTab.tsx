@@ -1,12 +1,13 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ChevronUp, Info, Loader2, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Info, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { createToolAction } from "@/app/actions/createToolAction";
+import { deleteToolAction } from "@/app/actions/deleteToolAction";
 import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getToolsAction";
 import { toggleToolAction } from "@/app/actions/toggleCustomCommandAction";
 import { Button } from "@/components/ui/button";
@@ -51,25 +52,39 @@ function ToolRow({
   tool,
   badgeColor,
   onToggled,
+  onDeleted,
 }: {
   tool: ProjectToolRecord;
   badgeColor: string;
   onToggled: (id: string, isEnabled: boolean) => void;
+  onDeleted: (id: string) => void;
 }) {
   const [pending, setPending] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   async function handleToggle(isEnabled: boolean) {
     setPending(true);
-    onToggled(tool.id, isEnabled); // optimistic
+    onToggled(tool.id, isEnabled);
     try {
       await toggleToolAction(tool.id, isEnabled);
     } catch (err) {
-      onToggled(tool.id, !isEnabled); // rollback
+      onToggled(tool.id, !isEnabled);
       toast.error(err instanceof Error ? err.message : "툴 설정 변경에 실패했어요.");
     } finally {
       setPending(false);
     }
+  }
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    setPending(true);
+    onDeleted(tool.id); // optimistic
+    const result = await deleteToolAction(tool.id);
+    if (!result.ok) {
+      toast.error(result.error ?? "툴 삭제에 실패했어요.");
+      // rollback: re-fetch is simpler — parent will not restore, so show error only
+    }
+    setPending(false);
   }
 
   return (
@@ -104,6 +119,16 @@ function ToolRow({
         </div>
         <div className="flex shrink-0 items-center gap-2 pt-0.5">
           {pending && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+          {!tool.isBuiltIn && (
+            <button
+              onClick={handleDelete}
+              disabled={pending}
+              className="rounded p-0.5 text-muted-foreground/40 transition-colors hover:text-destructive disabled:pointer-events-none"
+              aria-label="툴 삭제"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          )}
           <div onClick={(e) => e.stopPropagation()}>
             <Toggle checked={tool.isEnabled} onChange={handleToggle} disabled={pending} />
           </div>
@@ -132,11 +157,13 @@ function FolderSection({
   tools,
   colorMap,
   onToggled,
+  onDeleted,
 }: {
   folder: string;
   tools: ProjectToolRecord[];
   colorMap: Map<string, string>;
   onToggled: (id: string, isEnabled: boolean) => void;
+  onDeleted: (id: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const enabledCount = tools.filter((t) => t.isEnabled).length;
@@ -165,6 +192,7 @@ function FolderSection({
               tool={tool}
               badgeColor={colorMap.get(tool.slug) ?? BADGE_COLORS[0]}
               onToggled={onToggled}
+              onDeleted={onDeleted}
             />
           ))}
         </div>
@@ -311,6 +339,10 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
     setTools((prev) => prev.map((t) => t.id === id ? { ...t, isEnabled } : t));
   }
 
+  function handleDeleted(id: string) {
+    setTools((prev) => prev.filter((t) => t.id !== id));
+  }
+
   function handleCreated(tool: ProjectToolRecord) {
     setTools((prev) => [...prev, tool]);
   }
@@ -396,6 +428,7 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
                 tools={grouped.get(folder) ?? []}
                 colorMap={colorMap}
                 onToggled={handleToggled}
+                onDeleted={handleDeleted}
               />
             ))}
           </div>

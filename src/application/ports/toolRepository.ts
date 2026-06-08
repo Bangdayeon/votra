@@ -38,4 +38,5 @@ export type ToolRepository = {
   listGlobal: (userId: string) => Promise<ProjectToolRecord[]>;
   findBySlug: (projectId: string, slug: string) => Promise<ProjectToolRecord | null>;
   setEnabled: (id: string, isEnabled: boolean) => Promise<void>;
+  deleteById: (id: string) => Promise<void>;
 };
