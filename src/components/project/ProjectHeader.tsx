@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Brain, CheckSquare, ChevronRight, LayoutGrid, Layers, Plug2, Settings, Trash2, Users } from "lucide-react";
+import { BookOpen, Brain, CheckSquare, ChevronRight, LayoutGrid, Layers, Plug2, Settings, Sparkles, Trash2, Users } from "lucide-react";
 
 import { useProjects } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
@@ -22,9 +22,11 @@ const SETTINGS_TABS = [
   { label: "전체", key: "all", icon: Layers },
   { label: "홈", key: "overview", icon: LayoutGrid },
   { label: "통합", key: "integrations", icon: Plug2 },
+  { label: "툴", key: "tools", icon: Sparkles },
+  { label: "커맨드", key: "commands", icon: BookOpen },
 ] as const;
 
-type SettingsTab = "all" | "overview" | "integrations" | "ai-management";
+type SettingsTab = "all" | "overview" | "integrations" | "ai-management" | "tools" | "commands";
 
 function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
@@ -38,6 +40,8 @@ function parseSettingsTab(value: string | null): SettingsTab {
   if (value === "overview") return "overview";
   if (value === "integrations") return "integrations";
   if (value === "ai-management") return "ai-management";
+  if (value === "tools") return "tools";
+  if (value === "commands") return "commands";
   return "all";
 }
 
