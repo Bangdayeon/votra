@@ -1,9 +1,16 @@
 "use client";
 
-import { CheckSquare, ChevronDown, ChevronRight, ChevronUp, Loader2, Plus, Trash2, X } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronRight, ChevronUp, Loader2, Plus, Search, Trash2, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { createToolAction } from "@/app/actions/createToolAction";
 import { deleteToolAction } from "@/app/actions/deleteToolAction";
@@ -12,6 +19,43 @@ import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getToolsAc
 import { toggleToolAction } from "@/app/actions/toggleCustomCommandAction";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+// ── FilterDropdown ────────────────────────────────────────────────────────────
+
+function FilterDropdown<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { label: string; value: T; icon?: React.ReactNode }[];
+  onChange: (v: T) => void;
+}) {
+  const current = options.find((o) => o.value === value);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex cursor-pointer items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap">
+          {current?.icon && <span className="shrink-0">{current.icon}</span>}
+          {current?.label}
+          <ChevronDown className="size-3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[140px]">
+        {options.map((o) => (
+          <DropdownMenuItem
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            className={cn("gap-2", value === o.value && "font-medium")}
+          >
+            {o.icon && <span className="shrink-0">{o.icon}</span>}
+            {o.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
 
@@ -352,6 +396,10 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterEnabled, setFilterEnabled] = useState<"ALL" | "enabled" | "disabled">("ALL");
+  const [filterFolder, setFilterFolder] = useState<string>("ALL");
+  const [filterAI, setFilterAI] = useState<"ALL" | "ai">("ALL");
 
   useEffect(() => {
     let cancelled = false;
@@ -420,15 +468,35 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
     });
   }
 
+  const allFolders = useMemo(() => [...new Set(tools.map((t) => t.folder))].sort(), [tools]);
+
+  const filteredTools = useMemo(() => {
+    return tools.filter((t) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (
+          !t.name.toLowerCase().includes(q) &&
+          !t.slug.toLowerCase().includes(q) &&
+          !(t.description ?? "").toLowerCase().includes(q)
+        ) return false;
+      }
+      if (filterEnabled === "enabled" && !t.isEnabled) return false;
+      if (filterEnabled === "disabled" && t.isEnabled) return false;
+      if (filterFolder !== "ALL" && t.folder !== filterFolder) return false;
+      if (filterAI === "ai" && !t.patternSummary) return false;
+      return true;
+    });
+  }, [tools, searchQuery, filterEnabled, filterFolder, filterAI]);
+
   const grouped = useMemo(() => {
     const map = new Map<string, ProjectToolRecord[]>();
-    for (const tool of tools) {
+    for (const tool of filteredTools) {
       const bucket = map.get(tool.folder) ?? [];
       bucket.push(tool);
       map.set(tool.folder, bucket);
     }
     return map;
-  }, [tools]);
+  }, [filteredTools]);
 
   const orderedFolders = useMemo(() => [...grouped.keys()].sort(), [grouped]);
 
@@ -478,6 +546,47 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
           )}
           </div>
           <p className="text-sm text-muted-foreground">AI가 태스크 컨텍스트에 맞는 툴을 자동으로 선택해요.</p>
+        </div>
+
+        {/* 검색 */}
+        <div className="relative w-full">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="이름, 슬러그, 설명 검색"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+
+        {/* 필터 */}
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterDropdown
+            value={filterEnabled}
+            options={[
+              { label: "전체 활성화", value: "ALL" },
+              { label: "활성화", value: "enabled", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-primary" /> },
+              { label: "비활성화", value: "disabled", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-muted-foreground/40" /> },
+            ]}
+            onChange={setFilterEnabled}
+          />
+          <FilterDropdown
+            value={filterFolder}
+            options={[
+              { label: "전체 폴더", value: "ALL" },
+              ...allFolders.map((f) => ({ label: f, value: f })),
+            ]}
+            onChange={setFilterFolder}
+          />
+          <FilterDropdown
+            value={filterAI}
+            options={[
+              { label: "전체 종류", value: "ALL" },
+              { label: "AI 추천", value: "ai", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-amber-400" /> },
+            ]}
+            onChange={setFilterAI}
+          />
         </div>
 
         {loading ? (

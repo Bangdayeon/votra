@@ -1,9 +1,16 @@
 "use client";
 
-import { CheckSquare, ChevronDown, ChevronRight, ChevronUp, Copy, Loader2, Plus, Trash2, X } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronRight, ChevronUp, Copy, Loader2, Plus, Search, Trash2, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { getCommandsAction, type ProjectCommandRecord } from "@/app/actions/getCustomCommandsAction";
 import { createCommandAction } from "@/app/actions/createCommandAction";
@@ -11,6 +18,43 @@ import { deleteCommandAction } from "@/app/actions/deleteCommandAction";
 import { restoreCommandsAction } from "@/app/actions/restoreCommandsAction";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+// ── FilterDropdown ────────────────────────────────────────────────────────────
+
+function FilterDropdown<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { label: string; value: T; icon?: React.ReactNode }[];
+  onChange: (v: T) => void;
+}) {
+  const current = options.find((o) => o.value === value);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex cursor-pointer items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap">
+          {current?.icon && <span className="shrink-0">{current.icon}</span>}
+          {current?.label}
+          <ChevronDown className="size-3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[140px]">
+        {options.map((o) => (
+          <DropdownMenuItem
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            className={cn("gap-2", value === o.value && "font-medium")}
+          >
+            {o.icon && <span className="shrink-0">{o.icon}</span>}
+            {o.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 // ── CommandRow ────────────────────────────────────────────────────────────────
 
@@ -332,6 +376,9 @@ export function CommandsTab() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterFolder, setFilterFolder] = useState<string>("ALL");
+  const [filterBuiltIn, setFilterBuiltIn] = useState<"ALL" | "builtin" | "custom">("ALL");
 
   useEffect(() => {
     let cancelled = false;
@@ -397,15 +444,34 @@ export function CommandsTab() {
     });
   }
 
+  const allFolders = useMemo(() => [...new Set(commands.map((c) => c.folder))].sort(), [commands]);
+
+  const filteredCommands = useMemo(() => {
+    return commands.filter((c) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (
+          !c.slug.toLowerCase().includes(q) &&
+          !c.name.toLowerCase().includes(q) &&
+          !(c.description ?? "").toLowerCase().includes(q)
+        ) return false;
+      }
+      if (filterFolder !== "ALL" && c.folder !== filterFolder) return false;
+      if (filterBuiltIn === "builtin" && !c.isBuiltIn) return false;
+      if (filterBuiltIn === "custom" && c.isBuiltIn) return false;
+      return true;
+    });
+  }, [commands, searchQuery, filterFolder, filterBuiltIn]);
+
   const grouped = useMemo(() => {
     const map = new Map<string, ProjectCommandRecord[]>();
-    for (const command of commands) {
+    for (const command of filteredCommands) {
       const bucket = map.get(command.folder) ?? [];
       bucket.push(command);
       map.set(command.folder, bucket);
     }
     return map;
-  }, [commands]);
+  }, [filteredCommands]);
 
   const orderedFolders = useMemo(() => [...grouped.keys()].sort(), [grouped]);
 
@@ -452,6 +518,39 @@ export function CommandsTab() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground">에이전트와 대화 중 /슬래시 명령어로 직접 실행하는 커맨드예요.</p>
+      </div>
+
+      {/* 검색 */}
+      <div className="relative w-full">
+        <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <input
+          type="text"
+          placeholder="슬러그, 이름, 설명 검색"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
+
+      {/* 필터 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <FilterDropdown
+          value={filterFolder}
+          options={[
+            { label: "전체 폴더", value: "ALL" },
+            ...allFolders.map((f) => ({ label: f, value: f })),
+          ]}
+          onChange={setFilterFolder}
+        />
+        <FilterDropdown
+          value={filterBuiltIn}
+          options={[
+            { label: "전체 종류", value: "ALL" },
+            { label: "기본", value: "builtin", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-blue-500" /> },
+            { label: "커스텀", value: "custom", icon: <span className="inline-block size-2 shrink-0 rounded-full bg-muted-foreground/60" /> },
+          ]}
+          onChange={setFilterBuiltIn}
+        />
       </div>
 
       {loading ? (
