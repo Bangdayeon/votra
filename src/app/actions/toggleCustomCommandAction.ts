@@ -12,6 +12,3 @@ export async function toggleToolAction(
   if (!guard.ok) throw new Error(guard.error);
   await prismaToolRepository.setEnabled(projectId, slug, isEnabled);
 }
-
-// backward-compat alias
-export const toggleCustomSkillAction = toggleToolAction;

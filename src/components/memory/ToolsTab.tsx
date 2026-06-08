@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getCustomCommandsAction";
-import { toggleToolAction } from "@/app/actions/toggleCustomSkillAction";
+import { toggleToolAction } from "@/app/actions/toggleCustomCommandAction";
 import type { Project } from "@/components/project/ProjectsContext";
 import { cn } from "@/lib/utils";
 import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
