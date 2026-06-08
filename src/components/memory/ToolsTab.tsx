@@ -1,16 +1,17 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ChevronUp, Info, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Info, Loader2, Plus, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { createToolAction } from "@/app/actions/createToolAction";
 import { getToolsAction, type ProjectToolRecord } from "@/app/actions/getToolsAction";
 import { toggleToolAction } from "@/app/actions/toggleCustomCommandAction";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BADGE_COLORS, buildToolColorMap } from "@/shared/lib/toolBadgeColors";
-
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
 
@@ -172,19 +173,133 @@ function FolderSection({
   );
 }
 
+// ── AddToolModal ──────────────────────────────────────────────────────────────
+
+function AddToolModal({
+  projectId,
+  onCreated,
+  onClose,
+}: {
+  projectId: string;
+  onCreated: (tool: ProjectToolRecord) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [folder, setFolder] = useState("");
+  const [content, setContent] = useState("");
+  const [pending, startTransition] = useTransition();
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { nameRef.current?.focus(); }, []);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    startTransition(async () => {
+      const result = await createToolAction(projectId, {
+        name: name.trim(),
+        description: description.trim(),
+        folder: folder.trim() || "기타",
+        content: content.trim(),
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("툴이 추가됐어요.");
+      onCreated(result.value);
+      onClose();
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="relative w-full max-w-lg rounded-xl border border-border bg-background shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold">툴 추가</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-5 py-5">
+          <div className="flex gap-3">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground">이름 *</label>
+              <input
+                ref={nameRef}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="예: API Error Handler"
+                maxLength={60}
+                required
+                className="h-9 rounded-md border border-input bg-muted px-3 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              />
+            </div>
+            <div className="flex w-32 flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground">폴더</label>
+              <input
+                value={folder}
+                onChange={(e) => setFolder(e.target.value)}
+                placeholder="기타"
+                maxLength={30}
+                className="h-9 rounded-md border border-input bg-muted px-3 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foreground">설명</label>
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="툴이 하는 일을 한 줄로 설명해요"
+              maxLength={200}
+              className="h-9 rounded-md border border-input bg-muted px-3 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foreground">내용 *</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={"에이전트가 따를 지침을 마크다운으로 작성해요.\n\n예:\n## 규칙\n- API 오류 응답은 항상 로깅할 것\n- 재시도는 최대 3회"}
+              rows={8}
+              required
+              className="resize-none rounded-md border border-input bg-muted px-3 py-2.5 font-mono text-xs leading-relaxed focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={pending}>
+              취소
+            </Button>
+            <Button type="submit" size="sm" disabled={pending || !name.trim() || !content.trim()}>
+              {pending ? <Loader2 className="size-3.5 animate-spin" /> : "추가"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── ToolsTab ──────────────────────────────────────────────────────────────────
 
 export function ToolsTab({ projectId }: { projectId?: string } = {}) {
   const [tools, setTools] = useState<ProjectToolRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     getToolsAction(projectId)
-      .then((data) => {
-        if (!cancelled) setTools(data);
-      })
+      .then((data) => { if (!cancelled) setTools(data); })
       .catch((e: unknown) => {
         if (!cancelled) toast.error(e instanceof Error ? e.message : "툴 목록을 불러오지 못했어요.");
       })
@@ -194,6 +309,10 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
 
   function handleToggled(id: string, isEnabled: boolean) {
     setTools((prev) => prev.map((t) => t.id === id ? { ...t, isEnabled } : t));
+  }
+
+  function handleCreated(tool: ProjectToolRecord) {
+    setTools((prev) => [...prev, tool]);
   }
 
   const grouped = useMemo(() => {
@@ -207,61 +326,81 @@ export function ToolsTab({ projectId }: { projectId?: string } = {}) {
   }, [tools]);
 
   const orderedFolders = useMemo(() => [...grouped.keys()].sort(), [grouped]);
-
   const colorMap = useMemo(() => buildToolColorMap(tools.map((t) => t.slug)), [tools]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-2">
-        <h2 className="text-base font-semibold">툴</h2>
-        <span className="text-xs text-muted-foreground">태스크 작업 시 자동으로 적용돼요.</span>
-        <TooltipProvider delayDuration={200}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex cursor-default">
-                <Info className="size-3 text-muted-foreground/50" />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="max-w-[220px] text-xs">
-              태스크 생성 시 툴이 자동으로 매칭돼요. 동작이 마음에 들지 않으면 내용 수정을 요청하거나, <code className="rounded bg-muted px-1">load_tool</code>로 직접 불러올 수 있어요.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-
-      {loading ? (
-        <div className="flex flex-col gap-6">
-          {["개발", "프로세스"].map((label) => (
-            <div key={label} className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-                <span className="text-sm font-semibold">{label}</span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-[68px] w-full rounded-lg" />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : tools.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
-          <p>등록된 툴이 없어요.</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {orderedFolders.map((folder) => (
-            <FolderSection
-              key={folder}
-              folder={folder}
-              tools={grouped.get(folder) ?? []}
-              colorMap={colorMap}
-              onToggled={handleToggled}
-            />
-          ))}
-        </div>
+    <>
+      {showModal && projectId && (
+        <AddToolModal
+          projectId={projectId}
+          onCreated={handleCreated}
+          onClose={() => setShowModal(false)}
+        />
       )}
-    </div>
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold">툴</h2>
+          <span className="text-xs text-muted-foreground">태스크 작업 시 자동으로 적용돼요.</span>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex cursor-default">
+                  <Info className="size-3 text-muted-foreground/50" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[220px] text-xs">
+                태스크 생성 시 툴이 자동으로 매칭돼요. 동작이 마음에 들지 않으면 내용 수정을 요청하거나, <code className="rounded bg-muted px-1">load_tool</code>로 직접 불러올 수 있어요.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {projectId && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="ml-auto gap-1.5"
+              onClick={() => setShowModal(true)}
+            >
+              <Plus className="size-3.5" />
+              툴 추가
+            </Button>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col gap-6">
+            {["개발", "프로세스"].map((label) => (
+              <div key={label} className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="text-sm font-semibold">{label}</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-[68px] w-full rounded-lg" />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : tools.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
+            <p>등록된 툴이 없어요.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {orderedFolders.map((folder) => (
+              <FolderSection
+                key={folder}
+                folder={folder}
+                tools={grouped.get(folder) ?? []}
+                colorMap={colorMap}
+                onToggled={handleToggled}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

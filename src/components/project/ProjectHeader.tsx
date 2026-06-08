@@ -13,10 +13,11 @@ const TABS = [
   { label: "홈", key: "overview", icon: LayoutGrid },
   { label: "태스크", key: "tasks", icon: CheckSquare },
   { label: "브레인", key: "brain", icon: Brain },
+  { label: "툴", key: "tools", icon: Sparkles },
   { label: "팀작업", key: "team", icon: Users },
 ] as const;
 
-type Tab = "overview" | "manage" | "tasks" | "brain" | "team";
+type Tab = "overview" | "manage" | "tasks" | "brain" | "tools" | "team";
 
 const SETTINGS_TABS = [
   { label: "전체", key: "all", icon: Layers },
@@ -32,6 +33,7 @@ function parseTab(value: string | null): Tab {
   if (value === "manage") return "manage";
   if (value === "tasks") return "tasks";
   if (value === "brain") return "brain";
+  if (value === "tools") return "tools";
   if (value === "team") return "team";
   return "overview";
 }
