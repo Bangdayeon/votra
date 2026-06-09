@@ -3,9 +3,7 @@ import { PrismaNeon } from "@prisma/adapter-neon";
 import { neonConfig } from "@neondatabase/serverless";
 import ws from "ws";
 
-if (!globalThis.WebSocket) {
-  neonConfig.webSocketConstructor = ws;
-}
+neonConfig.webSocketConstructor = ws;
 
 declare global {
   var __prisma: PrismaClient | undefined;
