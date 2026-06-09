@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { DeleteProjectConfirmDialog } from "@/components/project/DeleteProjectConfirmDialog";
 import { useProjects } from "@/components/project/ProjectsContext";
 import { Button } from "@/components/ui/button";
+import { IntegrationsPanel } from "@/components/memory/IntegrationsPanel";
 import {
   AI_ANALYSIS_INSTRUCTION_MAX,
   AI_CONTEXT_INSTRUCTION_MAX,
@@ -21,33 +22,6 @@ import { cn } from "@/lib/utils";
 type SettingsTab = "all" | "overview" | "integrations";
 
 type SaveState = { kind: "idle" } | { kind: "saving" };
-
-const INTEGRATION_SERVICES = [
-  {
-    id: "notion",
-    label: "Notion",
-    description: "페이지, 데이터베이스, 회의록을 핵심 결정으로 변환해요.",
-    mcpGuide: "https://github.com/makenotion/notion-mcp-server",
-  },
-  {
-    id: "slack",
-    label: "Slack",
-    description: "채널 스레드와 중요 결정사항을 기억해요.",
-    mcpGuide: "https://github.com/modelcontextprotocol/servers/tree/main/src/slack",
-  },
-  {
-    id: "github",
-    label: "GitHub",
-    description: "이슈, PR 토론, 코드 리뷰 맥락을 저장해요.",
-    mcpGuide: "https://github.com/modelcontextprotocol/servers/tree/main/src/github",
-  },
-  {
-    id: "linear",
-    label: "Linear",
-    description: "티켓 결정사항과 프로젝트 맥락을 가져와요.",
-    mcpGuide: "https://github.com/modelcontextprotocol/servers/tree/main/src/linear",
-  },
-] as const;
 
 function parseTab(value: string | null): SettingsTab {
   if (value === "overview") return "overview";
@@ -171,10 +145,6 @@ function SettingsForm({
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
 
-  // Integrations state
-  const [integrationSources, setIntegrationSources] = useState<string[]>([]);
-  const [integrationSaveState, setIntegrationSaveState] = useState<SaveState>({ kind: "idle" });
-
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -217,15 +187,6 @@ function SettingsForm({
             typeof rawHour === "number" && rawHour >= 0 && rawHour <= 23
               ? rawHour
               : null,
-          );
-          const rawIntegrations =
-            isRecord(data.settings) && isRecord(data.settings.integrations)
-              ? data.settings.integrations
-              : {};
-          setIntegrationSources(
-            Array.isArray(rawIntegrations.sources)
-              ? (rawIntegrations.sources as unknown[]).filter((s): s is string => typeof s === "string")
-              : [],
           );
         }
       })
@@ -334,29 +295,6 @@ function SettingsForm({
       toast.error(err instanceof Error ? err.message : "저장에 실패했어요.");
     }
   }, [projectId, analysisInstruction, nextTaskPrompt, keyDecisionInstruction, reflectionInstruction, contextInstruction, autoRefreshHour]);
-
-  const onSaveIntegrations = useCallback(async () => {
-    setIntegrationSaveState({ kind: "saving" });
-    try {
-      const res = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings: { integrations: { sources: integrationSources } } }),
-      });
-      const data: unknown = await res.json();
-      if (!res.ok || !isRecord(data) || data.ok !== true) {
-        const msg = isRecord(data) && typeof data.error === "string" ? data.error : "저장에 실패했어요.";
-        setIntegrationSaveState({ kind: "idle" });
-        toast.error(msg);
-        return;
-      }
-      setIntegrationSaveState({ kind: "idle" });
-      toast.success("저장됐어요.");
-    } catch (err) {
-      setIntegrationSaveState({ kind: "idle" });
-      toast.error(err instanceof Error ? err.message : "저장에 실패했어요.");
-    }
-  }, [projectId, integrationSources]);
 
   const displayThumbnail = thumbnailDataUrl ?? projectImage ?? null;
 
@@ -688,72 +626,7 @@ function SettingsForm({
         )}
 
         {activeTab === "integrations" && (
-          <>
-            <Section
-              title="외부 서비스 연결"
-              description="연결된 서비스의 최신 맥락을 haema가 자동으로 가져와 핵심 결정으로 저장해요."
-            >
-              <div className="flex flex-col gap-3">
-                {INTEGRATION_SERVICES.map((service) => {
-                  const enabled = integrationSources.includes(service.id);
-                  return (
-                    <div
-                      key={service.id}
-                      className="flex items-start gap-3 rounded-md border border-border bg-muted px-4 py-3"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{service.label}</span>
-                          {enabled && (
-                            <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
-                              연결됨
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{service.description}</p>
-                        {enabled && (
-                          <p className="mt-1.5 text-xs text-muted-foreground">
-                            MCP 설치 가이드:{" "}
-                            <a
-                              href={service.mcpGuide}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="underline underline-offset-2 hover:text-foreground"
-                            >
-                              {service.mcpGuide.replace("https://", "")}
-                            </a>
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        disabled={!isOwner || loading}
-                        onClick={() => {
-                          setIntegrationSources((prev) =>
-                            enabled ? prev.filter((s) => s !== service.id) : [...prev, service.id],
-                          );
-                        }}
-                        className={cn(
-                          "shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                          enabled
-                            ? "bg-primary/10 text-primary hover:bg-primary/20"
-                            : "border border-border text-muted-foreground hover:bg-muted-foreground/10",
-                          "disabled:cursor-not-allowed disabled:opacity-50",
-                        )}
-                      >
-                        {enabled ? "연결 해제" : "연결하기"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </Section>
-            <SaveBar
-              saving={integrationSaveState.kind === "saving"}
-              disabled={!isOwner || loading}
-              onSave={onSaveIntegrations}
-            />
-          </>
+          <IntegrationsPanel projectId={projectId} isOwner={isOwner} />
         )}
 
         {activeTab === "all" && isOwner && (

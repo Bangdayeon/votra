@@ -50,3 +50,6 @@ skills-lock.json
 # alt package manager artifacts (project uses npm)
 pnpm-lock.yaml
 pnpm-workspace.yaml
+
+# axhub quality state (local-only)
+.axhub-state/
