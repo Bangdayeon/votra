@@ -10,6 +10,7 @@ import { prisma } from "@/infrastructure/db/prisma";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiContextEngine } from "@/infrastructure/llm/geminiContextEngine";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
+import { prismaExternalIngestRepository } from "@/infrastructure/repositories/prismaExternalIngestRepository";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
@@ -43,6 +44,7 @@ export async function GET(req: Request) {
         reflections: prismaMemoryReflectionRepository,
         tools: prismaToolRepository,
         engine: reflectionEngine,
+        externalIngests: prismaExternalIngestRepository,
       });
 
       const ownerId = p.members[0]?.userId;

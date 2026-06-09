@@ -1,13 +1,21 @@
+import type { ExternalIngestRepository } from "@/application/ports/externalIngestRepository";
 import type { MemoryReflectionRepository } from "@/application/ports/memoryReflectionRepository";
 import type { TaskRepository } from "@/application/ports/taskRepository";
 import type { ToolRepository } from "@/application/ports/toolRepository";
 import type { MemoryReflectionRecord, ReflectionInsight, ToolEnrichment, ToolSuggestion } from "@/domain/memory/memoryTierTypes";
+
+export type ExternalIngestItem = {
+  source: string;
+  content: string;
+  sourceUrl: string | null;
+};
 
 export type ReflectionInput = {
   tasks: Array<{ seq: number; title: string; priority: number; keyDecisions: string[]; outcome: string | null }>;
   activeTasks: Array<{ seq: number; title: string }>;
   existingTools: Array<{ name: string; description: string; folder: string; content: string }>;
   previousContextSummary: string | null;
+  externalData?: ExternalIngestItem[];
 };
 
 export type ReflectionOutput = {
@@ -29,14 +37,16 @@ export async function runMemoryReflection(
     reflections: MemoryReflectionRepository;
     tools: ToolRepository;
     engine: ReflectionEngine;
+    externalIngests: ExternalIngestRepository;
   },
 ): Promise<MemoryReflectionRecord> {
-  const [doneTasks, longTermTasks, activeTasks, latest, allTools] = await Promise.all([
+  const [doneTasks, longTermTasks, activeTasks, latest, allTools, externalData] = await Promise.all([
     deps.tasks.listByFilter({ projectId, status: "DONE", limit: 50 }),
     deps.tasks.listByMemoryTier({ projectId, tier: "LONG_TERM", limit: 20 }),
     deps.tasks.listByFilter({ projectId, limit: 20 }),
     deps.reflections.getLatest(projectId),
     deps.tools.listByProject(projectId),
+    deps.externalIngests.listUnprocessed({ projectId, limit: 20 }),
   ]);
 
   // 중복 제거: LONG_TERM 중 DONE 상태인 것은 doneTasks에 이미 포함될 수 있음
@@ -53,9 +63,10 @@ export async function runMemoryReflection(
     activeTasks: activeNonDone.map((t) => ({ seq: t.seq, title: t.title })),
     existingTools: allTools.map((t) => ({ name: t.name, description: t.description, folder: t.folder, content: t.content })),
     previousContextSummary: latest?.contextSummary ?? null,
+    externalData: externalData.map((d) => ({ source: d.source, content: d.content, sourceUrl: d.sourceUrl })),
   });
 
-  return deps.reflections.create({
+  const reflection = await deps.reflections.create({
     projectId,
     insights: output.insights,
     suggestedTasks: [],
@@ -65,4 +76,10 @@ export async function runMemoryReflection(
     analyzedTaskCount: allReferenceTasks.length,
     triggerReason,
   });
+
+  if (externalData.length > 0) {
+    await deps.externalIngests.markProcessed(externalData.map((d) => d.id));
+  }
+
+  return reflection;
 }

@@ -7,6 +7,7 @@ import type { MemoryReflectionRecord } from "@/domain/memory/memoryTierTypes";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
+import { prismaExternalIngestRepository } from "@/infrastructure/repositories/prismaExternalIngestRepository";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
@@ -25,6 +26,7 @@ export async function triggerMemoryReflectionAction(
     reflections: prismaMemoryReflectionRepository,
     tools: prismaToolRepository,
     engine,
+    externalIngests: prismaExternalIngestRepository,
   });
 
   if (reflection.toolSuggestions.length > 0) {

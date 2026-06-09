@@ -13,6 +13,7 @@ import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiContextEngine } from "@/infrastructure/llm/geminiContextEngine";
 import { createGeminiKeyDecisionsEngine } from "@/infrastructure/llm/geminiKeyDecisionsEngine";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
+import { prismaExternalIngestRepository } from "@/infrastructure/repositories/prismaExternalIngestRepository";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
@@ -111,6 +112,7 @@ async function checkAndTriggerReflection(projectId: string, userId: string): Pro
     reflections: prismaMemoryReflectionRepository,
     tools: prismaToolRepository,
     engine,
+    externalIngests: prismaExternalIngestRepository,
   });
 
   if (reflection.toolSuggestions.length > 0) {

@@ -14,6 +14,7 @@ import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClien
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiKeyDecisionsEngine } from "@/infrastructure/llm/geminiKeyDecisionsEngine";
 import { createGeminiReflectionEngine } from "@/infrastructure/llm/geminiReflectionEngine";
+import { prismaExternalIngestRepository } from "@/infrastructure/repositories/prismaExternalIngestRepository";
 import { prismaMemoryReflectionRepository } from "@/infrastructure/repositories/prismaMemoryReflectionRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
@@ -105,6 +106,7 @@ async function checkAndTriggerReflection(projectId: string, userId: string): Pro
     reflections: prismaMemoryReflectionRepository,
     tools: prismaToolRepository,
     engine,
+    externalIngests: prismaExternalIngestRepository,
   });
 
   if (reflection.toolSuggestions.length > 0) {

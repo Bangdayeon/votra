@@ -4,8 +4,9 @@ import type { ReflectionEngine, ReflectionInput, ReflectionOutput } from "@/appl
 import type { LlmClient } from "@/application/ports/llmClient";
 
 const BASE_SYSTEM = `당신은 소프트웨어 프로젝트의 AI 기억 분석 전문가입니다.
-주어진 완료된 태스크 목록을 분석하여 프로젝트의 패턴, 인사이트, 위험 요소를 파악하고,
+주어진 완료된 태스크 목록과 외부 서비스 데이터를 분석하여 프로젝트의 패턴, 인사이트, 위험 요소를 파악하고,
 다음에 집중해야 할 작업과 재사용 가능한 커맨드를 추천합니다.
+외부 서비스 데이터(Notion, Slack, GitHub, Linear 등)가 있으면 해당 내용에서 핵심 결정·인사이트·위험 요소를 추출해 insights에 포함하고, 출처(source)를 명시하세요.
 
 응답은 반드시 다음 JSON 형식으로만 작성하세요:
 {
@@ -75,6 +76,17 @@ export function createGeminiReflectionEngine(llm: LlmClient, instruction?: strin
           ).join("\n\n")
         : "(없음)";
 
+      const externalSection =
+        input.externalData && input.externalData.length > 0
+          ? `\n## 외부 서비스 데이터 (${input.externalData.length}개)\n` +
+            input.externalData
+              .map((d) => {
+                const header = d.sourceUrl ? `[${d.source}] (${d.sourceUrl})` : `[${d.source}]`;
+                return `${header}\n${d.content.slice(0, 2000)}${d.content.length > 2000 ? "..." : ""}`;
+              })
+              .join("\n\n---\n\n")
+          : "";
+
       const prompt = `## 완료된 태스크 (${input.tasks.length}개)
 ${taskList}
 
@@ -85,11 +97,12 @@ ${activeTasks || "(없음)"}
 ${existingToolsList}
 
 ## 이전 컨텍스트 요약
-${input.previousContextSummary ?? "(없음)"}
+${input.previousContextSummary ?? "(없음)"}${externalSection}
 
 위 정보를 바탕으로 프로젝트 메모리를 분석해 주세요.
 - 기존 툴 domain과 겹치는 패턴은 toolSuggestions 금지. 기존 툴에 빠진 내용이 있으면 toolEnrichments로 보강하세요.
-- 완전히 새 도메인일 때만 toolSuggestions에 최대 1개 추가하세요.`;
+- 완전히 새 도메인일 때만 toolSuggestions에 최대 1개 추가하세요.
+- 외부 서비스 데이터가 있으면 insights에 출처(예: "[notion]")를 명시하세요.`;
 
       const raw = await llm.complete({ system: SYSTEM, prompt, maxTokens: 2048 });
 

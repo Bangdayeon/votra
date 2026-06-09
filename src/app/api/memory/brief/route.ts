@@ -6,6 +6,7 @@ import { listFolders } from "@/application/listFolders";
 import { listMemoryReflections } from "@/application/listMemoryReflections";
 import { seedDefaultCommands } from "@/application/seedDefaultCommands";
 import { seedDefaultTools } from "@/application/seedDefaultTools";
+import { INTEGRATION_INSTRUCTIONS } from "@/domain/memory/integrationInstructions";
 import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
@@ -130,6 +131,9 @@ export async function GET(req: Request) {
         currentGoal: memoryContext.currentGoal,
       } : null,
       enabledIntegrations: projectSettings.integrations.sources,
+      integrationInstructions: projectSettings.integrations.sources
+        .map((src) => INTEGRATION_INSTRUCTIONS[src])
+        .filter(Boolean),
       commands: commands.map((c) => ({ slug: c.slug, name: c.name, description: c.description })),
     },
   });

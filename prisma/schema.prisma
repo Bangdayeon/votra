@@ -128,6 +128,7 @@ model Project {
   memoryContext        ProjectMemoryContext?
   tools                ProjectTool[]
   sessionLogs          SessionLog[]
+  externalIngests      ExternalIngest[]
 
   @@unique([ownerId, cwd])
   @@index([ownerId])
@@ -476,6 +477,32 @@ model ProjectCommand {
 // ────────────────────────────────────────────
 // SESSION LOG (세션 종료 시 AI 작업 맥락 SOP 기록)
 // ────────────────────────────────────────────
+
+// ────────────────────────────────────────────
+// EXTERNAL INGEST (외부 서비스 원문 저장)
+// MCP 서버가 Notion/Slack/GitHub/Linear 원문을 push하면 저장.
+// 다음 reflection 시 Gemini가 분석해 insight로 추출.
+// ────────────────────────────────────────────
+
+model ExternalIngest {
+  id          String    @id @default(cuid())
+  projectId   String
+  /// 출처 서비스: "notion" | "slack" | "github" | "linear"
+  source      String
+  content     String    @db.Text
+  /// SHA-256 of "${source}:${content}" — 중복 방지
+  contentHash String
+  sourceUrl   String?
+  metadata    Json?
+  /// reflection에 포함된 시각. null이면 미처리
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, contentHash])
+  @@index([projectId, processedAt])
+}
 
 model SessionLog {
   id        String   @id @default(cuid())
