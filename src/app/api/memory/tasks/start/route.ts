@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { startTask } from "@/application/startTask";
 import { matchToolsToTask } from "@/domain/memory/matchToolsToTask";
 import { suggestFolder } from "@/domain/memory/suggestFolder";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
@@ -26,6 +27,10 @@ export async function POST(req: Request) {
   if (typeof body.projectId !== "string" || !body.projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, body.projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
+
   if (typeof body.title !== "string" || !body.title) {
     return NextResponse.json({ ok: false, error: "title이 필요해요." }, { status: 400 });
   }

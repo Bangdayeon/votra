@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createFolder } from "@/application/createFolder";
 import { listFolders } from "@/application/listFolders";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
@@ -17,6 +18,9 @@ export async function GET(req: Request) {
   if (!projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
 
   const result = await listFolders(projectId, { folders: prismaTaskFolderRepository });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
@@ -40,6 +44,10 @@ export async function POST(req: Request) {
   if (typeof body.projectId !== "string" || !body.projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const postAccess = await assertApiKeyProjectAccess(user.id, body.projectId);
+  if (!postAccess.ok) return NextResponse.json({ ok: false, error: postAccess.error }, { status: 403 });
+
   if (typeof body.name !== "string" || !body.name.trim()) {
     return NextResponse.json({ ok: false, error: "폴더 이름이 필요해요." }, { status: 400 });
   }

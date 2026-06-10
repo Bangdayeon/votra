@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createTool } from "@/application/createTool";
 import { listTools } from "@/application/listTools";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 
@@ -13,6 +14,9 @@ export async function GET(req: Request) {
   const projectId = searchParams.get("projectId");
 
   if (projectId) {
+    const access = await assertApiKeyProjectAccess(user.id, projectId);
+    if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
+
     const [projectTools, globalTools] = await Promise.all([
       prismaToolRepository.listByProject(projectId),
       prismaToolRepository.listGlobal(user.id),

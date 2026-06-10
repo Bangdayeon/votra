@@ -7,6 +7,7 @@ import type { EmbeddingClient } from "@/application/ports/embeddingClient";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
 import type { TaskRecord } from "@/domain/memory/types";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
@@ -45,6 +46,10 @@ export async function POST(
   if (typeof body.projectId !== "string" || !body.projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, body.projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
+
   if (typeof body.summary !== "string" || !body.summary) {
     return NextResponse.json({ ok: false, error: "summary가 필요해요." }, { status: 400 });
   }

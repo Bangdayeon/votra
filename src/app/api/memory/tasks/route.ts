@@ -4,6 +4,7 @@ import { addTask } from "@/application/addTask";
 import { listTasks } from "@/application/listTasks";
 import { suggestFolder } from "@/domain/memory/suggestFolder";
 import type { TaskStatusValue } from "@/domain/memory/types";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
@@ -28,6 +29,10 @@ export async function POST(req: Request) {
   if (typeof body.projectId !== "string" || !body.projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, body.projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
+
   if (typeof body.title !== "string" || !body.title) {
     return NextResponse.json({ ok: false, error: "title이 필요해요." }, { status: 400 });
   }
@@ -77,6 +82,9 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId");
   if (!projectId) return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
+
+  const getAccess = await assertApiKeyProjectAccess(user.id, projectId);
+  if (!getAccess.ok) return NextResponse.json({ ok: false, error: getAccess.error }, { status: 403 });
 
   const statusParam = searchParams.get("status");
   const status =

@@ -9,6 +9,7 @@ import { seedDefaultTools } from "@/application/seedDefaultTools";
 import { INTEGRATION_INSTRUCTIONS } from "@/domain/memory/integrationInstructions";
 import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClient";
@@ -33,6 +34,9 @@ export async function GET(req: Request) {
   // slim=true: skip heavy optional fields (AI summary, reflections, long-term tasks, vector recall)
   // Use when agent only needs tasks + tools + commands for quick startup.
   const slim = searchParams.get("slim") === "true";
+
+  const access = await assertApiKeyProjectAccess(user.id, projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
 
   const coreQueries = [
     prisma.project.findUnique({

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSessionLog } from "@/application/createSessionLog";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { geminiLlmClient } from "@/infrastructure/llm/geminiLlmClient";
 import { createGeminiSessionEngine } from "@/infrastructure/llm/geminiSessionEngine";
@@ -28,6 +29,10 @@ export async function POST(req: Request) {
   if (typeof projectId !== "string" || !projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
+
   if (typeof summary !== "string" || !summary.trim()) {
     return NextResponse.json({ ok: false, error: "summary가 필요해요." }, { status: 400 });
   }

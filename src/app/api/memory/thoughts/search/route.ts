@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { recallThoughts } from "@/application/recallThoughts";
 import { trackTaskAccess } from "@/application/trackTaskAccess";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClient";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
@@ -23,6 +24,10 @@ export async function POST(req: Request) {
   if (typeof body.projectId !== "string" || !body.projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, body.projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
+
   if (typeof body.query !== "string" || !body.query) {
     return NextResponse.json({ ok: false, error: "query가 필요해요." }, { status: 400 });
   }

@@ -6,6 +6,7 @@ import { ingestExternalContext } from "@/application/ingestExternalContext";
 import { learnAndUpdateContext } from "@/application/learnAndUpdateContext";
 import { runMemoryReflection } from "@/application/runMemoryReflection";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
@@ -39,6 +40,10 @@ export async function POST(req: Request) {
   if (typeof body.projectId !== "string" || !body.projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, body.projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
+
   if (typeof body.title !== "string" || !body.title) {
     return NextResponse.json({ ok: false, error: "title이 필요해요." }, { status: 400 });
   }

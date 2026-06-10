@@ -4,6 +4,7 @@ import { pinTask } from "@/application/pinTask";
 import { trackTaskAccess } from "@/application/trackTaskAccess";
 import { updateTask } from "@/application/updateTask";
 import type { TaskStatusValue } from "@/domain/memory/types";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
@@ -25,6 +26,9 @@ export async function GET(
 
   const projectId = new URL(req.url).searchParams.get("projectId");
   if (!projectId) return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
+
+  const access = await assertApiKeyProjectAccess(user.id, projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
 
   const task = await prismaTaskRepository.findBySeq({ seq, projectId });
   if (!task) return NextResponse.json({ ok: false, error: "태스크를 찾을 수 없어요." }, { status: 404 });
@@ -61,6 +65,8 @@ export async function PATCH(
   if (typeof body.isPinned === "boolean") {
     const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
     if (!projectId) return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
+    const pinAccess = await assertApiKeyProjectAccess(user.id, projectId);
+    if (!pinAccess.ok) return NextResponse.json({ ok: false, error: pinAccess.error }, { status: 403 });
     const task = await prismaTaskRepository.findBySeq({ seq, projectId });
     if (!task) return NextResponse.json({ ok: false, error: "태스크를 찾을 수 없어요." }, { status: 404 });
     await pinTask(task.id, body.isPinned, { tasks: prismaTaskRepository });

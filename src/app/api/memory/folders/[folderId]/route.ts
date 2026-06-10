@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { deleteFolder } from "@/application/deleteFolder";
 import { updateFolder } from "@/application/updateFolder";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { emitProjectUpdate } from "@/infrastructure/events/projectEventBus";
 import { prismaTaskFolderRepository } from "@/infrastructure/repositories/prismaTaskFolderRepository";
@@ -28,6 +29,10 @@ export async function PATCH(
   if (typeof body.projectId !== "string" || !body.projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, body.projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
+
   if (typeof body.name !== "string" || !body.name.trim()) {
     return NextResponse.json({ ok: false, error: "폴더 이름이 필요해요." }, { status: 400 });
   }
@@ -56,6 +61,9 @@ export async function DELETE(
   if (!projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const deleteAccess = await assertApiKeyProjectAccess(user.id, projectId);
+  if (!deleteAccess.ok) return NextResponse.json({ ok: false, error: deleteAccess.error }, { status: 403 });
 
   const result = await deleteFolder(folderId, projectId, { folders: prismaTaskFolderRepository });
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
