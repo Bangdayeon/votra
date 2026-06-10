@@ -3,6 +3,7 @@
 import {
   BookOpen,
   Bot,
+  Brain,
   LayoutGrid,
   ListChecks,
   LogOut,
@@ -309,7 +310,7 @@ function AccountPane() {
 const SERVICE_FEATURES: {
   name: string;
   icon: React.ElementType;
-  screenshot: string;
+  screenshot?: string;
   desc: string;
   features: { title: string; lines: string[] }[];
 }[] = [
@@ -323,7 +324,7 @@ const SERVICE_FEATURES: {
         title: "💡 AI 요약 & 솔루션",
         lines: [
           "최근 커밋 기록과 저장된 작업 내용을 분석해 프로젝트 진행 상황, 이슈를 한눈에 보여줘요.",
-          "특이하거나 반복적인 문제 패턴이 있으면 경고와 함께 간단한 솔루션을 제시해요."
+          "특이하거나 반복적인 문제 패턴이 있으면 경고와 함께 간단한 솔루션을 제시해요.",
         ],
       },
       {
@@ -356,7 +357,27 @@ const SERVICE_FEATURES: {
       },
     ],
   },
-  
+  {
+    name: "브레인",
+    icon: Brain,
+    desc: "프로젝트 맥락을 저장하고 AI 에이전트가 참조할 수 있게 해줘요.",
+    features: [
+      {
+        title: "프로젝트 맥락 관리",
+        lines: [
+          "서비스 설명·기술 스택·현재 목표 등 프로젝트 컨텍스트를 직접 편집해요.",
+          "AI 에이전트가 작업 시작 시 이 정보를 자동으로 참조해요.",
+        ],
+      },
+      {
+        title: "핵심 결정 검색",
+        lines: [
+          "완료된 태스크에서 추출한 핵심 결정을 검색할 수 있어요.",
+          "recall 툴로 에이전트가 과거 맥락을 이어받아 작업할 수 있어요.",
+        ],
+      },
+    ],
+  },
   {
     name: "팀작업",
     icon: Users,
@@ -384,6 +405,11 @@ const CLI_COMMANDS = [
     desc: "AI 도구에 Haema MCP 서버 자동 등록",
     usage: "haema install [claude|cursor|gemini|codex|all]",
   },
+  {
+    cmd: "haema connect",
+    desc: "외부 서비스 MCP 서버 등록 및 연동",
+    usage: "haema connect [notion|slack|github|linear]",
+  },
 ] as const;
 
 const MCP_SETUP_STEPS = [
@@ -400,22 +426,32 @@ const MCP_SETUP_STEPS = [
   {
     step: "3",
     title: "로그인",
-    code: "Claude Code 재시작 후 signin 툴로 Haema 계정에 로그인해요",
+    code: "AI 에이전트 재시작 후 signin 툴로 Haema 계정에 로그인해요",
   },
 ] as const;
 
 const MCP_TOOLS: { tool: string; desc: string }[] = [
   { tool: "brief", desc: "세션 시작 브리핑 — 태스크·결정·추천 작업 한번에 조회" },
   { tool: "recall", desc: "과거 결정·인사이트를 의미 기반으로 검색" },
-  { tool: "add_task", desc: "새 태스크 등록" },
+  { tool: "get_insights", desc: "프로젝트 인사이트·이슈 요약 조회" },
   { tool: "start_task", desc: "태스크 등록 후 즉시 IN_PROGRESS로 시작" },
-  { tool: "update_task", desc: "태스크 상태·내용 변경 (PENDING / IN_PROGRESS / DONE)" },
+  { tool: "add_task", desc: "새 태스크 등록 (나중에 시작)" },
+  { tool: "update_task", desc: "태스크 상태·내용 변경" },
   { tool: "finish_task", desc: "태스크 완료 처리 — 요약·핵심 결정 함께 저장" },
   { tool: "list_tasks", desc: "태스크 목록 조회 (상태·모듈 필터 가능)" },
   { tool: "task_detail", desc: "태스크 상세 정보 조회" },
-  { tool: "log_session", desc: "세션 종료 전 작업 요약 저장" },
-  { tool: "upload_prompt", desc: "CLAUDE.md·AGENTS.md·SKILL.md 업로드" },
-  { tool: "load_skill", desc: "컨텍스트별 커맨드 지침 로드" },
+  { tool: "pin_task", desc: "태스크 고정" },
+  { tool: "create_folder", desc: "태스크 폴더 생성" },
+  { tool: "load_tool", desc: "컨텍스트별 툴 지침 로드" },
+  { tool: "load_command", desc: "커맨드 지침 로드" },
+  { tool: "create_command", desc: "새 커맨드 생성" },
+  { tool: "update_command", desc: "커맨드 내용 변경" },
+  { tool: "propose_tool", desc: "반복 패턴을 커스텀 툴로 등록 제안" },
+  { tool: "apply_hooks", desc: "훅 이벤트 적용" },
+  { tool: "upload_prompt", desc: "AGENTS.md·SKILL.md 업로드" },
+  { tool: "ingest_context", desc: "외부 컨텍스트 수집" },
+  { tool: "install_integration", desc: "외부 서비스 연동 설치" },
+  { tool: "configure_integrations", desc: "연동된 외부 서비스 설정" },
   { tool: "signin", desc: "브라우저 OAuth로 Haema 계정 로그인" },
   { tool: "whoami", desc: "현재 로그인 계정 확인" },
   { tool: "signout", desc: "로그아웃 및 인증 정보 삭제" },
@@ -448,7 +484,9 @@ function GuidePane() {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{tab.desc}</p>
                 </div>
-                <Image src={tab.screenshot} alt={`${tab.name} 스크린샷`} width={800} height={400} className="rounded-lg border border-border object-cover" />
+                {tab.screenshot && (
+                  <Image src={tab.screenshot} alt={`${tab.name} 스크린샷`} width={800} height={400} className="rounded-lg border border-border object-cover" />
+                )}
                 <div className="flex flex-col gap-4">
                   {tab.features.map((feat) => (
                     <div key={feat.title}>
@@ -492,7 +530,7 @@ function GuidePane() {
           ))}
         </ol>
         <p className="text-xs text-muted-foreground">
-          등록 후 Claude Code를 재시작하면 haema-memory MCP 서버가 활성화돼요. 이후 signin 툴로 Haema 계정에 로그인하세요.
+          등록 후 AI 에이전트를 재시작하면 haema-memory MCP 서버가 활성화돼요. 이후 signin 툴로 Haema 계정에 로그인하세요.
         </p>
       </section>
 
@@ -524,6 +562,38 @@ function GuidePane() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <Plug className="size-4 text-muted-foreground" />
+          <h3 className="text-base font-semibold">외부 서비스 연동</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Notion, Slack, GitHub, Linear의 맥락을 가져와 프로젝트 기억에 저장해요. AI 에이전트가 세션 시작 시 자동으로 참조해요.
+        </p>
+        <div className="overflow-hidden rounded-lg border border-border">
+          {[
+            { name: "Notion", desc: "페이지·데이터베이스·회의록을 핵심 결정으로 변환해요" },
+            { name: "Slack", desc: "채널 스레드와 중요 결정사항을 기억해요" },
+            { name: "GitHub", desc: "이슈·PR 토론·코드 리뷰 맥락을 저장해요" },
+            { name: "Linear", desc: "티켓 결정사항과 프로젝트 맥락을 가져와요" },
+          ].map(({ name, desc }, i) => (
+            <div
+              key={name}
+              className={cn(
+                "flex items-center gap-4 px-4 py-3",
+                i !== 0 && "border-t border-border",
+              )}
+            >
+              <span className="w-16 shrink-0 text-sm font-semibold">{name}</span>
+              <span className="text-sm text-muted-foreground">{desc}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          <code className="font-mono">설정 → 외부 도구 연결</code> 탭에서 서비스를 연결할 수 있어요.
+        </p>
       </section>
 
       <section className="flex flex-col gap-6">
