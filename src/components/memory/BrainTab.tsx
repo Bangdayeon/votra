@@ -8,6 +8,7 @@ import type { BriefPreviewData } from "@/app/actions/getBriefPreviewAction";
 import { getBriefPreviewAction } from "@/app/actions/getBriefPreviewAction";
 import { getMemoryContextAction } from "@/app/actions/getMemoryContextAction";
 import { getProjectKeyDecisionsAction, type KeyDecisionRecord } from "@/app/actions/getProjectKeyDecisionsAction";
+import { recallKeyDecisionsAction } from "@/app/actions/recallKeyDecisionsAction";
 import {
   type UpdateMemoryContextInput,
   updateMemoryContextAction,
@@ -222,7 +223,7 @@ function ContextSection({
         {CONTEXT_DISPLAY_FIELDS.map(({ key, label }) =>
           context[key] ? (
             <div key={key} className="flex gap-3 text-sm">
-              <span className="w-9 shrink-0 text-muted-foreground">{label}</span>
+              <span className="w-12 shrink-0 text-muted-foreground">{label}</span>
               <span className="text-foreground">{context[key]}</span>
             </div>
           ) : null
@@ -308,7 +309,9 @@ function RecommendedSection({ preview }: { preview: BriefPreviewData | undefined
 
 function KeyDecisionsPanel({ projectId }: { projectId: string }) {
   const [decisions, setDecisions] = useState<KeyDecisionRecord[] | undefined>(undefined);
+  const [searchResults, setSearchResults] = useState<KeyDecisionRecord[] | null>(null);
   const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -318,11 +321,23 @@ function KeyDecisionsPanel({ projectId }: { projectId: string }) {
     return () => { cancelled = true; };
   }, [projectId]);
 
-  const filtered = (decisions ?? []).filter((t) => {
-    if (!query) return true;
-    const q = query.toLowerCase();
-    return t.title.toLowerCase().includes(q) || t.keyDecisions.some((d) => d.toLowerCase().includes(q));
-  });
+  useEffect(() => {
+    if (!query.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    setSearching(true);
+    const timer = setTimeout(() => {
+      let cancelled = false;
+      recallKeyDecisionsAction(projectId, query.trim())
+        .then((r) => { if (!cancelled) { setSearchResults(r); setSearching(false); } })
+        .catch(() => { if (!cancelled) { setSearchResults([]); setSearching(false); } });
+      return () => { cancelled = true; };
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [projectId, query]);
+
+  const filtered = searchResults ?? decisions ?? [];
 
   return (
     <div className="rounded-xl border border-border bg-card">
@@ -343,7 +358,11 @@ function KeyDecisionsPanel({ projectId }: { projectId: string }) {
           <>
             <div className="px-3 pt-3 pb-2">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                {searching ? (
+                  <Loader2 className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+                ) : (
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                )}
                 <input
                   type="text"
                   value={query}

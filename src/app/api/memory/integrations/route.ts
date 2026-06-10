@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 
@@ -17,6 +18,9 @@ export async function GET(req: Request) {
   if (!projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -47,6 +51,10 @@ export async function PATCH(req: Request) {
   if (typeof body.projectId !== "string" || !body.projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const patchAccess = await assertApiKeyProjectAccess(user.id, body.projectId);
+  if (!patchAccess.ok) return NextResponse.json({ ok: false, error: patchAccess.error }, { status: 403 });
+
   if (!Array.isArray(body.sources)) {
     return NextResponse.json({ ok: false, error: "sources 배열이 필요해요." }, { status: 400 });
   }

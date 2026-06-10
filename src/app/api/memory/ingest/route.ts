@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 import { prismaExternalIngestRepository } from "@/infrastructure/repositories/prismaExternalIngestRepository";
@@ -29,6 +30,10 @@ export async function POST(req: Request) {
   if (typeof body.projectId !== "string" || !body.projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, body.projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
+
   if (typeof body.source !== "string" || !(VALID_SOURCES as readonly string[]).includes(body.source)) {
     return NextResponse.json(
       { ok: false, error: `source는 ${VALID_SOURCES.join(", ")} 중 하나여야 해요.` },

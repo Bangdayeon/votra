@@ -72,4 +72,16 @@ export const prismaExternalIngestRepository: ExternalIngestRepository = {
       data: { processedAt: new Date() },
     });
   },
+
+  async deleteOld({ processedBefore, unprocessedBefore }) {
+    const [processed, unprocessed] = await Promise.all([
+      prisma.externalIngest.deleteMany({
+        where: { processedAt: { not: null, lt: processedBefore } },
+      }),
+      prisma.externalIngest.deleteMany({
+        where: { processedAt: null, createdAt: { lt: unprocessedBefore } },
+      }),
+    ]);
+    return processed.count + unprocessed.count;
+  },
 };

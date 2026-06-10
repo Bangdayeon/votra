@@ -1,40 +1,6 @@
 "use client";
 
 import {
-  Archive,
-  Bookmark,
-  Box,
-  Briefcase,
-  CalendarDays,
-  CheckSquare,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Circle,
-  Clock,
-  Code2,
-  Flag,
-  Folder,
-  FolderOpen,
-  FolderPlus,
-  GripVertical,
-  Heart,
-  Info,
-  Layers,
-  Loader2,
-  MoreHorizontal,
-  Pin,
-  PinOff,
-  Plus,
-  RotateCcw,
-  Search,
-  Star,
-  Tag,
-  Target,
-  XCircle,
-  Zap,
-} from "lucide-react";
-import {
   DndContext,
   PointerSensor,
   closestCenter,
@@ -45,30 +11,32 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
   arrayMove,
-  useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import Link from "next/link";
+import {
+  CalendarDays,
+  CheckSquare,
+  ChevronLeft,
+  ChevronRight,
+  Folder,
+  FolderPlus,
+  Loader2,
+  Plus,
+  Search,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { createFolderAction } from "@/app/actions/createFolderAction";
-import { createTaskAction, type CreateTaskInput } from "@/app/actions/createTaskAction";
-import { pinTaskAction } from "@/app/actions/pinTaskAction";
-import { deleteFolderAction } from "@/app/actions/deleteFolderAction";
 import { deleteTaskAction } from "@/app/actions/deleteTask";
 import { getProjectFoldersAction } from "@/app/actions/getProjectFolders";
-import { getToolsAction } from "@/app/actions/getToolsAction";
 import { getProjectTasksAction, type TaskRecord, type TaskStatusValue } from "@/app/actions/getProjectTasks";
+import { getToolsAction } from "@/app/actions/getToolsAction";
 import { moveTaskToFolderAction } from "@/app/actions/moveTaskToFolderAction";
 import { reorderFoldersAction } from "@/app/actions/reorderFoldersAction";
-import { suggestTaskToolAction } from "@/app/actions/suggestTaskToolAction";
-import { updateFolderAction } from "@/app/actions/updateFolderAction";
 import { updateTaskStatusAction } from "@/app/actions/updateTaskStatus";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -77,8 +45,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Project } from "@/components/project/ProjectsContext";
-import { Calendar } from "@/components/ui/calendar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,1220 +53,30 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Project } from "@/components/project/ProjectsContext";
 import { filterTasks } from "@/domain/memory/filterTasks";
-import { getTaskPriorityLevel } from "@/domain/memory/getTaskPriorityLevel";
 import { sortTasks } from "@/domain/memory/sortTasks";
 import type { FolderRecord, ProjectToolRecord, TaskSortBy } from "@/domain/memory/types";
 import { useProjectEvents } from "@/hooks/useProjectEvents";
 import { cn } from "@/lib/utils";
 import { buildToolColorMap } from "@/shared/lib/toolBadgeColors";
 
-// ── folder icon / color palette ───────────────────────────────────────────────
-
-const FOLDER_ICON_OPTIONS = [
-  { value: "folder", Icon: Folder },
-  { value: "star", Icon: Star },
-  { value: "bookmark", Icon: Bookmark },
-  { value: "tag", Icon: Tag },
-  { value: "zap", Icon: Zap },
-  { value: "heart", Icon: Heart },
-  { value: "flag", Icon: Flag },
-  { value: "code2", Icon: Code2 },
-  { value: "layers", Icon: Layers },
-  { value: "target", Icon: Target },
-  { value: "box", Icon: Box },
-  { value: "briefcase", Icon: Briefcase },
-] as const;
-
-const FOLDER_COLOR_OPTIONS = [
-  { value: "gray",   bg: "#f3f4f6", fg: "#374151" },
-  { value: "red",    bg: "#fee2e2", fg: "#b91c1c" },
-  { value: "orange", bg: "#ffedd5", fg: "#c2410c" },
-  { value: "yellow", bg: "#fef9c3", fg: "#a16207" },
-  { value: "green",  bg: "#dcfce7", fg: "#15803d" },
-  { value: "blue",   bg: "#dbeafe", fg: "#1d4ed8" },
-  { value: "purple", bg: "#f3e8ff", fg: "#7e22ce" },
-  { value: "pink",   bg: "#fce7f3", fg: "#be185d" },
-  { value: "cyan",   bg: "#cffafe", fg: "#0e7490" },
-] as const;
-
-type FolderIconValue = (typeof FOLDER_ICON_OPTIONS)[number]["value"];
-type FolderColorValue = (typeof FOLDER_COLOR_OPTIONS)[number]["value"];
-
-function getFolderColors(color: string | null): { bg: string; fg: string } {
-  return FOLDER_COLOR_OPTIONS.find((c) => c.value === color) ?? { bg: "#dbeafe", fg: "#1d4ed8" };
-}
-
-function FolderIconDisplay({
-  icon,
-  color,
-  className,
-}: {
-  icon: string | null;
-  color: string | null;
-  className?: string;
-}) {
-  const found = FOLDER_ICON_OPTIONS.find((o) => o.value === icon);
-  const IconComp = found?.Icon ?? FolderOpen;
-  const { fg } = getFolderColors(color);
-  return <IconComp className={className} style={{ color: fg }} />;
-}
-
-// ── priority ──────────────────────────────────────────────────────────────────
-
-type PriorityLevel = 0 | 1 | 2 | 3 | 4;
-
-const PRIORITY_LABELS: Record<1 | 2 | 3 | 4, string> = {
-  1: "Low",
-  2: "Medium",
-  3: "High",
-  4: "Critical",
-};
-
-const PRIORITY_STYLES: Record<1 | 2 | 3 | 4, string> = {
-  1: "bg-green-100 text-green-700",
-  2: "bg-yellow-100 text-yellow-700",
-  3: "bg-orange-100 text-orange-700",
-  4: "bg-red-100 text-red-700",
-};
-
-// ── status ────────────────────────────────────────────────────────────────────
-
-const NEXT_STATUS: Partial<Record<TaskStatusValue, TaskStatusValue>> = {
-  PENDING: "IN_PROGRESS",
-  IN_PROGRESS: "DONE",
-  DONE: "PENDING",
-};
-
-const STATUS_ACTION_LABELS: Record<TaskStatusValue, string> = {
-  PENDING: "대기 상태로 변경",
-  IN_PROGRESS: "진행 중으로 변경",
-  DONE: "완료로 변경",
-  CANCELLED: "취소로 변경",
-};
-
-const STATUS_TOAST_MESSAGES: Partial<Record<TaskStatusValue, string>> = {
-  IN_PROGRESS: "진행 중으로 변경됐어요.",
-  DONE: "완료로 변경됐어요.",
-  PENDING: "대기로 변경됐어요.",
-};
-
-// ── folder view type ──────────────────────────────────────────────────────────
-
-type FolderView =
-  | { kind: "list" }
-  | { kind: "folder"; id: string; name: string }
-  | { kind: "unclassified" }
-  | { kind: "all" };
-
-// ── StatusIcon ────────────────────────────────────────────────────────────────
-
-function StatusIcon({ status, className }: { status: TaskStatusValue; className?: string }) {
-  if (status === "DONE") return <CheckSquare className={cn("size-4 text-green-600", className)} />;
-  if (status === "IN_PROGRESS") return <Clock className={cn("size-4 text-blue-600", className)} />;
-  if (status === "CANCELLED") return <XCircle className={cn("size-4 text-red-500", className)} />;
-  return <Circle className={cn("size-4 text-muted-foreground", className)} />;
-}
-
-// ── FilterDropdown ────────────────────────────────────────────────────────────
-
-function FilterDropdown<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T;
-  options: { label: string; value: T; icon?: React.ReactNode }[];
-  onChange: (v: T) => void;
-}) {
-  const current = options.find((o) => o.value === value);
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="flex cursor-pointer items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap">
-          {current?.icon && <span className="shrink-0">{current.icon}</span>}
-          {current?.label}
-          <ChevronDown className="size-3" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[140px]">
-        {options.map((o) => (
-          <DropdownMenuItem
-            key={o.value}
-            onClick={() => onChange(o.value)}
-            className={cn("gap-2", value === o.value && "font-medium")}
-          >
-            {o.icon && <span className="shrink-0">{o.icon}</span>}
-            {o.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-// ── CreateTaskDialog ──────────────────────────────────────────────────────────
-
-const TASK_TITLE_MAX = 80;
-const TASK_DESC_MAX = 2000;
-
-const PRIORITY_CREATE_OPTIONS = [
-  { value: 1, label: "Low" },
-  { value: 2, label: "Medium" },
-  { value: 3, label: "High" },
-  { value: 4, label: "Critical" },
-] as const;
-
-const PRIORITY_ACTIVE_STYLES: Record<number, string> = {
-  0: "border-border bg-muted text-foreground",
-  1: "border-green-300 bg-green-100 text-green-700",
-  2: "border-yellow-300 bg-yellow-100 text-yellow-700",
-  3: "border-orange-300 bg-orange-100 text-orange-700",
-  4: "border-red-300 bg-red-100 text-red-700",
-};
-
-function CreateTaskDialog({
-  open,
-  projectId,
-  folders,
-  defaultFolderId,
-  tools,
-  onClose,
-  onCreated,
-}: {
-  open: boolean;
-  projectId: string;
-  folders: FolderRecord[];
-  defaultFolderId: string | null;
-  tools: ProjectToolRecord[];
-  onClose: () => void;
-  onCreated: (task: TaskRecord) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [folderId, setFolderId] = useState<string | null>(defaultFolderId);
-  const [tool, setTool] = useState<string | null>(null);
-  const [priority, setPriority] = useState(2);
-  const [loading, setLoading] = useState(false);
-  const [toolLoading, setToolLoading] = useState(false);
-  const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suggestSeq = useRef(0);
-
-  useEffect(() => {
-    if (!open) return;
-    setTitle("");
-    setDescription("");
-    setFolderId(defaultFolderId);
-    setTool(null);
-    setPriority(2);
-    setToolLoading(false);
-  }, [open, defaultFolderId]);
-
-  useEffect(() => {
-    if (suggestDebounce.current) clearTimeout(suggestDebounce.current);
-    if (!title.trim()) return;
-    const seq = ++suggestSeq.current;
-    suggestDebounce.current = setTimeout(() => {
-      setToolLoading(true);
-      suggestTaskToolAction(projectId, title.trim(), description)
-        .then((suggested) => {
-          if (suggestSeq.current !== seq) return;
-          if (suggested) setTool(suggested);
-        })
-        .catch(() => {})
-        .finally(() => { if (suggestSeq.current === seq) setToolLoading(false); });
-    }, 1500);
-    return () => { if (suggestDebounce.current) clearTimeout(suggestDebounce.current); };
-  }, [title, description, projectId]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setLoading(true);
-    try {
-      const input: CreateTaskInput = {
-        title: title.trim(),
-        description: description.trim() || undefined,
-        tool: tool ?? undefined,
-        priority,
-        folderId,
-      };
-      const task = await createTaskAction(projectId, input);
-      onCreated(task);
-      onClose();
-      toast.success("태스크를 등록했어요.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "태스크 생성에 실패했어요.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const activeTools = tools.filter((t) => t.isEnabled);
-  const currentFolderName = folderId
-    ? (folders.find((f) => f.id === folderId)?.name ?? "알 수 없음")
-    : "미분류";
-  const currentFolder = folderId ? folders.find((f) => f.id === folderId) : null;
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>새 태스크</DialogTitle>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-4 py-4">
-            {/* 폴더 선택 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">폴더</label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    <span className="flex items-center gap-1.5 text-foreground">
-                      {currentFolder ? (
-                        <FolderIconDisplay icon={currentFolder.icon} color={currentFolder.color} className="size-3.5" />
-                      ) : (
-                        <Folder className="size-3.5 text-muted-foreground" />
-                      )}
-                      {currentFolderName}
-                    </span>
-                    <ChevronDown className="size-3.5 text-muted-foreground" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-                  <DropdownMenuItem
-                    onClick={() => setFolderId(null)}
-                    className={cn("gap-2", folderId === null && "font-medium")}
-                  >
-                    <Folder className="size-3.5" />
-                    미분류
-                  </DropdownMenuItem>
-                  {folders.length > 0 && <DropdownMenuSeparator />}
-                  {folders.map((f) => (
-                    <DropdownMenuItem
-                      key={f.id}
-                      onClick={() => setFolderId(f.id)}
-                      className={cn("gap-2", folderId === f.id && "font-medium")}
-                    >
-                      <FolderIconDisplay icon={f.icon} color={f.color} className="size-3.5" />
-                      {f.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* 제목 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">제목</label>
-              <div className="relative">
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="태스크 제목을 입력하세요"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value.slice(0, TASK_TITLE_MAX))}
-                  maxLength={TASK_TITLE_MAX}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-16 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/50">
-                  {title.length}/{TASK_TITLE_MAX}
-                </span>
-              </div>
-            </div>
-
-            {/* 내용 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">내용</label>
-              <div className="relative">
-                <textarea
-                  rows={5}
-                  placeholder="태스크 내용을 입력하세요 (선택)"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value.slice(0, TASK_DESC_MAX))}
-                  maxLength={TASK_DESC_MAX}
-                  className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 pb-8 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-                <span className="pointer-events-none absolute bottom-2 right-3 text-xs text-muted-foreground/50">
-                  {description.length}/{TASK_DESC_MAX}
-                </span>
-              </div>
-            </div>
-
-            {/* 툴 */}
-            {activeTools.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">툴</label>
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex cursor-default">
-                          <Info className="size-3 text-muted-foreground/50" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[200px] text-xs">
-                        태스크가 속한 기능 영역이에요. 프로젝트에 등록된 툴 중 하나를 선택하면 태스크를 툴별로 분류할 수 있어요.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  {toolLoading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                    >
-                      <span className={tool ? "text-foreground" : "text-muted-foreground"}>
-                        {tool
-                          ? (activeTools.find((t) => t.slug === tool)?.name ?? tool)
-                          : "툴 선택 (선택)"}
-                      </span>
-                      <ChevronDown className="size-3.5 text-muted-foreground" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-                    <DropdownMenuItem
-                      onClick={() => setTool(null)}
-                      className={cn("gap-2", !tool && "font-medium")}
-                    >
-                      선택 안 함
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {activeTools.map((t) => (
-                      <DropdownMenuItem
-                        key={t.slug}
-                        onClick={() => setTool(t.slug)}
-                        className={cn("gap-2", tool === t.slug && "font-medium")}
-                      >
-                        {t.name}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
-
-            {/* 중요도 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">중요도</label>
-              <div className="flex gap-1.5">
-                {PRIORITY_CREATE_OPTIONS.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setPriority(value)}
-                    className={cn(
-                      "flex-1 cursor-pointer rounded-md border px-2 py-1.5 text-xs font-medium transition-colors",
-                      priority === value
-                        ? PRIORITY_ACTIVE_STYLES[value]
-                        : "border-border text-muted-foreground hover:bg-muted",
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              취소
-            </Button>
-            <Button type="submit" disabled={!title.trim() || loading}>
-              {loading && <Loader2 className="size-3.5 animate-spin" />}
-              만들기
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── CreateFolderDialog ────────────────────────────────────────────────────────
-
-function CreateFolderDialog({
-  open,
-  projectId,
-  onClose,
-  onCreated,
-}: {
-  open: boolean;
-  projectId: string;
-  onClose: () => void;
-  onCreated: (folder: FolderRecord) => void;
-}) {
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState<FolderIconValue | null>(null);
-  const [color, setColor] = useState<FolderColorValue | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setName("");
-      setIcon(null);
-      setColor(null);
-    }
-  }, [open]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    try {
-      const folder = await createFolderAction(projectId, name.trim(), icon, color);
-      onCreated(folder);
-      onClose();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "폴더 생성에 실패했어요.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>새 폴더</DialogTitle>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-5 py-4">
-            {/* name */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-muted-foreground">이름</span>
-              <input
-                autoFocus
-                type="text"
-                placeholder="폴더 이름"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-            </div>
-
-            {/* icon */}
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-muted-foreground">아이콘</span>
-              <div className="grid grid-cols-6 gap-1.5">
-                {FOLDER_ICON_OPTIONS.map(({ value, Icon }) => {
-                  const { bg, fg } = getFolderColors(color);
-                  const selected = icon === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setIcon(selected ? null : value)}
-                      className={cn(
-                        "flex size-9 cursor-pointer items-center justify-center rounded-lg border-2 transition-all",
-                        selected ? "border-foreground/40 scale-110" : "border-transparent hover:scale-105",
-                      )}
-                      style={{ backgroundColor: bg }}
-                    >
-                      <Icon className="size-4" style={{ color: fg }} />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* color */}
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-muted-foreground">색상</span>
-              <div className="flex flex-wrap gap-2">
-                {FOLDER_COLOR_OPTIONS.map(({ value, bg, fg }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setColor(color === value ? null : value)}
-                    className={cn(
-                      "flex size-7 cursor-pointer items-center justify-center rounded-full border-2 transition-all",
-                      color === value ? "border-foreground scale-110" : "border-transparent hover:scale-105",
-                    )}
-                    style={{ backgroundColor: bg, borderColor: color === value ? fg : undefined }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              취소
-            </Button>
-            <Button type="submit" disabled={!name.trim() || loading}>
-              {loading && <Loader2 className="size-3.5 animate-spin" />}
-              만들기
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── EditFolderDialog ──────────────────────────────────────────────────────────
-
-function EditFolderDialog({
-  open,
-  folder,
-  projectId,
-  onClose,
-  onUpdated,
-}: {
-  open: boolean;
-  folder: FolderRecord;
-  projectId: string;
-  onClose: () => void;
-  onUpdated: (updated: FolderRecord) => void;
-}) {
-  const [name, setName] = useState(folder.name);
-  const [icon, setIcon] = useState<FolderIconValue | null>(
-    (folder.icon as FolderIconValue | null) ?? null,
-  );
-  const [color, setColor] = useState<FolderColorValue | null>(
-    (folder.color as FolderColorValue | null) ?? null,
-  );
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setName(folder.name);
-      setIcon((folder.icon as FolderIconValue | null) ?? null);
-      setColor((folder.color as FolderColorValue | null) ?? null);
-    }
-  }, [open, folder]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    try {
-      const updated = await updateFolderAction(projectId, folder.id, name.trim(), icon, color);
-      onUpdated(updated);
-      onClose();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "폴더 수정에 실패했어요.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm" onClick={(e) => e.stopPropagation()}>
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>폴더 수정</DialogTitle>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-5 py-4">
-            {/* name */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-muted-foreground">이름</span>
-              <input
-                autoFocus
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-            </div>
-
-            {/* icon */}
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-muted-foreground">아이콘</span>
-              <div className="grid grid-cols-6 gap-1.5">
-                {FOLDER_ICON_OPTIONS.map(({ value, Icon }) => {
-                  const { bg, fg } = getFolderColors(color);
-                  const selected = icon === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setIcon(selected ? null : value)}
-                      className={cn(
-                        "flex size-9 cursor-pointer items-center justify-center rounded-lg border-2 transition-all",
-                        selected ? "border-foreground/40 scale-110" : "border-transparent hover:scale-105",
-                      )}
-                      style={{ backgroundColor: bg }}
-                    >
-                      <Icon className="size-4" style={{ color: fg }} />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* color */}
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-muted-foreground">색상</span>
-              <div className="flex flex-wrap gap-2">
-                {FOLDER_COLOR_OPTIONS.map(({ value, bg, fg }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setColor(color === value ? null : value)}
-                    className={cn(
-                      "flex size-7 cursor-pointer items-center justify-center rounded-full border-2 transition-all",
-                      color === value ? "border-foreground scale-110" : "border-transparent hover:scale-105",
-                    )}
-                    style={{ backgroundColor: bg, borderColor: color === value ? fg : undefined }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>취소</Button>
-            <Button type="submit" disabled={!name.trim() || loading}>
-              {loading && <Loader2 className="size-3.5 animate-spin" />}
-              저장
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── FolderCard ────────────────────────────────────────────────────────────────
-
-function FolderCard({
-  folder,
-  total,
-  inProgress,
-  pending,
-  onClick,
-  projectId,
-  onRenamed,
-  onDeleted,
-  dragHandleListeners,
-  dragHandleAttributes,
-}: {
-  folder: FolderRecord | null;
-  total: number;
-  inProgress: number;
-  pending: number;
-  onClick: () => void;
-  projectId: string;
-  onRenamed?: (updated: FolderRecord) => void;
-  onDeleted?: (id: string) => void;
-  dragHandleListeners?: React.HTMLAttributes<HTMLButtonElement>;
-  dragHandleAttributes?: React.HTMLAttributes<HTMLButtonElement>;
-}) {
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
-  async function handleDelete() {
-    if (!folder) return;
-    setDeleteLoading(true);
-    try {
-      await deleteFolderAction(projectId, folder.id);
-      onDeleted?.(folder.id);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "폴더 삭제에 실패했어요.");
-    } finally {
-      setDeleteLoading(false);
-      setDeleteOpen(false);
-    }
-  }
-
-  const isUnclassified = folder === null;
-
-  return (
-    <div
-      onClick={onClick}
-      className="group relative flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition-all hover:border-ring/40 hover:shadow-sm"
-    >
-      {/* drag handle */}
-      {dragHandleListeners && (
-        <button
-          type="button"
-          {...dragHandleListeners}
-          {...dragHandleAttributes}
-          onClick={(e) => e.stopPropagation()}
-          className="shrink-0 cursor-grab touch-none text-muted-foreground opacity-0 transition-opacity group-hover:opacity-40 hover:!opacity-100 active:cursor-grabbing"
-        >
-          <GripVertical className="size-4" />
-        </button>
-      )}
-
-      {/* icon */}
-      {isUnclassified ? (
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-          <Folder className="size-4 text-muted-foreground" />
-        </div>
-      ) : (
-        <div
-          className="flex size-9 shrink-0 items-center justify-center rounded-lg"
-          style={{ backgroundColor: getFolderColors(folder.color).bg }}
-        >
-          <FolderIconDisplay icon={folder.icon} color={folder.color} className="size-4" />
-        </div>
-      )}
-
-      {/* name + counts */}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{folder?.name ?? "미분류"}</p>
-        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{total}개</span>
-          {inProgress > 0 && (
-            <span className="rounded-full bg-blue-100 px-1.5 py-px text-blue-700 font-medium">
-              진행 중 {inProgress}
-            </span>
-          )}
-          {pending > 0 && inProgress === 0 && (
-            <span className="text-muted-foreground">대기 {pending}</span>
-          )}
-        </div>
-      </div>
-
-      {/* right side: menu */}
-      <div className="flex shrink-0 items-center">
-        {folder && onRenamed && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
-              >
-                <MoreHorizontal className="size-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                수정
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setDeleteOpen(true)}
-                className="text-red-600 focus:text-red-600"
-              >
-                삭제
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-
-      {/* edit dialog */}
-      {folder && onRenamed && (
-        <EditFolderDialog
-          open={editOpen}
-          folder={folder}
-          projectId={projectId}
-          onClose={() => setEditOpen(false)}
-          onUpdated={(updated) => { onRenamed(updated); }}
-        />
-      )}
-
-      {/* delete confirm */}
-      {folder && onDeleted && (
-        <Dialog open={deleteOpen} onOpenChange={(v) => { if (!v) setDeleteOpen(false); }}>
-          <DialogContent className="max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <DialogHeader>
-              <DialogTitle>폴더 삭제</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{folder.name}</span>
-                을(를) 삭제할까요? 폴더 안의 태스크는 미분류로 이동돼요.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteOpen(false)}>취소</Button>
-              <Button variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
-                {deleteLoading && <Loader2 className="size-3.5 animate-spin" />}
-                삭제
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
-  );
-}
-
-// ── SortableFolderCard ────────────────────────────────────────────────────────
-
-function SortableFolderCard(props: Omit<React.ComponentProps<typeof FolderCard>, "dragHandleListeners" | "dragHandleAttributes"> & { folder: FolderRecord }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.folder.id });
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={isDragging ? "opacity-50" : ""}
-    >
-      <FolderCard {...props} dragHandleListeners={listeners} dragHandleAttributes={attributes} />
-    </div>
-  );
-}
-
-// ── TaskRow ───────────────────────────────────────────────────────────────────
-
-function TaskRow({
-  task,
-  projectId,
-  expanded,
-  onToggle,
-  onUpdated,
-  onDeleted,
-  folders,
-  toolColorMap,
-  isSelectMode,
-  isSelected,
-  onSelect,
-}: {
-  task: TaskRecord;
-  projectId: string;
-  expanded: boolean;
-  onToggle: () => void;
-  onUpdated: (updated: TaskRecord) => void;
-  onDeleted: (id: string) => void;
-  folders: FolderRecord[];
-  toolColorMap: Map<string, string>;
-  isSelectMode?: boolean;
-  isSelected?: boolean;
-  onSelect?: () => void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [moveLoading, setMoveLoading] = useState(false);
-  const [pinLoading, setPinLoading] = useState(false);
-  const nextStatus = NEXT_STATUS[task.status];
-  const priorityLevel = getTaskPriorityLevel(task.priority);
-
-  async function handleTogglePin(e: React.MouseEvent) {
-    e.stopPropagation();
-    setPinLoading(true);
-    try {
-      await pinTaskAction(projectId, task.id, !task.isPinned);
-      onUpdated({ ...task, isPinned: !task.isPinned, memoryTier: !task.isPinned ? "LONG_TERM" : "ACTIVE" });
-      toast.success(!task.isPinned ? "장기 기억으로 고정했어요." : "고정을 해제했어요.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "고정에 실패했어요.");
-    } finally {
-      setPinLoading(false);
-    }
-  }
-
-  async function handleDelete() {
-    setDeleteLoading(true);
-    try {
-      await deleteTaskAction(projectId, task.id);
-      onDeleted(task.id);
-      toast.success("휴지통으로 이동했어요.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "삭제에 실패했어요.");
-    } finally {
-      setDeleteLoading(false);
-      setDeleteOpen(false);
-    }
-  }
-
-  async function handleStatusClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (!nextStatus || loading) return;
-    setLoading(true);
-    const prevStatus = task.status;
-    try {
-      const updated = await updateTaskStatusAction(projectId, task.seq, nextStatus);
-      onUpdated(updated);
-      const message = STATUS_TOAST_MESSAGES[nextStatus];
-      if (message) {
-        toast.success(message, {
-          action: {
-            label: <RotateCcw className="size-3.5" />,
-            onClick: () => {
-              void updateTaskStatusAction(projectId, task.seq, prevStatus)
-                .then((r) => onUpdated(r))
-                .catch((err) => toast.error(err instanceof Error ? err.message : "되돌리기에 실패했어요."));
-            },
-          },
-        });
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "상태 변경에 실패했어요.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleMoveToFolder(folderId: string | null) {
-    if (task.folderId === folderId) return;
-    setMoveLoading(true);
-    try {
-      const updated = await moveTaskToFolderAction(projectId, task.seq, folderId);
-      onUpdated(updated);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "폴더 이동에 실패했어요.");
-    } finally {
-      setMoveLoading(false);
-    }
-  }
-
-  const currentFolderName = task.folderId
-    ? (folders.find((f) => f.id === task.folderId)?.name ?? "알 수 없음")
-    : "미분류";
-
-  return (
-    <div
-      className={cn(
-        "rounded-lg border border-border bg-card transition-shadow",
-        !isSelectMode && task.status === "DONE" && "opacity-60",
-        isSelectMode && isSelected && "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20",
-      )}
-    >
-      <div
-        onClick={isSelectMode ? onSelect : onToggle}
-        className="flex w-full cursor-pointer items-center gap-3 px-4 py-3"
-      >
-        {isSelectMode ? (
-          <input
-            type="checkbox"
-            checked={isSelected}
-            readOnly
-            onClick={(e) => { e.stopPropagation(); onSelect?.(); }}
-            className="size-4 shrink-0 cursor-pointer accent-foreground"
-          />
-        ) : (
-          <StatusIcon status={task.status} className="shrink-0" />
-        )}
-        <span className="shrink-0 text-xs text-muted-foreground">#{task.seq}</span>
-        <p className={cn(
-          "min-w-0 flex-1 truncate text-sm font-medium",
-          task.status === "DONE" && "line-through text-muted-foreground",
-        )}>
-          {task.title}
-        </p>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {task.memoryTier === "LONG_TERM" && (
-            <span className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-              <Pin className="size-3" />
-              장기
-            </span>
-          )}
-          {task.memoryTier === "ARCHIVED" && (
-            <span className="flex items-center gap-0.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-              <Archive className="size-3" />
-              보관
-            </span>
-          )}
-          {priorityLevel > 0 && (
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", PRIORITY_STYLES[priorityLevel as 1 | 2 | 3 | 4])}>
-              {PRIORITY_LABELS[priorityLevel as 1 | 2 | 3 | 4]}
-            </span>
-          )}
-          {task.tool && (
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", toolColorMap.get(task.tool) ?? "bg-muted text-muted-foreground")}>
-              {task.tool}
-            </span>
-          )}
-        </div>
-        <span
-          className="shrink-0 max-w-[80px] truncate text-xs text-muted-foreground"
-          title={task.userName ?? undefined}
-        >
-          {task.userName && task.userName.length > 10
-            ? `${task.userName.slice(0, 10)}…`
-            : (task.userName ?? "알 수 없음")}
-        </span>
-        {!isSelectMode && (expanded
-          ? <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-          : <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-        )}
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateRows: expanded ? "1fr" : "0fr",
-          transition: "grid-template-rows 0.2s ease-in-out",
-        }}
-      >
-        <div
-          className={cn("overflow-hidden", !expanded && "pointer-events-none")}
-          style={{ minHeight: 0 }}
-          aria-hidden={!expanded}
-        >
-        <div className="border-t border-border px-4 pb-4 pt-3 flex flex-col gap-3">
-          {task.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {task.description}
-            </p>
-          )}
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-            <span>
-              <span className="font-medium text-foreground">등록일</span>{" "}
-              {new Date(task.createdAt).toLocaleDateString("ko-KR")}
-            </span>
-            {new Date(task.updatedAt).getTime() !== new Date(task.createdAt).getTime() && (
-              <span>
-                <span className="font-medium text-foreground">수정일</span>{" "}
-                {new Date(task.updatedAt).toLocaleDateString("ko-KR")}
-              </span>
-            )}
-            {task.lastAccessedAt && (
-              <span>
-                <span className="font-medium text-foreground">마지막 접근</span>{" "}
-                {new Date(task.lastAccessedAt).toLocaleDateString("ko-KR")}
-              </span>
-            )}
-          </div>
-          {task.outcome && (
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">결과</span>{" "}
-              {task.outcome}
-            </p>
-          )}
-          {task.keyDecisions.length > 0 && (
-            <ul className="flex flex-col gap-1">
-              {task.keyDecisions.map((d, i) => (
-                <li key={i} className="text-xs text-muted-foreground before:mr-1.5 before:content-['·']">
-                  {d}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/* folder move */}
-          {folders.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">폴더</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    onClick={(e) => e.stopPropagation()}
-                    disabled={moveLoading}
-                    className="flex cursor-pointer items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
-                  >
-                    {moveLoading ? <Loader2 className="size-3 animate-spin" /> : <Folder className="size-3" />}
-                    {currentFolderName}
-                    <ChevronDown className="size-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuItem
-                    onClick={() => handleMoveToFolder(null)}
-                    className={cn(!task.folderId && "font-medium")}
-                  >
-                    미분류
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {folders.map((f) => (
-                    <DropdownMenuItem
-                      key={f.id}
-                      onClick={() => handleMoveToFolder(f.id)}
-                      className={cn(task.folderId === f.id && "font-medium")}
-                    >
-                      {f.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-1">
-            <div>
-              {nextStatus && (
-                <button
-                  onClick={handleStatusClick}
-                  disabled={loading}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-                >
-                  {loading
-                    ? <Loader2 className="size-3.5 animate-spin" />
-                    : <StatusIcon status={nextStatus} className="size-3.5" />
-                  }
-                  {STATUS_ACTION_LABELS[nextStatus]}
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleTogglePin}
-                disabled={pinLoading}
-                className={cn(
-                  "flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-40",
-                  task.isPinned
-                    ? "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                {pinLoading ? <Loader2 className="size-3.5 animate-spin" /> : task.isPinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
-                {task.isPinned ? "고정 해제" : "장기 기억 고정"}
-              </button>
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}
-                className="bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
-              >
-                삭제
-              </Button>
-            </div>
-          </div>
-
-          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>휴지통으로 이동</DialogTitle>
-                <DialogDescription>
-                  <span className="font-medium text-foreground">{task.title}</span>
-                  을(를) 휴지통으로 이동해요. 12일 후 자동으로 영구 삭제돼요.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDeleteOpen(false)}>취소</Button>
-                <Button variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
-                  {deleteLoading && <Loader2 className="size-3.5 animate-spin" />}
-                  이동
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── date helpers ─────────────────────────────────────────────────────────────
-
-function fmtDate(d: Date) {
-  return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function fmtDateLong(d: Date) {
-  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
-}
-
-// ── sort / filter options ─────────────────────────────────────────────────────
-
-const SORT_OPTIONS: { label: string; value: TaskSortBy }[] = [
-  { label: "중요도순", value: "priority" },
-  { label: "등록일순", value: "createdAt" },
-  { label: "수정일순", value: "updatedAt" },
-];
-
-// ── TasksTab ──────────────────────────────────────────────────────────────────
-
-type StatusFilter = "ALL" | TaskStatusValue;
-
-const PAGE_SIZE = 20;
+import { CreateFolderDialog } from "./tasks/FolderDialogs";
+import { CreateTaskDialog } from "./tasks/CreateTaskDialog";
+import { FolderCard, SortableFolderCard } from "./tasks/FolderCard";
+import { FilterDropdown } from "./tasks/FilterDropdown";
+import { StatusIcon } from "./tasks/StatusIcon";
+import { TaskRow } from "./tasks/TaskRow";
+import {
+  SORT_OPTIONS,
+  PAGE_SIZE,
+  fmtDate,
+  fmtDateLong,
+  type FolderView,
+  type PriorityLevel,
+  type StatusFilter,
+} from "./tasks/taskConstants";
 
 export function TasksTab({
   selected,
@@ -1324,7 +100,7 @@ export function TasksTab({
     if (!param || param === "list") return { kind: "list" };
     if (param === "all") return { kind: "all" };
     if (param === "unclassified") return { kind: "unclassified" };
-    return { kind: "list" }; // folder ID: resolved after folders load
+    return { kind: "list" };
   });
 
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
@@ -1338,7 +114,7 @@ export function TasksTab({
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [bulkCreateAndMove, setBulkCreateAndMove] = useState(false);
-  // filters (used in task list view)
+
   const [filterUser, setFilterUser] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("ALL");
   const [filterPriority, setFilterPriority] = useState<string>("ALL");
@@ -1392,7 +168,6 @@ export function TasksTab({
   useEffect(() => { loadFolders(); }, [loadFolders]);
   useEffect(() => { getToolsAction(selected.id).then(setTools).catch(() => {}); }, [selected.id]);
 
-  // Resolve folder ID from URL once folders are loaded
   const appliedInitialFolder = useRef(false);
   useEffect(() => {
     if (appliedInitialFolder.current || folders.length === 0) return;
@@ -1403,7 +178,6 @@ export function TasksTab({
     if (folder) setFolderView({ kind: "folder", id: folder.id, name: folder.name });
   }, [folders, searchParams]);
 
-  // Sync folderView → URL (only when tasks tab is active)
   useEffect(() => {
     if (!isActive) return;
     const next =
@@ -1530,7 +304,6 @@ export function TasksTab({
     }
   }
 
-  // per-folder stats from live tasks
   const folderStats = useMemo(() => {
     const map = new Map<string | null, { total: number; inProgress: number; pending: number }>();
     tasks.forEach((t) => {
@@ -1544,7 +317,6 @@ export function TasksTab({
     return map;
   }, [tasks]);
 
-  // tasks scoped to current folder view
   const scopedTasks = useMemo(() => {
     if (folderView.kind === "list") return [];
     if (folderView.kind === "all") return tasks;
@@ -1698,127 +470,71 @@ export function TasksTab({
           </div>
         </div>
 
-        {/* 검색 + 필터 */}
         <div className="flex flex-col gap-2">
-        <div className="relative w-full">
-          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="제목, 내용, 생성자 검색"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              if (e.target.value) setFolderView({ kind: "all" });
-            }}
-            className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterDropdown
-            value={filterUser}
-            options={allCreatorOptions}
-            onChange={(v) => { setFilterUser(v); if (v !== "ALL") setFolderView({ kind: "all" }); }}
-          />
-          <FilterDropdown
-            value={filterStatus}
-            options={statusOptions}
-            onChange={(v) => { setFilterStatus(v); if (v !== "ALL") setFolderView({ kind: "all" }); }}
-          />
-          <FilterDropdown
-            value={filterPriority}
-            options={priorityOptions}
-            onChange={(v) => { setFilterPriority(v); if (v !== "ALL") setFolderView({ kind: "all" }); }}
-          />
-          <Popover open={datePopoverOpen} onOpenChange={(open) => { if (open) openDatePopover(); else setDatePopoverOpen(false); }}>
-            <PopoverTrigger asChild>
-              <button className={cn(
-                "flex cursor-pointer items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap",
-                hasDateFilter ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-muted text-muted-foreground hover:text-foreground",
-              )}>
-                <CalendarDays className="size-3" />
-                {hasDateFilter
-                  ? [dateFrom ? fmtDate(dateFrom) : "시작", dateTo ? fmtDate(dateTo) : "종료"].join(" – ")
-                  : "기간 지정"}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-auto p-4 cursor-default">
-              <div className="flex flex-col gap-3 w-[240px]">
-                <div className="flex rounded-md border border-border overflow-hidden text-xs font-medium">
-                  {(["createdAt", "updatedAt"] as const).map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setTempDateField(f)}
-                      className={cn(
-                        "flex-1 py-1.5 transition-colors cursor-pointer",
-                        tempDateField === f ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {f === "createdAt" ? "등록일" : "수정일"}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">시작일</span>
-                  <button
-                    onClick={() => setActiveCalendar((p) => p === "from" ? null : "from")}
-                    className={cn(
-                      "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
-                      activeCalendar === "from" ? "border-ring" : "border-border hover:border-ring/50",
-                      tempDateFrom ? "text-foreground" : "text-muted-foreground",
-                    )}
-                  >
-                    {tempDateFrom ? fmtDateLong(tempDateFrom) : "날짜 선택"}
-                  </button>
-                  {activeCalendar === "from" && (
-                    <Calendar mode="single" selected={tempDateFrom}
-                      onSelect={(d) => { setTempDateFrom(d); setActiveCalendar(null); }}
-                      disabled={tempDateTo ? { after: tempDateTo } : undefined}
-                    />
-                  )}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">종료일</span>
-                  <button
-                    onClick={() => setActiveCalendar((p) => p === "to" ? null : "to")}
-                    className={cn(
-                      "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
-                      activeCalendar === "to" ? "border-ring" : "border-border hover:border-ring/50",
-                      tempDateTo ? "text-foreground" : "text-muted-foreground",
-                    )}
-                  >
-                    {tempDateTo ? fmtDateLong(tempDateTo) : "날짜 선택"}
-                  </button>
-                  {activeCalendar === "to" && (
-                    <Calendar mode="single" selected={tempDateTo}
-                      onSelect={(d) => { setTempDateTo(d); setActiveCalendar(null); }}
-                      disabled={tempDateFrom ? { before: tempDateFrom } : undefined}
-                    />
-                  )}
-                </div>
-                <div className="flex items-center justify-between pt-1">
-                  {hasDateFilter || tempDateFrom || tempDateTo ? (
-                    <button
-                      onClick={() => { setTempDateFrom(undefined); setTempDateTo(undefined); }}
-                      className="text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                    >
-                      초기화
-                    </button>
-                  ) : <span />}
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="xs" onClick={() => setDatePopoverOpen(false)}>취소</Button>
-                    <Button size="xs" onClick={() => {
-                      setDateField(tempDateField);
-                      setDateFrom(tempDateFrom);
-                      setDateTo(tempDateTo);
-                      if (tempDateFrom || tempDateTo) setFolderView({ kind: "all" });
-                      setDatePopoverOpen(false);
-                    }}>완료</Button>
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+          <div className="relative w-full">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="제목, 내용, 생성자 검색"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (e.target.value) setFolderView({ kind: "all" });
+              }}
+              className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterDropdown
+              value={filterUser}
+              options={allCreatorOptions}
+              onChange={(v) => { setFilterUser(v); if (v !== "ALL") setFolderView({ kind: "all" }); }}
+            />
+            <FilterDropdown
+              value={filterStatus}
+              options={statusOptions}
+              onChange={(v) => { setFilterStatus(v); if (v !== "ALL") setFolderView({ kind: "all" }); }}
+            />
+            <FilterDropdown
+              value={filterPriority}
+              options={priorityOptions}
+              onChange={(v) => { setFilterPriority(v); if (v !== "ALL") setFolderView({ kind: "all" }); }}
+            />
+            <Popover open={datePopoverOpen} onOpenChange={(open) => { if (open) openDatePopover(); else setDatePopoverOpen(false); }}>
+              <PopoverTrigger asChild>
+                <button className={cn(
+                  "flex cursor-pointer items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap",
+                  hasDateFilter ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-muted text-muted-foreground hover:text-foreground",
+                )}>
+                  <CalendarDays className="size-3" />
+                  {hasDateFilter
+                    ? [dateFrom ? fmtDate(dateFrom) : "시작", dateTo ? fmtDate(dateTo) : "종료"].join(" – ")
+                    : "기간 지정"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-auto p-4 cursor-default">
+                <DateRangePopoverContent
+                  tempDateField={tempDateField}
+                  setTempDateField={setTempDateField}
+                  tempDateFrom={tempDateFrom}
+                  setTempDateFrom={setTempDateFrom}
+                  tempDateTo={tempDateTo}
+                  setTempDateTo={setTempDateTo}
+                  activeCalendar={activeCalendar}
+                  setActiveCalendar={setActiveCalendar}
+                  hasDateFilter={hasDateFilter}
+                  onApply={() => {
+                    setDateField(tempDateField);
+                    setDateFrom(tempDateFrom);
+                    setDateTo(tempDateTo);
+                    if (tempDateFrom || tempDateTo) setFolderView({ kind: "all" });
+                    setDatePopoverOpen(false);
+                  }}
+                  onCancel={() => setDatePopoverOpen(false)}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         {loading ? (
@@ -1835,7 +551,6 @@ export function TasksTab({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {/* 모든 태스크 */}
             <FolderCard
               folder={{ id: "__all__", name: "모든 태스크", icon: null, color: null, sortOrder: -1, projectId: selected.id, userId: "", taskCount: allStats.total, createdAt: new Date(), updatedAt: new Date() }}
               total={allStats.total}
@@ -1858,8 +573,8 @@ export function TasksTab({
 
             {folders.length > 0 && (
               <div className="flex items-center justify-center my-3">
-              <div className="size-2 rounded-full bg-border" />
-            </div>
+                <div className="size-2 rounded-full bg-border" />
+              </div>
             )}
 
             {folders.length > 0 && (
@@ -1890,7 +605,6 @@ export function TasksTab({
                 </SortableContext>
               </DndContext>
             )}
-
 
             {tasks.length === 0 && folders.length === 0 && (
               <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
@@ -1938,7 +652,6 @@ export function TasksTab({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* header with back */}
       <div className="flex items-center gap-2">
         <button
           onClick={() => { setFolderView({ kind: "list" }); setIsSelectMode(false); setSelectedIds(new Set()); }}
@@ -1992,130 +705,72 @@ export function TasksTab({
         </div>
       </div>
 
-      {/* 검색 + 필터 */}
       <div className="flex flex-col gap-2">
-      <div className="relative w-full">
-        <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <input
-          type="text"
-          placeholder="제목, 내용, 생성자 검색"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <FilterDropdown value={filterUser} options={creatorOptions} onChange={setFilterUser} />
-        <FilterDropdown value={filterStatus} options={statusOptions} onChange={setFilterStatus} />
-        <FilterDropdown value={filterPriority} options={priorityOptions} onChange={setFilterPriority} />
-        <FilterDropdown value={sortBy} options={SORT_OPTIONS} onChange={setSortBy} />
-
-        {/* 기간 지정 */}
-        <Popover open={datePopoverOpen} onOpenChange={(open) => { if (open) openDatePopover(); else setDatePopoverOpen(false); }}>
-          <PopoverTrigger asChild>
-            <button className={cn(
-              "flex cursor-pointer items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap",
-              hasDateFilter ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-muted text-muted-foreground hover:text-foreground",
-            )}>
-              <CalendarDays className="size-3" />
-              {hasDateFilter
-                ? [dateFrom ? fmtDate(dateFrom) : "시작", dateTo ? fmtDate(dateTo) : "종료"].join(" – ")
-                : "기간 지정"}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-auto p-4 cursor-default">
-            <div className="flex flex-col gap-3 w-[240px]">
-              <div className="flex rounded-md border border-border overflow-hidden text-xs font-medium">
-                {(["createdAt", "updatedAt"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setTempDateField(f)}
-                    className={cn(
-                      "flex-1 py-1.5 transition-colors cursor-pointer",
-                      tempDateField === f ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {f === "createdAt" ? "등록일" : "수정일"}
-                  </button>
-                ))}
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">시작일</span>
-                <button
-                  onClick={() => setActiveCalendar((p) => p === "from" ? null : "from")}
-                  className={cn(
-                    "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
-                    activeCalendar === "from" ? "border-ring" : "border-border hover:border-ring/50",
-                    tempDateFrom ? "text-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  {tempDateFrom ? fmtDateLong(tempDateFrom) : "날짜 선택"}
-                </button>
-                {activeCalendar === "from" && (
-                  <Calendar mode="single" selected={tempDateFrom}
-                    onSelect={(d) => { setTempDateFrom(d); setActiveCalendar(null); }}
-                    disabled={tempDateTo ? { after: tempDateTo } : undefined}
-                  />
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">종료일</span>
-                <button
-                  onClick={() => setActiveCalendar((p) => p === "to" ? null : "to")}
-                  className={cn(
-                    "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
-                    activeCalendar === "to" ? "border-ring" : "border-border hover:border-ring/50",
-                    tempDateTo ? "text-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  {tempDateTo ? fmtDateLong(tempDateTo) : "날짜 선택"}
-                </button>
-                {activeCalendar === "to" && (
-                  <Calendar mode="single" selected={tempDateTo}
-                    onSelect={(d) => { setTempDateTo(d); setActiveCalendar(null); }}
-                    disabled={tempDateFrom ? { before: tempDateFrom } : undefined}
-                  />
-                )}
-              </div>
-              <div className="flex items-center justify-between pt-1">
-                {hasDateFilter || tempDateFrom || tempDateTo ? (
-                  <button
-                    onClick={() => { setTempDateFrom(undefined); setTempDateTo(undefined); }}
-                    className="text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                  >
-                    초기화
-                  </button>
-                ) : <span />}
-                <div className="flex gap-2">
-                  <Button variant="outline" size="xs" onClick={() => setDatePopoverOpen(false)}>취소</Button>
-                  <Button size="xs" onClick={() => {
-                    setDateField(tempDateField);
-                    setDateFrom(tempDateFrom);
-                    setDateTo(tempDateTo);
-                    setDatePopoverOpen(false);
-                  }}>완료</Button>
-                </div>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
+        <div className="relative w-full">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
-            type="checkbox"
-            checked={hideDone}
-            onChange={(e) => {
-              setHideDone(e.target.checked);
-              if (e.target.checked && filterStatus === "DONE") setFilterStatus("ALL");
-            }}
-            className="size-3.5 rounded accent-foreground"
+            type="text"
+            placeholder="제목, 내용, 생성자 검색"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-full border border-border bg-muted py-2 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           />
-          완료 숨기기
-        </label>
-      </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterDropdown value={filterUser} options={creatorOptions} onChange={setFilterUser} />
+          <FilterDropdown value={filterStatus} options={statusOptions} onChange={setFilterStatus} />
+          <FilterDropdown value={filterPriority} options={priorityOptions} onChange={setFilterPriority} />
+          <FilterDropdown value={sortBy} options={SORT_OPTIONS} onChange={setSortBy} />
+
+          <Popover open={datePopoverOpen} onOpenChange={(open) => { if (open) openDatePopover(); else setDatePopoverOpen(false); }}>
+            <PopoverTrigger asChild>
+              <button className={cn(
+                "flex cursor-pointer items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap",
+                hasDateFilter ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-muted text-muted-foreground hover:text-foreground",
+              )}>
+                <CalendarDays className="size-3" />
+                {hasDateFilter
+                  ? [dateFrom ? fmtDate(dateFrom) : "시작", dateTo ? fmtDate(dateTo) : "종료"].join(" – ")
+                  : "기간 지정"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-auto p-4 cursor-default">
+              <DateRangePopoverContent
+                tempDateField={tempDateField}
+                setTempDateField={setTempDateField}
+                tempDateFrom={tempDateFrom}
+                setTempDateFrom={setTempDateFrom}
+                tempDateTo={tempDateTo}
+                setTempDateTo={setTempDateTo}
+                activeCalendar={activeCalendar}
+                setActiveCalendar={setActiveCalendar}
+                hasDateFilter={hasDateFilter}
+                onApply={() => {
+                  setDateField(tempDateField);
+                  setDateFrom(tempDateFrom);
+                  setDateTo(tempDateTo);
+                  setDatePopoverOpen(false);
+                }}
+                onCancel={() => setDatePopoverOpen(false)}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
+            <input
+              type="checkbox"
+              checked={hideDone}
+              onChange={(e) => {
+                setHideDone(e.target.checked);
+                if (e.target.checked && filterStatus === "DONE") setFilterStatus("ALL");
+              }}
+              className="size-3.5 rounded accent-foreground"
+            />
+            완료 숨기기
+          </label>
+        </div>
       </div>
 
-      {/* 전체 선택 바 */}
       {isSelectMode && sorted.length > 0 && (
         <div className="flex items-center gap-2">
           <input
@@ -2136,7 +791,6 @@ export function TasksTab({
         </div>
       )}
 
-      {/* task list */}
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-sm text-muted-foreground">
           <CheckSquare className="size-8 opacity-30" strokeWidth={1.5} />
@@ -2200,7 +854,6 @@ export function TasksTab({
         </div>
       )}
 
-      {/* bulk action bar */}
       {isSelectMode && selectedIds.size > 0 && (
         <div className="sticky bottom-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
           <span className="text-sm font-medium text-muted-foreground">{selectedIds.size}개 선택됨</span>
@@ -2262,7 +915,6 @@ export function TasksTab({
         </div>
       )}
 
-      {/* bulk delete dialog */}
       <Dialog open={bulkDeleteOpen} onOpenChange={(v) => !v && setBulkDeleteOpen(false)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -2302,7 +954,105 @@ export function TasksTab({
         onClose={() => setCreateTaskOpen(false)}
         onCreated={handleTaskCreated}
       />
+    </div>
+  );
+}
 
+// ── DateRangePopoverContent ───────────────────────────────────────────────────
+
+function DateRangePopoverContent({
+  tempDateField,
+  setTempDateField,
+  tempDateFrom,
+  setTempDateFrom,
+  tempDateTo,
+  setTempDateTo,
+  activeCalendar,
+  setActiveCalendar,
+  hasDateFilter,
+  onApply,
+  onCancel,
+}: {
+  tempDateField: "createdAt" | "updatedAt";
+  setTempDateField: (v: "createdAt" | "updatedAt") => void;
+  tempDateFrom: Date | undefined;
+  setTempDateFrom: (v: Date | undefined) => void;
+  tempDateTo: Date | undefined;
+  setTempDateTo: (v: Date | undefined) => void;
+  activeCalendar: "from" | "to" | null;
+  setActiveCalendar: (v: "from" | "to" | null) => void;
+  hasDateFilter: boolean;
+  onApply: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 w-[240px]">
+      <div className="flex rounded-md border border-border overflow-hidden text-xs font-medium">
+        {(["createdAt", "updatedAt"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setTempDateField(f)}
+            className={cn(
+              "flex-1 py-1.5 transition-colors cursor-pointer",
+              tempDateField === f ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {f === "createdAt" ? "등록일" : "수정일"}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-muted-foreground">시작일</span>
+        <button
+          onClick={() => setActiveCalendar(activeCalendar === "from" ? null : "from")}
+          className={cn(
+            "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
+            activeCalendar === "from" ? "border-ring" : "border-border hover:border-ring/50",
+            tempDateFrom ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
+          {tempDateFrom ? fmtDateLong(tempDateFrom) : "날짜 선택"}
+        </button>
+        {activeCalendar === "from" && (
+          <Calendar mode="single" selected={tempDateFrom}
+            onSelect={(d) => { setTempDateFrom(d); setActiveCalendar(null); }}
+            disabled={tempDateTo ? { after: tempDateTo } : undefined}
+          />
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-muted-foreground">종료일</span>
+        <button
+          onClick={() => setActiveCalendar(activeCalendar === "to" ? null : "to")}
+          className={cn(
+            "w-full rounded-md border px-3 py-1.5 text-left text-xs transition-colors cursor-pointer",
+            activeCalendar === "to" ? "border-ring" : "border-border hover:border-ring/50",
+            tempDateTo ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
+          {tempDateTo ? fmtDateLong(tempDateTo) : "날짜 선택"}
+        </button>
+        {activeCalendar === "to" && (
+          <Calendar mode="single" selected={tempDateTo}
+            onSelect={(d) => { setTempDateTo(d); setActiveCalendar(null); }}
+            disabled={tempDateFrom ? { before: tempDateFrom } : undefined}
+          />
+        )}
+      </div>
+      <div className="flex items-center justify-between pt-1">
+        {hasDateFilter || tempDateFrom || tempDateTo ? (
+          <button
+            onClick={() => { setTempDateFrom(undefined); setTempDateTo(undefined); }}
+            className="text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+          >
+            초기화
+          </button>
+        ) : <span />}
+        <div className="flex gap-2">
+          <Button variant="outline" size="xs" onClick={onCancel}>취소</Button>
+          <Button size="xs" onClick={onApply}>완료</Button>
+        </div>
+      </div>
     </div>
   );
 }

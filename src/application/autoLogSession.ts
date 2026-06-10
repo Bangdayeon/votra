@@ -1,8 +1,10 @@
-import type { SessionEngine } from "@/application/createSessionLog";
-import { createSessionLog } from "@/application/createSessionLog";
 import type { SessionLogRepository } from "@/application/ports/sessionLogRepository";
 import type { TaskRepository } from "@/application/ports/taskRepository";
 import type { TaskRecord } from "@/domain/memory/types";
+
+type SessionEngine = {
+  structure: (summary: string) => Promise<string>;
+};
 
 export async function autoLogSession(
   { projectId, userId, sessionId }: { projectId: string; userId: string; sessionId?: string },
@@ -22,10 +24,8 @@ export async function autoLogSession(
   }
 
   const summary = buildSummary(doneTasks, inProgressTasks);
-  await createSessionLog(
-    { projectId, userId, summary, aiTool: "claude", sessionId },
-    { sessionLogs: deps.sessionLogs as SessionLogRepository, engine: deps.engine },
-  );
+  const markdown = await deps.engine.structure(summary);
+  await deps.sessionLogs.upsertOrCreate({ projectId, userId, summary: markdown, aiTool: "claude", sessionId });
   return { logged: true };
 }
 

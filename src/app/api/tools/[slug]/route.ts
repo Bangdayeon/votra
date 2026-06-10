@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { assertApiKeyProjectAccess } from "@/infrastructure/auth/assertApiKeyProjectAccess";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
 
@@ -18,6 +19,9 @@ export async function GET(req: Request, { params }: Params) {
   if (!projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const access = await assertApiKeyProjectAccess(user.id, projectId);
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: 403 });
 
   const tool = await prisma.projectTool.findUnique({
     where: { projectId_slug: { projectId, slug } },
@@ -49,6 +53,9 @@ export async function PATCH(req: Request, { params }: Params) {
   if (!projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+
+  const patchAccess = await assertApiKeyProjectAccess(user.id, projectId);
+  if (!patchAccess.ok) return NextResponse.json({ ok: false, error: patchAccess.error }, { status: 403 });
 
   const body = await req.json().catch(() => null);
   if (typeof body?.enabled !== "boolean") {

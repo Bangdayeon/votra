@@ -75,7 +75,7 @@ export async function GET(req: Request) {
           tasks: prismaTaskRepository,
           llm: geminiLlmClient,
           memoryContext: memoryContext.content,
-        }).catch(() => {});
+        }).catch((err: unknown) => console.error("[memory] AI summary refresh failed:", err));
       }
     }),
   );

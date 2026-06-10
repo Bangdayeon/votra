@@ -11,6 +11,7 @@ import type { ToolSuggestion } from "@/domain/memory/memoryTierTypes";
 import { parseProjectSettings } from "@/domain/project/settings/parseProjectSettings";
 import { resolveUserFromApiKey } from "@/infrastructure/auth/resolveUserFromApiKey";
 import { prisma } from "@/infrastructure/db/prisma";
+import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClient";
 import { prismaCommandRepository } from "@/infrastructure/repositories/prismaCommandRepository";
 import { prismaToolRepository } from "@/infrastructure/repositories/prismaToolRepository";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
@@ -29,30 +30,48 @@ export async function GET(req: Request) {
   if (!projectId) {
     return NextResponse.json({ ok: false, error: "projectId가 필요해요." }, { status: 400 });
   }
+  // slim=true: skip heavy optional fields (AI summary, reflections, long-term tasks, vector recall)
+  // Use when agent only needs tasks + tools + commands for quick startup.
+  const slim = searchParams.get("slim") === "true";
 
-  const [project, aiNextTask, aiSummary, foldersResult, longTermTasks, reflections, memoryContext, rawProjectTools, rawGlobalTools, latestReflectionRaw, rawCommands] = await Promise.all([
+  const coreQueries = [
     prisma.project.findUnique({
       where: { id: projectId },
       select: { title: true, cwd: true, settings: true },
     }),
-    prisma.projectAiNextTask.findUnique({ where: { projectId } }),
-    prisma.projectAiSummary.findUnique({
-      where: { projectId },
-      select: { summary: true, warnings: true, suggestions: true },
-    }),
     listFolders(projectId, { folders: prismaTaskFolderRepository }),
-    prismaTaskRepository.listByMemoryTier({ projectId, tier: "LONG_TERM", limit: 10 }),
-    listMemoryReflections(projectId, 1, { reflections: prismaMemoryReflectionRepository }),
     prismaMemoryContextRepository.findByProject(projectId),
     prismaToolRepository.listByProject(projectId),
     prismaToolRepository.listGlobal(user.id),
-    prisma.projectMemoryReflection.findFirst({
-      where: { projectId },
-      orderBy: { createdAt: "desc" },
-      select: { toolSuggestions: true },
-    }),
     prismaCommandRepository.listByUser(user.id),
+  ] as const;
+
+  const heavyQueries = slim
+    ? ([null, null, null, null, null] as const)
+    : ([
+        prisma.projectAiNextTask.findUnique({ where: { projectId } }),
+        prisma.projectAiSummary.findUnique({
+          where: { projectId },
+          select: { summary: true, warnings: true, suggestions: true },
+        }),
+        prismaTaskRepository.listByMemoryTier({ projectId, tier: "LONG_TERM", limit: 10 }),
+        listMemoryReflections(projectId, 1, { reflections: prismaMemoryReflectionRepository }),
+        prisma.projectMemoryReflection.findFirst({
+          where: { projectId },
+          orderBy: { createdAt: "desc" },
+          select: { toolSuggestions: true },
+        }),
+      ] as const);
+
+  const [
+    [project, foldersResult, memoryContext, rawProjectTools, rawGlobalTools, rawCommands],
+    [aiNextTask, aiSummary, longTermTasksRaw, reflections, latestReflectionRaw],
+  ] = await Promise.all([
+    Promise.all(coreQueries),
+    Promise.all(heavyQueries),
   ]);
+
+  const longTermTasks = longTermTasksRaw ?? [];
 
   if (!project) {
     return NextResponse.json({ ok: false, error: "프로젝트를 찾을 수 없어요." }, { status: 404 });
@@ -85,6 +104,7 @@ export async function GET(req: Request) {
     },
     {
       tasks: prismaTaskRepository,
+      embedding: slim ? undefined : geminiEmbeddingClient,
     },
   );
 
@@ -101,7 +121,7 @@ export async function GET(req: Request) {
   const rawSuggestions = (latestReflectionRaw?.toolSuggestions as ToolSuggestion[]) ?? [];
   const toolSuggestions = rawSuggestions.filter((s) => !existingToolNames.has(s.name.toLowerCase()));
 
-  const latestReflection = reflections[0];
+  const latestReflection = reflections?.[0];
 
   return NextResponse.json({
     ok: true,

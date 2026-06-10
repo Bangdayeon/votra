@@ -2,7 +2,9 @@
 
 import type { MemoryContextRecord } from "@/application/ports/memoryContextRepository";
 import type { NextTask } from "@/application/ports/projectAiNextTaskRepository";
+import { recallThoughts } from "@/application/recallThoughts";
 import { assertProjectMember } from "@/infrastructure/auth/assertProjectMember";
+import { geminiEmbeddingClient } from "@/infrastructure/llm/geminiEmbeddingClient";
 import { prismaMemoryContextRepository } from "@/infrastructure/repositories/prismaMemoryContextRepository";
 import { prismaProjectAiNextTaskRepository } from "@/infrastructure/repositories/prismaProjectAiNextTaskRepository";
 import { prismaTaskRepository } from "@/infrastructure/repositories/prismaTaskRepository";
@@ -31,7 +33,7 @@ export async function getBriefPreviewAction(projectId: string): Promise<BriefPre
     prismaProjectAiNextTaskRepository.findByProject(projectId),
   ]);
 
-  const recentKeyDecisions = doneRaw
+  const dateSorted = doneRaw
     .filter((t) => t.keyDecisions.length > 0)
     .sort((a, b) => {
       const ta = a.doneAt ? new Date(a.doneAt).getTime() : 0;
@@ -40,6 +42,19 @@ export async function getBriefPreviewAction(projectId: string): Promise<BriefPre
     })
     .slice(0, 3)
     .map(({ seq, title, keyDecisions }) => ({ seq, title, keyDecisions }));
+
+  let recentKeyDecisions = dateSorted;
+  if (inProgressRaw.length > 0) {
+    const query = inProgressRaw.map((t) => t.title).join(", ");
+    const recalled = await recallThoughts(
+      { query, projectId, userId: guard.userId, limit: 10 },
+      { tasks: prismaTaskRepository, embedding: geminiEmbeddingClient },
+    );
+    const hits = recalled.ok
+      ? recalled.value.filter((t) => t.keyDecisions.length > 0).slice(0, 3).map(({ seq, title, keyDecisions }) => ({ seq, title, keyDecisions }))
+      : [];
+    if (hits.length > 0) recentKeyDecisions = hits;
+  }
 
   return {
     context,

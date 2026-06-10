@@ -23,4 +23,5 @@ export type ExternalIngestRepository = {
   upsert: (input: CreateExternalIngestInput) => Promise<{ record: ExternalIngestRecord; duplicate: boolean }>;
   listUnprocessed: (args: { projectId: string; limit: number }) => Promise<ExternalIngestRecord[]>;
   markProcessed: (ids: string[]) => Promise<void>;
+  deleteOld: (args: { processedBefore: Date; unprocessedBefore: Date }) => Promise<number>;
 };

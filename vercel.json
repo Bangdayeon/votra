@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/memory-reflection",
       "schedule": "0 3 * * 1"
+    },
+    {
+      "path": "/api/cron/cleanup-ingests",
+      "schedule": "0 4 * * *"
     }
   ]
 }

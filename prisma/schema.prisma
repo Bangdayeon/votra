@@ -111,8 +111,10 @@ model Project {
   sortOrder  Float   @default(0)
   isFavorite Boolean @default(false)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  /// 태스크·폴더·멤버 등 프로젝트 데이터 변경 시 갱신. SSE 크로스 인스턴스 폴링용.
+  activityAt DateTime @default(now())
 
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id])
@@ -332,8 +334,8 @@ model Task {
   lastAccessedAt DateTime?
   /// 사용자가 장기 기억으로 명시 고정. LONG_TERM 강제 유지.
   isPinned       Boolean    @default(false)
-  /// 벡터 임베딩 (text-embedding-004, 768차원). 태스크 완료 시 비동기 생성.
-  embedding      Unsupported("vector(3072)")?
+  /// 벡터 임베딩 (gemini-embedding-001, 768차원). 태스크 완료 시 비동기 생성.
+  embedding      Unsupported("vector(768)")?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 

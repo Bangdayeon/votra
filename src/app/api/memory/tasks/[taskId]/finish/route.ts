@@ -69,8 +69,8 @@ export async function POST(
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
   emitProjectUpdate(body.projectId);
 
-  void checkAndTriggerReflection(body.projectId, user.id).catch(() => {});
-  void generateTaskEmbedding(result.value.task, geminiEmbeddingClient).catch(() => {});
+  void checkAndTriggerReflection(body.projectId, user.id).catch((err: unknown) => console.error("[memory] reflection trigger failed:", err));
+  void generateTaskEmbedding(result.value.task, geminiEmbeddingClient).catch((err: unknown) => console.error("[memory] embedding failed:", err));
 
   return NextResponse.json({ ok: true, task: result.value.task });
 }

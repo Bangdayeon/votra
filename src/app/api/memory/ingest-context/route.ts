@@ -81,12 +81,12 @@ export async function POST(req: Request) {
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   emitProjectUpdate(body.projectId);
 
-  void checkAndTriggerReflection(body.projectId, user.id).catch(() => {});
+  void checkAndTriggerReflection(body.projectId, user.id).catch((err: unknown) => console.error("[memory] reflection trigger failed:", err));
   void learnAndUpdateContext(body.projectId, {
     tasks: prismaTaskRepository,
     context: prismaMemoryContextRepository,
     engine: createGeminiContextEngine(geminiLlmClient, settings.ai.contextInstruction),
-  }).catch(() => {});
+  }).catch((err: unknown) => console.error("[memory] context learning failed:", err));
 
   return NextResponse.json({ ok: true, task: result.value.task, extractedDecisions: keyDecisions.length });
 }

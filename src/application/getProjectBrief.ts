@@ -1,4 +1,6 @@
+import type { EmbeddingClient } from "@/application/ports/embeddingClient";
 import type { TaskRepository } from "@/application/ports/taskRepository";
+import { recallThoughts } from "@/application/recallThoughts";
 import type { TaskRecord } from "@/domain/memory/types";
 import { err, ok } from "@/shared/lib/result";
 import type { Result } from "@/shared/lib/result";
@@ -25,6 +27,7 @@ export async function getProjectBrief(
   input: GetProjectBriefInput,
   deps: {
     tasks: TaskRepository;
+    embedding?: EmbeddingClient;
   },
 ): Promise<Result<ProjectBrief, string>> {
   try {
@@ -36,7 +39,18 @@ export async function getProjectBrief(
         deps.tasks.findRecentByUpdatedAt({ projectId: input.projectId, userId: input.userId, limit: 10 }),
       ]);
 
-    const recentDecisions = recentlyDone.filter((t) => t.keyDecisions.length > 0);
+    let recentDecisions: TaskRecord[];
+    if (inProgressTasks.length > 0 && deps.embedding) {
+      const query = inProgressTasks.map((t) => t.title).join(", ");
+      const recalled = await recallThoughts(
+        { query, projectId: input.projectId, userId: input.userId, limit: 5 },
+        { tasks: deps.tasks, embedding: deps.embedding },
+      );
+      const hits = recalled.ok ? recalled.value.filter((t) => t.keyDecisions.length > 0) : [];
+      recentDecisions = hits.length > 0 ? hits : recentlyDone.filter((t) => t.keyDecisions.length > 0);
+    } else {
+      recentDecisions = recentlyDone.filter((t) => t.keyDecisions.length > 0);
+    }
 
     return ok({
       projectTitle: input.projectTitle,

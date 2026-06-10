@@ -1,3 +1,7 @@
+import "server-only";
+
+import { prisma } from "@/infrastructure/db/prisma";
+
 type Listener = () => void;
 
 declare global {
@@ -23,6 +27,11 @@ export function subscribeProject(projectId: string, fn: Listener): () => void {
   };
 }
 
+// Fires in-memory listeners (same-instance fast path) and touches activityAt
+// in the DB so SSE pollers on other instances detect the change within ~4s.
 export function emitProjectUpdate(projectId: string): void {
   getListeners().get(projectId)?.forEach((fn) => fn());
+  prisma.project
+    .update({ where: { id: projectId }, data: { activityAt: new Date() } })
+    .catch(() => {});
 }

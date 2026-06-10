@@ -259,6 +259,7 @@ export const prismaTaskRepository: TaskRepository = {
       deletedAt: Date | null; memoryTier: string; accessCount: number; lastAccessedAt: Date | null; isPinned: boolean;
       userId: string; userName: string | null; userProfileImage: string | null; userProfileColor: string | null;
     };
+    const pattern = `%${query.replace(/[%_\\]/g, '\\$&')}%`;
     const rows = await prisma.$queryRaw<RawRow[]>`
       SELECT t.id, t.seq, t."projectId", t.title, t.description, t.status, t.tool, t.priority, t."sortOrder",
              t."keyDecisions", t.outcome, t."folderId", t."createdAt", t."updatedAt", t."doneAt", t."deletedAt",
@@ -270,9 +271,9 @@ export const prismaTaskRepository: TaskRepository = {
         AND t."userId" = ${userId}
         AND t."deletedAt" IS NULL
         AND (
-          t.title ILIKE ${'%' + query + '%'}
-          OR t.description ILIKE ${'%' + query + '%'}
-          OR EXISTS (SELECT 1 FROM unnest(t."keyDecisions") kd WHERE kd ILIKE ${'%' + query + '%'})
+          t.title ILIKE ${pattern}
+          OR t.description ILIKE ${pattern}
+          OR EXISTS (SELECT 1 FROM unnest(t."keyDecisions") kd WHERE kd ILIKE ${pattern})
         )
       ORDER BY t."doneAt" DESC NULLS LAST, t."createdAt" DESC
       LIMIT ${limit}
