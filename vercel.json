@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/cleanup-ingests",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/purge-trash",
+      "schedule": "0 5 * * *"
     }
   ]
 }

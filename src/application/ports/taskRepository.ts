@@ -79,4 +79,5 @@ export type TaskRepository = {
     limit: number;
     threshold?: number;
   }) => Promise<TaskRecord[]>;
+  purgeTrash: (args: { softDeleteBefore: Date; trashTierBefore: Date }) => Promise<number>;
 };

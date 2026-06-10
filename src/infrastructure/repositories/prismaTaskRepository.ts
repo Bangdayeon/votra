@@ -290,4 +290,16 @@ export const prismaTaskRepository: TaskRepository = {
       user: { id: r.userId, name: r.userName, profileImage: r.userProfileImage, profileColor: r.userProfileColor },
     }));
   },
+
+  async purgeTrash({ softDeleteBefore, trashTierBefore }) {
+    const [softDeleted, tierTrashed] = await Promise.all([
+      prisma.task.deleteMany({
+        where: { deletedAt: { not: null, lt: softDeleteBefore } },
+      }),
+      prisma.task.deleteMany({
+        where: { memoryTier: "TRASH", deletedAt: null, updatedAt: { lt: trashTierBefore } },
+      }),
+    ]);
+    return softDeleted.count + tierTrashed.count;
+  },
 };
