@@ -19,4 +19,5 @@ export type SessionLogRecord = {
 export type SessionLogRepository = {
   upsertOrCreate: (input: CreateSessionLogInput) => Promise<void>;
   listByProject: (projectId: string, limit: number) => Promise<SessionLogRecord[]>;
+  deleteOld: (before: Date) => Promise<number>;
 };

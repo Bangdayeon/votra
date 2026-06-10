@@ -49,4 +49,11 @@ export const prismaSessionLogRepository: SessionLogRepository = {
     });
     return rows.map(toRecord);
   },
+
+  async deleteOld(before: Date) {
+    const { count } = await prisma.sessionLog.deleteMany({
+      where: { createdAt: { lt: before } },
+    });
+    return count;
+  },
 };
